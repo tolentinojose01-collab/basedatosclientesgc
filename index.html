@@ -2,22 +2,22 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <!-- Viewport que PERMITE el zoom con los dedos -->
+    <!-- Viewport que permite zoom con máximo 5x -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>CRM Clientes</title>
-    <!-- Leaflet para mapa interactivo -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* RESET con soporte de zoom */
+        /* RESET con scroll normal y sin overflow oculto */
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body {
             height: 100%;
-            overflow: auto; /* permitir zoom */
+            overflow: auto; /* Permite zoom y scroll */
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: #f0f4ff;
-            touch-action: pan-x pan-y; /* zoom táctil */
+            touch-action: pan-x pan-y; /* Zoom táctil */
         }
         :root {
             --bg-app: #ffffff; --bg-main: #f8fafc; --bg-card: #ffffff;
@@ -47,7 +47,8 @@
             display: flex;
             flex-direction: column;
             transition: background 0.3s;
-            position: relative;
+            /* No ocultamos overflow para permitir zoom */
+            overflow: visible;
         }
 
         .app-header {
@@ -76,10 +77,11 @@
 
         .main-content {
             flex: 1;
+            /* El scroll se maneja con overflow-y auto, pero permitimos zoom con overflow visible */
             overflow-y: auto;
             padding: 16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom, 0px));
             background: var(--bg-main);
-            touch-action: pan-x pan-y; /* zoom táctil */
+            touch-action: pan-x pan-y;
         }
 
         /* BARRA INFERIOR STICKY - SIEMPRE VISIBLE */
@@ -262,7 +264,7 @@
 </head>
 <body>
 
-    <!-- ===== APP ===== -->
+    <!-- APP -->
     <div id="app">
 
         <header class="app-header">
@@ -544,7 +546,7 @@
         }
 
         // ======================================================================
-        // IMPRESIONES
+        // IMPRESIONES (resumidas)
         // ======================================================================
         function printClientDirectory() {
             const clients = getAllClients();
