@@ -2,23 +2,22 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <!-- Permitir zoom con los dedos -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
-    <title>Registro de Clientes · CRM</title>
-    <!-- Leaflet CSS y JS (para el mapa interactivo) -->
+    <!-- Viewport que PERMITE el zoom con los dedos -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <title>CRM Clientes</title>
+    <!-- Leaflet para mapa interactivo -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* ===== RESET Y BASE ===== */
+        /* RESET con soporte de zoom */
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body {
             height: 100%;
-            overflow: visible; /* permitir zoom en toda la página */
-            font-family:'Segoe UI', system-ui, sans-serif;
-            background:#f0f4ff;
-            color:#0f172a;
-            touch-action: pan-x pan-y; /* permite zoom táctil */
+            overflow: auto; /* permitir zoom */
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #f0f4ff;
+            touch-action: pan-x pan-y; /* zoom táctil */
         }
         :root {
             --bg-app: #ffffff; --bg-main: #f8fafc; --bg-card: #ffffff;
@@ -42,14 +41,12 @@
             max-width: 480px;
             margin: 0 auto;
             min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
             background: var(--bg-app);
             border-left: 1px solid var(--border);
             border-right: 1px solid var(--border);
-            overflow: visible; /* importante para el zoom */
-            transition: background 0.3s, color 0.3s, border 0.3s;
+            display: flex;
+            flex-direction: column;
+            transition: background 0.3s;
             position: relative;
         }
 
@@ -69,10 +66,8 @@
         .header-actions { display:flex; gap:6px; }
         .header-actions button {
             width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.15);
-            color:#fff; display:flex; align-items:center; justify-content:center;
-            font-size:1rem; border:none; cursor:pointer; transition:background 0.2s;
+            color:#fff; border:none; cursor:pointer; font-size:1rem;
         }
-        .header-actions button:hover { background:rgba(255,255,255,0.25); }
         .connection-status {
             font-size:0.65rem; padding:2px 10px; border-radius:30px;
             background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
@@ -84,11 +79,10 @@
             overflow-y: auto;
             padding: 16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom, 0px));
             background: var(--bg-main);
-            transition: background 0.3s;
-            touch-action: pan-x pan-y; /* permite zoom táctil */
+            touch-action: pan-x pan-y; /* zoom táctil */
         }
 
-        /* BARRA INFERIOR - SIEMPRE VISIBLE AL FINAL */
+        /* BARRA INFERIOR STICKY - SIEMPRE VISIBLE */
         .bottom-nav {
             position: sticky;
             bottom: 0;
@@ -100,7 +94,6 @@
             display: flex;
             padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
             z-index: 9999;
-            transition: background 0.3s, border 0.3s;
             height: var(--nav-height);
             box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
             flex-shrink: 0;
@@ -115,7 +108,6 @@
             border: none;
             background: none;
             cursor: pointer;
-            transition: color 0.2s;
         }
         .nav-item i { display:block; font-size:1.4rem; margin-bottom:2px; }
         .nav-item.active { color: var(--primary); }
@@ -128,26 +120,25 @@
             margin-left: 4px;
         }
 
-        /* ===== RESTO DE ESTILOS (clientes, formulario, detalle, estadísticas) ===== */
+        /* VISTAS */
         .view { display:none; animation:fadeIn 0.25s ease; }
         .view.active { display:block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
+        /* LISTA DE CLIENTES */
         .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
         .list-header h2 { font-size:1.2rem; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text); }
         .list-header h2 span { font-size:0.75rem; background:var(--border); padding:0 10px; border-radius:30px; color:var(--text-muted); }
-        .search-box { display:flex; align-items:center; background:var(--bg-card); border:1.5px solid var(--border); border-radius:8px; padding:0 12px; margin-bottom:14px; transition:border 0.2s; }
-        .search-box:focus-within { border-color:var(--primary); }
+        .search-box { display:flex; align-items:center; background:var(--bg-card); border:1.5px solid var(--border); border-radius:8px; padding:0 12px; margin-bottom:14px; }
         .search-box input { border:none; outline:none; padding:10px 8px; font-size:0.95rem; background:transparent; width:100%; color:var(--text); }
         .search-box i { color:var(--text-muted); }
 
         .client-card {
             background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
             padding:12px 14px; margin-bottom:10px; display:flex; align-items:center; gap:12px;
-            cursor:pointer; box-shadow:var(--shadow); transition:0.2s; position:relative; overflow:hidden;
+            cursor:pointer; box-shadow:var(--shadow); position:relative;
         }
         .client-card::before { content:''; position:absolute; left:0; top:0; height:100%; width:4px; background:linear-gradient(180deg, var(--primary), var(--accent)); }
-        .client-card:active { transform:scale(0.98); }
         .client-card .avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #0d9488); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; flex-shrink:0; overflow:hidden; }
         .client-card .avatar img { width:100%; height:100%; object-fit:cover; }
         .client-card .info { flex:1; min-width:0; }
@@ -160,47 +151,39 @@
 
         .empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
-        .empty-state h3 { font-weight:600; color:var(--text-secondary); }
 
+        /* FORMULARIO */
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
         .form-card .form-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--text); }
         .form-group { margin-bottom:12px; }
         .form-group label { display:block; font-size:0.7rem; font-weight:600; color:var(--text-secondary); margin-bottom:3px; text-transform:uppercase; letter-spacing:0.3px; }
-        .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; transition:border 0.2s; }
-        .form-group .input-wrap:focus-within { border-color:var(--primary); }
+        .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; }
         .form-group .input-wrap i { color:var(--text-muted); width:18px; text-align:center; }
         .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:0.95rem; background:transparent; flex:1; min-width:80px; color:var(--text); }
         .form-group .input-wrap textarea { min-height:50px; resize:vertical; }
         .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 
-        .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:0.9rem; border:none; cursor:pointer; transition:0.2s; display:inline-flex; align-items:center; justify-content:center; gap:6px; flex:1; }
-        .btn:active { transform:scale(0.97); }
+        .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:0.9rem; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; flex:1; }
         .btn-primary { background:linear-gradient(135deg, var(--primary), var(--primary-dark)); color:#fff; }
-        .btn-primary:hover { box-shadow:0 4px 16px rgba(30,58,138,0.25); }
         .btn-secondary { background:var(--bg-main); color:var(--text-secondary); border:1.5px solid var(--border); }
-        .btn-secondary:hover { background:var(--border); }
         .btn-danger { background:#dc2626; color:#fff; }
-        .btn-danger:hover { background:#b91c1c; }
         .btn-accent { background:linear-gradient(135deg, var(--accent), #d97706); color:#1e293b; }
-        .btn-accent:hover { box-shadow:0 4px 16px rgba(245,158,11,0.3); }
         .btn-sm { padding:6px 12px; font-size:0.8rem; flex:0 0 auto; }
         .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:0.8rem; border:none; cursor:pointer; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
 
-        /* MAPA CON LEAFLET - total mente interactivo */
+        /* MAPA CON LEAFLET */
         #map-container {
             width:100%; height:300px; border-radius:8px; overflow:hidden;
             border:1.5px solid var(--border); margin-top:8px;
             background:var(--bg-main); position:relative;
-            touch-action: auto; /* permite zoom táctil dentro del mapa */
         }
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
         .map-actions .btn-sm { flex:1; min-width:80px; }
 
-        /* FOTO - ocupa todo el recuadro */
-        .photo-preview { width:100%; height:200px; object-fit:cover; border-radius:8px; border:1.5px solid var(--border); margin-top:6px; cursor:pointer; background:var(--bg-main); }
-        .photo-placeholder { width:100%; height:80px; border:2px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:4px; cursor:pointer; background:var(--bg-main); margin-top:6px; transition:background 0.2s; }
-        .photo-placeholder:hover { background:var(--border); }
+        /* FOTO */
+        .photo-preview { width:100%; height:200px; object-fit:cover; border-radius:8px; border:1.5px solid var(--border); margin-top:6px; background:var(--bg-main); }
+        .photo-placeholder { width:100%; height:80px; border:2px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:4px; cursor:pointer; background:var(--bg-main); margin-top:6px; }
         .file-input-wrapper { position:relative; overflow:hidden; }
         .file-input-wrapper input[type=file] { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
 
@@ -208,11 +191,10 @@
         .detail-header .back-btn { width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--primary); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; font-size:1rem; }
         .detail-header h2 { flex:1; font-size:1.2rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
 
-        .detail-card { background:var(--bg-card); border-radius:12px; padding:14px 16px; border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:12px; position:relative; overflow:hidden; }
+        .detail-card { background:var(--bg-card); border-radius:12px; padding:14px 16px; border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:12px; position:relative; }
         .detail-card::before { content:''; position:absolute; left:0; top:0; height:100%; width:3px; background:linear-gradient(180deg, var(--primary), var(--accent)); }
         .detail-card .label { font-size:0.6rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; margin-bottom:2px; }
         .detail-card .value { font-size:0.9rem; margin-bottom:6px; color:var(--text); word-break:break-word; }
-        .detail-card .value:last-child { margin-bottom:0; }
 
         .visit-item { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--border); }
         .visit-item:last-child { border-bottom:none; }
@@ -244,7 +226,6 @@
             border:1px solid var(--border); box-shadow:0 8px 30px rgba(0,0,0,0.12);
             display:flex; align-items:center; gap:8px; font-size:0.9rem; font-weight:500;
             pointer-events:auto; animation:slideUp 0.3s ease; margin-bottom:6px;
-            transition:background 0.3s,color 0.3s;
         }
         .toast.success i { color:#22c55e; }
         .toast.error i { color:#ef4444; }
@@ -267,15 +248,9 @@
         .modal .modal-footer { display:flex; gap:8px; margin-top:16px; }
 
         .hidden { display:none !important; }
-        .mt-8 { margin-top:8px; }
-        .gap-8 { gap:8px; }
-        .flex { display:flex; }
-        .text-muted { color:var(--text-muted); }
-        .text-sm { font-size:0.8rem; }
-        .fw-600 { font-weight:600; }
 
         @media (min-width:640px) {
-            #app { border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); border-left:1px solid var(--border); border-right:1px solid var(--border); }
+            #app { border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); }
             .toast-container { max-width:480px; }
         }
         @media (min-width:1024px) {
@@ -287,304 +262,171 @@
 </head>
 <body>
 
-    <!-- ========== APP ========== -->
+    <!-- ===== APP ===== -->
     <div id="app">
 
-        <!-- HEADER -->
         <header class="app-header">
-            <div class="logo">
-                <i class="fas fa-address-book"></i>
-                <span>CRM <span style="color: var(--accent-light);">·</span> Visitas</span>
-            </div>
+            <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas</div>
             <div class="header-actions">
                 <span class="connection-status"><i class="fas fa-circle"></i> local</span>
-                <button id="themeToggle" title="Cambiar tema"><i class="fas fa-moon"></i></button>
+                <button id="themeToggle"><i class="fas fa-moon"></i></button>
             </div>
         </header>
 
-        <!-- MAIN CONTENT -->
         <div class="main-content" id="mainContent">
 
-            <!-- VIEW: LIST -->
+            <!-- VISTA LISTA -->
             <div class="view active" id="viewList">
                 <div class="list-header">
-                    <h2>
-                        <i class="fas fa-users" style="color: var(--primary);"></i>
-                        Clientes
-                        <span id="clientCount">0</span>
-                    </h2>
-                    <button class="btn btn-primary btn-sm" id="addQuickBtn">
-                        <i class="fas fa-plus"></i> Nuevo
-                    </button>
+                    <h2><i class="fas fa-users" style="color:var(--primary);"></i> Clientes <span id="clientCount">0</span></h2>
+                    <button class="btn btn-primary btn-sm" id="addQuickBtn"><i class="fas fa-plus"></i> Nuevo</button>
                 </div>
-
                 <div class="search-box">
                     <i class="fas fa-search"></i>
                     <input type="text" id="searchInput" placeholder="Buscar..." />
                 </div>
-
                 <div id="clientListContainer">
-                    <div class="empty-state">
-                        <i class="fas fa-user-plus"></i>
-                        <h3>Sin clientes</h3>
-                        <p>Toca "Nuevo" para agregar.</p>
-                    </div>
+                    <div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div>
                 </div>
             </div>
 
-            <!-- VIEW: FORM -->
+            <!-- VISTA FORMULARIO -->
             <div class="view" id="viewForm">
                 <div class="form-card">
-                    <div class="form-title">
-                        <i class="fas fa-pen" style="color: var(--primary);"></i>
-                        <span id="formTitle">Nuevo Cliente</span>
-                    </div>
-
-                    <form id="clientForm" autocomplete="off">
+                    <div class="form-title"><i class="fas fa-pen" style="color:var(--primary);"></i> <span id="formTitle">Nuevo Cliente</span></div>
+                    <form id="clientForm">
                         <input type="hidden" id="clientId" />
-
                         <div class="form-group">
-                            <label>Nombre <span class="required">*</span></label>
-                            <div class="input-wrap">
-                                <i class="fas fa-user"></i>
-                                <input type="text" id="fName" placeholder="Ej: Juan Pérez" required />
-                            </div>
+                            <label>Nombre *</label>
+                            <div class="input-wrap"><i class="fas fa-user"></i><input type="text" id="fName" required /></div>
                         </div>
-
                         <div class="form-group">
                             <label>Negocio</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-building"></i>
-                                <input type="text" id="fBusiness" placeholder="Ej: Ferretería López" />
-                            </div>
+                            <div class="input-wrap"><i class="fas fa-building"></i><input type="text" id="fBusiness" /></div>
                         </div>
-
                         <div class="form-group">
-                            <label>Dirección <span class="required">*</span></label>
-                            <div class="input-wrap" style="flex-wrap: wrap;">
+                            <label>Dirección *</label>
+                            <div class="input-wrap" style="flex-wrap:wrap;">
                                 <i class="fas fa-map-pin"></i>
-                                <input type="text" id="fAddress" placeholder="Calle, número, ciudad..." required style="flex:1; min-width:100px;" />
-                                <button type="button" class="btn-geo" id="geoBtn">
-                                    <i class="fas fa-search-location"></i> Buscar
-                                </button>
+                                <input type="text" id="fAddress" required style="flex:1; min-width:100px;" />
+                                <button type="button" class="btn-geo" id="geoBtn"><i class="fas fa-search-location"></i> Buscar</button>
                             </div>
                             <div id="map-container"></div>
                             <div class="map-actions">
-                                <button type="button" class="btn btn-accent btn-sm" id="updateMapCoords">
-                                    <i class="fas fa-location-dot"></i> Ver en mapa
-                                </button>
-                                <a href="#" id="openGoogleMaps" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none; align-items:center; justify-content:center; gap:4px;">
-                                    <i class="fab fa-google"></i> Google Maps
-                                </a>
-                                <a href="#" id="openOsmLink" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none; align-items:center; justify-content:center; gap:4px;">
-                                    <i class="fas fa-map"></i> OpenStreetMap
-                                </a>
+                                <button type="button" class="btn btn-accent btn-sm" id="updateMapCoords"><i class="fas fa-location-dot"></i> Ver en mapa</button>
+                                <a href="#" id="openGoogleMaps" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fab fa-google"></i> Google Maps</a>
+                                <a href="#" id="openOsmLink" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fas fa-map"></i> OpenStreetMap</a>
                             </div>
                         </div>
-
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>Latitud</label>
-                                <div class="input-wrap">
-                                    <i class="fas fa-arrow-up"></i>
-                                    <input type="text" id="fLat" placeholder="19.4326" />
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Longitud</label>
-                                <div class="input-wrap">
-                                    <i class="fas fa-arrow-right"></i>
-                                    <input type="text" id="fLng" placeholder="-99.1332" />
-                                </div>
-                            </div>
+                            <div class="form-group"><label>Latitud</label><div class="input-wrap"><i class="fas fa-arrow-up"></i><input type="text" id="fLat" /></div></div>
+                            <div class="form-group"><label>Longitud</label><div class="input-wrap"><i class="fas fa-arrow-right"></i><input type="text" id="fLng" /></div></div>
                         </div>
-
                         <div class="form-row">
-                            <div class="form-group">
-                                <label>Colonia</label>
-                                <div class="input-wrap">
-                                    <i class="fas fa-location-dot"></i>
-                                    <input type="text" id="fColony" placeholder="Colonia" />
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Teléfono</label>
-                                <div class="input-wrap">
-                                    <i class="fas fa-phone"></i>
-                                    <input type="tel" id="fPhone" placeholder="555-1234" />
-                                </div>
-                            </div>
+                            <div class="form-group"><label>Colonia</label><div class="input-wrap"><i class="fas fa-location-dot"></i><input type="text" id="fColony" /></div></div>
+                            <div class="form-group"><label>Teléfono</label><div class="input-wrap"><i class="fas fa-phone"></i><input type="tel" id="fPhone" /></div></div>
                         </div>
-
                         <div class="form-group">
                             <label>Referencias</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-flag"></i>
-                                <textarea id="fReferences" placeholder="Cerca del semáforo, edificio azul..."></textarea>
-                            </div>
+                            <div class="input-wrap"><i class="fas fa-flag"></i><textarea id="fReferences"></textarea></div>
                         </div>
-
                         <div class="form-group">
-                            <label>Foto del negocio</label>
+                            <label>Foto</label>
                             <div class="file-input-wrapper">
-                                <div class="photo-placeholder" id="photoPlaceholder">
-                                    <i class="fas fa-camera"></i>
-                                    <span>Toca para seleccionar</span>
-                                </div>
+                                <div class="photo-placeholder" id="photoPlaceholder"><i class="fas fa-camera"></i><span>Toca para seleccionar</span></div>
                                 <input type="file" id="fPhoto" accept="image/*" />
                             </div>
                             <img id="photoPreview" class="photo-preview hidden" alt="Vista previa" />
                         </div>
-
                         <div class="form-group">
                             <label>Nueva visita (opcional)</label>
-                            <div class="input-wrap">
-                                <i class="fas fa-sticky-note"></i>
-                                <textarea id="fVisitNote" placeholder="Escribe la nota de la visita..."></textarea>
-                            </div>
-                            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:2px;">
-                                <i class="fas fa-info-circle"></i> Solo se guardará si escribes algo.
-                            </div>
+                            <div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="fVisitNote"></textarea></div>
+                            <div style="font-size:0.7rem; color:var(--text-muted);">Solo se guardará si escribes algo.</div>
                         </div>
-
                         <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="formCancelBtn">
-                                <i class="fas fa-times"></i> Cancelar
-                            </button>
-                            <button type="submit" class="btn btn-primary" id="formSubmitBtn">
-                                <i class="fas fa-save"></i> Guardar
-                            </button>
+                            <button type="button" class="btn btn-secondary" id="formCancelBtn"><i class="fas fa-times"></i> Cancelar</button>
+                            <button type="submit" class="btn btn-primary" id="formSubmitBtn"><i class="fas fa-save"></i> Guardar</button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- VIEW: DETAIL -->
+            <!-- VISTA DETALLE -->
             <div class="view" id="viewDetail">
                 <div class="detail-header">
                     <button class="back-btn" id="detailBackBtn"><i class="fas fa-arrow-left"></i></button>
                     <h2 id="detailName">Cliente</h2>
-                    <div style="display:flex; gap:4px;">
-                        <button class="btn btn-primary btn-sm" id="detailEditBtn"><i class="fas fa-edit"></i></button>
-                        <button class="btn btn-danger btn-sm" id="detailDeleteBtn"><i class="fas fa-trash"></i></button>
-                    </div>
+                    <div><button class="btn btn-primary btn-sm" id="detailEditBtn"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" id="detailDeleteBtn"><i class="fas fa-trash"></i></button></div>
                 </div>
                 <div id="detailContent"></div>
             </div>
 
-            <!-- VIEW: STATS -->
+            <!-- VISTA ESTADÍSTICAS -->
             <div class="view" id="viewStats">
                 <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--text);">
                     <i class="fas fa-chart-simple" style="color:var(--primary);"></i> Estadísticas
                 </h2>
-
-                <div class="stats-grid" id="statsGrid">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-users"></i></div>
-                        <div class="stat-number" id="statTotal">0</div>
-                        <div class="stat-label">Total Clientes</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
-                        <div class="stat-number" id="statVisits">0</div>
-                        <div class="stat-label">Visitas Totales</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                        <div class="stat-number" id="statToday">0</div>
-                        <div class="stat-label">Visitas Hoy</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-star"></i></div>
-                        <div class="stat-number" id="statTop">—</div>
-                        <div class="stat-label">Más Visitado</div>
-                    </div>
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Clientes</div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-number" id="statVisits">0</div><div class="stat-label">Visitas Totales</div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-number" id="statToday">0</div><div class="stat-label">Visitas Hoy</div></div>
+                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">—</div><div class="stat-label">Más Visitado</div></div>
                 </div>
-
                 <div class="chart-container">
                     <h4><i class="fas fa-calendar-week"></i> Visitas por día (últimos 7 días)</h4>
                     <div class="bar-chart" id="weeklyChart"></div>
                 </div>
-
                 <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-                    <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;">
-                        <i class="fas fa-download"></i> Exportar JSON
-                    </button>
-                    <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;">
-                        <i class="fas fa-file-code"></i> JSON sin fotos
-                    </button>
-                    <button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;">
-                        <i class="fas fa-upload"></i> Importar JSON
-                    </button>
+                    <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;"><i class="fas fa-download"></i> Exportar JSON</button>
+                    <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;"><i class="fas fa-file-code"></i> JSON sin fotos</button>
+                    <button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;"><i class="fas fa-upload"></i> Importar JSON</button>
                     <input type="file" id="importFileInput" accept=".json" style="display:none;" />
-                    <button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;">
-                        <i class="fas fa-print"></i> Reporte
-                    </button>
-                    <button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;">
-                        <i class="fas fa-address-book"></i> Directorio
-                    </button>
+                    <button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;"><i class="fas fa-print"></i> Reporte</button>
+                    <button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;"><i class="fas fa-address-book"></i> Directorio</button>
                 </div>
-
                 <div style="margin-top:8px;">
-                    <button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;">
-                        <i class="fas fa-trash-can"></i> Eliminar todos los clientes
-                    </button>
+                    <button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;"><i class="fas fa-trash-can"></i> Eliminar todos</button>
                 </div>
             </div>
 
         </div><!-- /main-content -->
 
-        <!-- BOTTOM NAV (sticky, siempre visible al final) -->
+        <!-- BARRA INFERIOR -->
         <nav class="bottom-nav">
-            <button class="nav-item active" data-view="viewList" id="navList">
-                <i class="fas fa-list-ul"></i>
-                <span>Clientes</span>
-            </button>
-            <button class="nav-item" data-view="viewForm" id="navAdd">
-                <i class="fas fa-plus-circle"></i>
-                <span>Agregar</span>
-            </button>
-            <button class="nav-item" data-view="viewStats" id="navStats">
-                <i class="fas fa-chart-pie"></i>
-                <span>Estadísticas</span>
-                <span class="badge" id="statsBadge" style="display:none;">0</span>
-            </button>
+            <button class="nav-item active" data-view="viewList" id="navList"><i class="fas fa-list-ul"></i>Clientes</button>
+            <button class="nav-item" data-view="viewForm" id="navAdd"><i class="fas fa-plus-circle"></i>Agregar</button>
+            <button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadísticas <span class="badge" id="statsBadge" style="display:none;">0</span></button>
         </nav>
     </div><!-- /app -->
 
-    <!-- ========== TOAST ========== -->
+    <!-- TOAST -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- ========== MODAL ========== -->
+    <!-- MODAL -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal">
-            <div class="modal-header">
-                <h3 id="modalTitle">Confirmar</h3>
-                <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
-            </div>
+            <div class="modal-header"><h3 id="modalTitle">Confirmar</h3><button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button></div>
             <div id="modalBody" style="margin-bottom:14px; font-size:0.95rem; line-height:1.5;"></div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
-                <button class="btn btn-danger" id="modalConfirm">Confirmar</button>
-            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" id="modalCancel">Cancelar</button><button class="btn btn-danger" id="modalConfirm">Confirmar</button></div>
         </div>
     </div>
 
-    <!-- ========== SCRIPT ========== -->
+    <!-- ===== SCRIPT COMPLETO ===== -->
     <script>
         // ======================================================================
-        //  ALMACENAMIENTO LOCAL
+        // ALMACENAMIENTO
         // ======================================================================
         const STORAGE_KEY = 'clientes_crm_data';
         let clientDataCache = [];
         let editingId = null;
-        let selectedLat = null;
-        let selectedLng = null;
+        let selectedLat = null, selectedLng = null;
         let photoDataUrl = null;
         let currentView = 'viewList';
+        let mapInstance = null;
 
         // ======================================================================
-        //  MODO OSCURO
+        // TEMA OSCURO
         // ======================================================================
         document.getElementById('themeToggle').addEventListener('click', function() {
             const html = document.documentElement;
@@ -605,27 +447,17 @@
         }
 
         // ======================================================================
-        //  CRUD
+        // CRUD
         // ======================================================================
         function getAllClients() {
-            try {
-                const data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : [];
-            } catch (e) { return []; }
+            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { return []; }
         }
-
         function saveAllClients(clients) {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-            } catch (e) {
-                showToast('Error al guardar datos', 'error');
-            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
         }
-
         function getClient(id) {
             return getAllClients().find(c => c.id == id) || null;
         }
-
         function saveClient(client) {
             let all = getAllClients();
             if (client.id) {
@@ -639,16 +471,13 @@
             saveAllClients(all);
             return client.id;
         }
-
         function deleteClient(id) {
-            let all = getAllClients().filter(c => c.id != id);
-            saveAllClients(all);
+            saveAllClients(getAllClients().filter(c => c.id != id));
         }
-
         function clearAllClients() { saveAllClients([]); }
 
         // ======================================================================
-        //  TOAST
+        // TOAST
         // ======================================================================
         function showToast(msg, type = 'info', dur = 2800) {
             const c = document.getElementById('toastContainer');
@@ -657,16 +486,11 @@
             const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
             el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
             c.appendChild(el);
-            setTimeout(() => {
-                el.style.opacity = '0';
-                el.style.transform = 'translateY(12px)';
-                el.style.transition = '0.3s';
-                setTimeout(() => el.remove(), 300);
-            }, dur);
+            setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(12px)'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, dur);
         }
 
         // ======================================================================
-        //  MODAL
+        // MODAL
         // ======================================================================
         function showModal(title, body, confirmText, onConfirm) {
             const overlay = document.getElementById('modalOverlay');
@@ -681,61 +505,46 @@
         }
 
         // ======================================================================
-        //  RENDER LISTA
+        // RENDER LISTA
         // ======================================================================
-        function escHtml(str) { if (!str) return ''; const d = document.createElement('div');
-            d.textContent = str; return d.innerHTML; }
+        function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
         function renderClientList(clients) {
             const container = document.getElementById('clientListContainer');
             const countEl = document.getElementById('clientCount');
-
             if (!clients || clients.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-user-plus"></i>
-                        <h3>Sin clientes registrados</h3>
-                        <p>Toca "Nuevo" para agregar tu primer cliente.</p>
-                    </div>
-                `;
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes registrados</h3><p>Toca "Nuevo" para agregar.</p></div>`;
                 countEl.textContent = '0';
                 return;
             }
-
             countEl.textContent = clients.length;
             let html = '';
             for (const c of clients) {
                 const initial = (c.name || '?')[0].toUpperCase();
                 const visitCount = (c.visits || []).length;
-                const lastVisit = c.visits && c.visits.length > 0 ?
-                    new Date(c.visits[c.visits.length - 1].date).toLocaleDateString('es') : 'Sin visitas';
+                const lastVisit = c.visits && c.visits.length > 0 ? new Date(c.visits[c.visits.length - 1].date).toLocaleDateString('es') : 'Sin visitas';
                 const avatarHtml = c.photo ? `<img src="${c.photo}" alt="foto" />` : initial;
-                html += `
-                    <div class="client-card" data-id="${c.id}">
-                        <div class="avatar">${avatarHtml}</div>
-                        <div class="info">
-                            <div class="name">${escHtml(c.name || 'Sin nombre')}</div>
-                            <div class="business">${escHtml(c.business || 'Sin negocio')}</div>
-                            <div class="address">${escHtml(c.address || 'Sin dirección')}</div>
-                        </div>
-                        <div class="meta">
-                            <span class="visits"><i class="fas fa-calendar-check"></i> ${visitCount}</span>
-                            <span class="date">${lastVisit}</span>
-                        </div>
+                html += `<div class="client-card" data-id="${c.id}">
+                    <div class="avatar">${avatarHtml}</div>
+                    <div class="info">
+                        <div class="name">${escHtml(c.name || 'Sin nombre')}</div>
+                        <div class="business">${escHtml(c.business || 'Sin negocio')}</div>
+                        <div class="address">${escHtml(c.address || 'Sin dirección')}</div>
                     </div>
-                `;
+                    <div class="meta">
+                        <span class="visits"><i class="fas fa-calendar-check"></i> ${visitCount}</span>
+                        <span class="date">${lastVisit}</span>
+                    </div>
+                </div>`;
             }
             container.innerHTML = html;
             container.querySelectorAll('.client-card').forEach(el => {
-                el.addEventListener('click', () => {
-                    const id = el.dataset.id;
-                    showClientDetail(id);
-                });
+                el.addEventListener('click', () => showClientDetail(el.dataset.id));
             });
         }
 
         // ======================================================================
-        //  IMPRESIONES
+        // IMPRESIONES
         // ======================================================================
         function printClientDirectory() {
             const clients = getAllClients();
@@ -746,25 +555,7 @@
                 rows += `<tr><td>${i+1}</td><td><strong>${escHtml(c.name||'—')}</strong></td><td>${escHtml(c.business||'—')}</td><td>${escHtml(c.address||'—')}</td><td>${escHtml(c.colony||'—')}</td><td>${escHtml(c.phone||'—')}</td><td>${escHtml(c.references||'—')}</td><td>${c.lat&&c.lng?c.lat+', '+c.lng:'—'}</td><td style="text-align:center">${(c.visits||[]).length}</td></tr>`;
             });
             const win = window.open('', '_blank', 'width=1000,height=700');
-            win.document.write(`
-                <html><head><title>Directorio</title>
-                <style>body{font-family:sans-serif;padding:20px;max-width:1100px;margin:auto;color:#0f172a}
-                h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}
-                table{width:100%;border-collapse:collapse;font-size:0.75rem}
-                th{background:#f1f5f9;padding:8px 6px;border-bottom:2px solid #e2e8f0;text-align:left}
-                td{padding:6px;border-bottom:1px solid #e2e8f0}
-                .footer{margin-top:30px;text-align:center;font-size:0.7rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
-                </style></head>
-                <body>
-                <h1>📇 Directorio de Clientes</h1>
-                <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
-                <table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead>
-                <tbody>${rows}</tbody></table>
-                <div class="footer">Generado desde CRM Visitas</div>
-                <button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button>
-                <button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button>
-                </body></html>
-            `);
+            win.document.write(`<html><head><title>Directorio</title><style>body{font-family:sans-serif;padding:20px;max-width:1100px;margin:auto;color:#0f172a}h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}table{width:100%;border-collapse:collapse;font-size:0.75rem}th{background:#f1f5f9;padding:8px 6px;border-bottom:2px solid #e2e8f0;text-align:left}td{padding:6px;border-bottom:1px solid #e2e8f0}.footer{margin-top:30px;text-align:center;font-size:0.7rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}</style></head><body><h1>📇 Directorio de Clientes</h1><p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">Generado desde CRM Visitas</div><button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button><button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button></body></html>`);
             win.document.close();
         }
 
@@ -774,38 +565,11 @@
             let visitsHtml = '';
             sorted.forEach((v, i) => {
                 const d = new Date(v.date);
-                visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;">
-                    <strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}
-                    <br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span>
-                </div>`;
+                visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span></div>`;
             });
-            const info = `
-                <div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>
-                ${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}
-                <div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>
-                ${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}
-                ${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}
-                ${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}
-                ${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}
-            `;
+            const info = `<div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}<div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}`;
             const win = window.open('', '_blank', 'width=800,height=600');
-            win.document.write(`
-                <html><head><title>Visitas de ${escHtml(client.name)}</title>
-                <style>body{font-family:sans-serif;padding:20px;max-width:700px;margin:auto;color:#0f172a}
-                h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}
-                .info{background:#f8fafc;padding:10px 14px;border-radius:8px;margin:14px 0;border-left:4px solid #1e3a8a}
-                .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}
-                .footer{margin-top:30px;text-align:center;font-size:0.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
-                </style></head>
-                <body>
-                <h1>📋 Historial de visitas</h1>
-                <div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div>
-                <div>${visitsHtml}</div>
-                <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-                <button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button>
-                <button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button>
-                </body></html>
-            `);
+            win.document.write(`<html><head><title>Visitas de ${escHtml(client.name)}</title><style>body{font-family:sans-serif;padding:20px;max-width:700px;margin:auto;color:#0f172a}h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}.info{background:#f8fafc;padding:10px 14px;border-radius:8px;margin:14px 0;border-left:4px solid #1e3a8a}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}.footer{margin-top:30px;text-align:center;font-size:0.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}</style></head><body><h1>📋 Historial de visitas</h1><div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div><div>${visitsHtml}</div><div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div><button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button><button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button></body></html>`);
             win.document.close();
         }
 
@@ -814,75 +578,24 @@
             if (!clients || clients.length === 0) { showToast('No hay datos', 'error'); return; }
             const totalVisits = clients.reduce((acc, c) => acc + (c.visits ? c.visits.length : 0), 0);
             const today = new Date().toDateString();
-            const todayVisits = clients.reduce((acc, c) => {
-                if (c.visits) return acc + c.visits.filter(v => new Date(v.date).toDateString() === today).length;
-                return acc;
-            }, 0);
+            const todayVisits = clients.reduce((acc, c) => { if (c.visits) return acc + c.visits.filter(v => new Date(v.date).toDateString() === today).length; return acc; }, 0);
             let topClient = null, topCount = 0;
-            for (const c of clients) {
-                if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; }
-            }
+            for (const c of clients) { if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; } }
             const days = [];
             for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
             const dayCounts = {};
             const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
             days.forEach(d => dayCounts[d.toDateString()] = 0);
-            for (const c of clients) {
-                if (c.visits) {
-                    for (const v of c.visits) {
-                        const key = new Date(v.date).toDateString();
-                        if (dayCounts[key] !== undefined) dayCounts[key]++;
-                    }
-                }
-            }
+            for (const c of clients) { if (c.visits) { for (const v of c.visits) { const key = new Date(v.date).toDateString(); if (dayCounts[key] !== undefined) dayCounts[key]++; } } }
             let chartHtml = '';
-            days.forEach(d => {
-                const count = dayCounts[d.toDateString()] || 0;
-                chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;">
-                    <div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div>
-                    <div style="font-size:0.6rem;margin-top:2px;">${dayNames[d.getDay()]}</div>
-                    <div style="font-size:0.55rem;color:#64748b;">${count}</div>
-                </div>`;
-            });
+            days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:0.6rem;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:0.55rem;color:#64748b;">${count}</div></div>`; });
             const win = window.open('', '_blank', 'width=800,height=600');
-            win.document.write(`
-                <html><head><title>Reporte de visitas</title>
-                <style>body{font-family:sans-serif;padding:20px;max-width:700px;margin:auto;color:#0f172a}
-                h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}
-                .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
-                .stat-card{background:#f8fafc;padding:10px;border-radius:8px;text-align:center;border-left:4px solid #1e3a8a}
-                .stat-number{font-size:1.6rem;font-weight:800;color:#1e3a8a}
-                .stat-label{font-size:0.6rem;color:#64748b;text-transform:uppercase}
-                .chart{display:flex;justify-content:space-around;align-items:flex-end;height:100px;margin:14px 0;padding:0 10px}
-                table{width:100%;border-collapse:collapse;font-size:0.8rem}
-                th{background:#f1f5f9;padding:6px;text-align:left;border-bottom:2px solid #e2e8f0}
-                td{padding:6px;border-bottom:1px solid #e2e8f0}
-                .footer{margin-top:30px;text-align:center;font-size:0.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
-                </style></head>
-                <body>
-                <h1>📊 Reporte de visitas</h1>
-                <div class="stats-grid">
-                    <div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div>
-                    <div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div>
-                    <div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div>
-                    <div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div>
-                </div>
-                <h2 style="font-size:0.9rem;margin-top:14px;">Visitas por día (últimos 7 días)</h2>
-                <div class="chart">${chartHtml}</div>
-                <h2 style="font-size:0.9rem;margin-top:14px;">Lista de clientes</h2>
-                <table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>
-                ${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}
-                </tbody></table>
-                <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-                <button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button>
-                <button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button>
-                </body></html>
-            `);
+            win.document.write(`<html><head><title>Reporte de visitas</title><style>body{font-family:sans-serif;padding:20px;max-width:700px;margin:auto;color:#0f172a}h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.stat-card{background:#f8fafc;padding:10px;border-radius:8px;text-align:center;border-left:4px solid #1e3a8a}.stat-number{font-size:1.6rem;font-weight:800;color:#1e3a8a}.stat-label{font-size:0.6rem;color:#64748b;text-transform:uppercase}.chart{display:flex;justify-content:space-around;align-items:flex-end;height:100px;margin:14px 0;padding:0 10px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f1f5f9;padding:6px;text-align:left;border-bottom:2px solid #e2e8f0}td{padding:6px;border-bottom:1px solid #e2e8f0}.footer{margin-top:30px;text-align:center;font-size:0.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}</style></head><body><h1>📊 Reporte de visitas</h1><div class="stats-grid"><div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div><div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div><div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div><div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div></div><h2 style="font-size:0.9rem;margin-top:14px;">Visitas por día (últimos 7 días)</h2><div class="chart">${chartHtml}</div><h2 style="font-size:0.9rem;margin-top:14px;">Lista de clientes</h2><table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody></table><div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div><button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button><button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button></body></html>`);
             win.document.close();
         }
 
         // ======================================================================
-        //  CLIENT DETAIL
+        // DETALLE
         // ======================================================================
         function showClientDetail(id) {
             const client = getClient(id);
@@ -890,77 +603,25 @@
             const container = document.getElementById('detailContent');
             document.getElementById('detailName').textContent = client.name || 'Cliente';
             const visits = client.visits || [];
-            const visitHtml = visits.length === 0 ?
-                '<p class="text-muted text-sm">No hay visitas.</p>' :
-                visits.map(v =>
-                    `<div class="visit-item">
-                        <div class="dot"></div>
-                        <div class="v-info">
-                            <div class="v-date">${new Date(v.date).toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</div>
-                            ${v.notes ? `<div class="v-notes">${escHtml(v.notes)}</div>` : ''}
-                        </div>
-                        <div class="v-time">${new Date(v.date).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })}</div>
-                    </div>`
-                ).join('');
-            const lat = client.lat || '';
-            const lng = client.lng || '';
-            // Mapa Leaflet se construirá con JavaScript, no con iframe
-            const photoHtml = client.photo ?
-                `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` :
-                '<p class="text-muted text-sm">Sin foto</p>';
+            const visitHtml = visits.length === 0 ? '<p class="text-muted text-sm">No hay visitas.</p>' : visits.map(v => `<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">${new Date(v.date).toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</div>${v.notes ? `<div class="v-notes">${escHtml(v.notes)}</div>` : ''}</div><div class="v-time">${new Date(v.date).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })}</div></div>`).join('');
+            const lat = client.lat || '', lng = client.lng || '';
+            const photoHtml = client.photo ? `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` : '<p class="text-muted text-sm">Sin foto</p>';
 
             container.innerHTML = `
-                <div class="detail-card">
-                    <div class="label"><i class="fas fa-user"></i> Cliente</div>
-                    <div class="value"><strong>${escHtml(client.name || '—')}</strong></div>
-                    ${client.business ? `<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">${escHtml(client.business)}</div>` : ''}
-                </div>
-                <div class="detail-card">
-                    <div class="label"><i class="fas fa-map-pin"></i> Dirección</div>
-                    <div class="value">${escHtml(client.address || 'Sin dirección')}</div>
-                    ${client.colony ? `<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">${escHtml(client.colony)}</div>` : ''}
-                    ${client.references ? `<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">${escHtml(client.references)}</div>` : ''}
-                    ${client.phone ? `<div class="label"><i class="fas fa-phone"></i> Teléfono</div><div class="value"><a href="tel:${escHtml(client.phone)}" style="color:var(--primary);text-decoration:none;">${escHtml(client.phone)}</a></div>` : ''}
-                    ${lat && lng ? `<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">${lat}, ${lng}</div>` : ''}
-                </div>
-                <div class="detail-card">
-                    <div class="label"><i class="fas fa-image"></i> Foto</div>
-                    <div class="value">${photoHtml}</div>
-                </div>
-                <div class="detail-card">
-                    <div class="label"><i class="fas fa-map"></i> Ubicación</div>
-                    <div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div>
-                    <div class="map-actions" style="margin-top:6px;">
-                        <a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;">
-                            <i class="fab fa-google"></i> Google Maps
-                        </a>
-                        <a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;">
-                            <i class="fas fa-map"></i> OpenStreetMap
-                        </a>
-                    </div>
-                </div>
-                <div class="detail-card">
-                    <div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div>
-                    <div class="visit-timeline">${visitHtml}</div>
-                    <div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;">
-                        <button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button>
-                        <button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button>
-                        <button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button>
-                    </div>
-                </div>
+                <div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>${escHtml(client.name || '—')}</strong></div>${client.business ? `<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">${escHtml(client.business)}</div>` : ''}</div>
+                <div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Dirección</div><div class="value">${escHtml(client.address || 'Sin dirección')}</div>${client.colony ? `<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">${escHtml(client.colony)}</div>` : ''}${client.references ? `<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">${escHtml(client.references)}</div>` : ''}${client.phone ? `<div class="label"><i class="fas fa-phone"></i> Teléfono</div><div class="value"><a href="tel:${escHtml(client.phone)}" style="color:var(--primary);text-decoration:none;">${escHtml(client.phone)}</a></div>` : ''}${lat && lng ? `<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">${lat}, ${lng}</div>` : ''}</div>
+                <div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">${photoHtml}</div></div>
+                <div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicación</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;"><i class="fab fa-google"></i> Google Maps</a><a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>
+                <div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div><div class="visit-timeline">${visitHtml}</div><div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>
             `;
 
-            // Crear mapa Leaflet en detalle
             if (lat && lng) {
                 setTimeout(() => {
                     const mapContainer = document.getElementById('detail-map');
                     if (mapContainer && !mapContainer._leaflet_id) {
                         const map = L.map(mapContainer).setView([parseFloat(lat), parseFloat(lng)], 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: '&copy; OpenStreetMap'
-                        }).addTo(map);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
                         L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map);
-                        // Ajustar tamaño después de renderizar
                         setTimeout(() => map.invalidateSize(), 100);
                     }
                 }, 200);
@@ -970,17 +631,14 @@
             }
 
             document.getElementById('addVisitBtn').addEventListener('click', () => {
-                showModal('Registrar Visita',
-                    `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" placeholder="Nota..." style="min-height:50px;"></textarea></div></div>`,
-                    'Registrar', async () => {
-                        const note = document.getElementById('visitNoteInput')?.value || '';
-                        if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
-                        await addVisitToClient(id, note);
-                        showToast('Visita registrada ✅', 'success');
-                        showClientDetail(id);
-                    });
+                showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', async () => {
+                    const note = document.getElementById('visitNoteInput')?.value || '';
+                    if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
+                    await addVisitToClient(id, note);
+                    showToast('Visita registrada ✅', 'success');
+                    showClientDetail(id);
+                });
             });
-
             document.getElementById('shareVisitBtn').addEventListener('click', () => {
                 if (!visits || visits.length === 0) { showToast('No hay visitas', 'error'); return; }
                 let msg = `📋 CLIENTE: ${client.name}\n`;
@@ -994,22 +652,12 @@
                     const date = new Date(v.date);
                     msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
                 });
-                navigator.clipboard.writeText(msg).then(() => {
-                    showToast('Visitas copiadas 📋', 'success');
-                }).catch(() => showToast('Error al copiar', 'error'));
+                navigator.clipboard.writeText(msg).then(() => showToast('Visitas copiadas 📋', 'success')).catch(() => showToast('Error al copiar', 'error'));
             });
-
-            document.getElementById('printVisitBtn').addEventListener('click', () => {
-                printClientVisits(client);
-            });
-
+            document.getElementById('printVisitBtn').addEventListener('click', () => printClientVisits(client));
             document.getElementById('detailEditBtn').onclick = () => editClient(id);
             document.getElementById('detailDeleteBtn').onclick = () => {
-                showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar',
-                    () => { deleteClient(id);
-                        showToast('Eliminado', 'info');
-                        switchView('viewList');
-                        refreshList(); });
+                showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', () => { deleteClient(id); showToast('Eliminado', 'info'); switchView('viewList'); refreshList(); });
             };
             switchView('viewDetail');
         }
@@ -1025,7 +673,7 @@
         }
 
         // ======================================================================
-        //  FORM - EDITAR
+        // FORM - EDITAR
         // ======================================================================
         function editClient(id) {
             editingId = id;
@@ -1045,19 +693,12 @@
             document.getElementById('fLng').value = c.lng || '';
             selectedLat = c.lat || null;
             selectedLng = c.lng || null;
-
             switchView('viewForm');
-
             setTimeout(() => {
-                if (selectedLat && selectedLng) {
-                    updateMap(selectedLat, selectedLng);
-                } else {
-                    resetMapPlaceholder();
-                }
+                if (selectedLat && selectedLng) updateMap(selectedLat, selectedLng);
+                else resetMapPlaceholder();
             }, 200);
-
             updateLinks();
-
             if (c.photo) {
                 photoDataUrl = c.photo;
                 document.getElementById('photoPreview').src = c.photo;
@@ -1076,8 +717,7 @@
             editingId = null;
             document.getElementById('formTitle').textContent = 'Nuevo Cliente';
             document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
-            selectedLat = null;
-            selectedLng = null;
+            selectedLat = null; selectedLng = null;
             document.getElementById('fLat').value = '';
             document.getElementById('fLng').value = '';
             resetMapPlaceholder();
@@ -1091,43 +731,26 @@
         }
 
         // ======================================================================
-        //  MAPA CON LEAFLET (en el formulario)
+        // MAPA CON LEAFLET
         // ======================================================================
-        let mapInstance = null;
-
         function resetMapPlaceholder() {
             const container = document.getElementById('map-container');
             container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:6px;"><i class="fas fa-map-marked-alt"></i><span>Escribe una dirección y presiona "Buscar"</span></div>';
-            if (mapInstance) {
-                mapInstance.remove();
-                mapInstance = null;
-            }
+            if (mapInstance) { mapInstance.remove(); mapInstance = null; }
             updateLinks();
         }
 
         function updateMap(lat, lng) {
             const container = document.getElementById('map-container');
             if (!lat || !lng) { resetMapPlaceholder(); return; }
-            const latNum = parseFloat(lat);
-            const lngNum = parseFloat(lng);
+            const latNum = parseFloat(lat), lngNum = parseFloat(lng);
             if (isNaN(latNum) || isNaN(lngNum)) { resetMapPlaceholder(); return; }
-
-            // Si ya existe un mapa, eliminarlo
-            if (mapInstance) {
-                mapInstance.remove();
-                mapInstance = null;
-            }
-
-            // Crear nuevo mapa Leaflet
-            container.innerHTML = ''; // vaciar contenido
+            if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+            container.innerHTML = '';
             const map = L.map(container).setView([latNum, lngNum], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap'
-            }).addTo(map);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
             L.marker([latNum, lngNum]).addTo(map);
             mapInstance = map;
-
-            // Ajustar tamaño después de renderizar
             setTimeout(() => map.invalidateSize(), 200);
             updateLinks();
         }
@@ -1138,8 +761,7 @@
             const googleLink = document.getElementById('openGoogleMaps');
             const osmLink = document.getElementById('openOsmLink');
             if (lat && lng) {
-                const latNum = parseFloat(lat);
-                const lngNum = parseFloat(lng);
+                const latNum = parseFloat(lat), lngNum = parseFloat(lng);
                 if (!isNaN(latNum) && !isNaN(lngNum)) {
                     googleLink.href = `https://www.google.com/maps?q=${latNum},${lngNum}`;
                     googleLink.style.display = 'inline-flex';
@@ -1155,7 +777,7 @@
         }
 
         // ======================================================================
-        //  GEOCODIFICACIÓN
+        // GEOCODIFICACIÓN
         // ======================================================================
         async function geocodeManual() {
             const address = document.getElementById('fAddress').value.trim();
@@ -1163,15 +785,13 @@
             const container = document.getElementById('map-container');
             container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
             try {
-                const url =
-                    `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
                 const response = await fetch(url, { headers: { 'User-Agent': 'CRM-Client/1.0' } });
                 const data = await response.json();
                 if (data && data.length > 0) {
                     const lat = parseFloat(data[0].lat);
                     const lng = parseFloat(data[0].lon);
-                    selectedLat = lat;
-                    selectedLng = lng;
+                    selectedLat = lat; selectedLng = lng;
                     document.getElementById('fLat').value = lat;
                     document.getElementById('fLng').value = lng;
                     updateMap(lat, lng);
@@ -1197,11 +817,9 @@
             const lat = document.getElementById('fLat').value.trim();
             const lng = document.getElementById('fLng').value.trim();
             if (lat && lng) {
-                const latNum = parseFloat(lat);
-                const lngNum = parseFloat(lng);
+                const latNum = parseFloat(lat), lngNum = parseFloat(lng);
                 if (!isNaN(latNum) && !isNaN(lngNum)) {
-                    selectedLat = latNum;
-                    selectedLng = lngNum;
+                    selectedLat = latNum; selectedLng = lngNum;
                     updateMap(latNum, lngNum);
                     showToast('Mapa actualizado 📍', 'success');
                 } else { showToast('Coordenadas inválidas', 'error'); }
@@ -1209,19 +827,14 @@
         }
 
         // ======================================================================
-        //  FOTO
+        // FOTO
         // ======================================================================
-        document.getElementById('photoPlaceholder').addEventListener('click', function() {
-            document.getElementById('fPhoto').click();
-        });
-        document.getElementById('photoPreview').addEventListener('click', function() {
-            document.getElementById('fPhoto').click();
-        });
+        document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
+        document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
         document.getElementById('fPhoto').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-            if (file.size > 1024 * 1024) { showToast('Máx 1MB', 'error');
-                this.value = ''; return; }
+            if (file.size > 1024 * 1024) { showToast('Máx 1MB', 'error'); this.value = ''; return; }
             const reader = new FileReader();
             reader.onload = function(ev) {
                 photoDataUrl = ev.target.result;
@@ -1236,7 +849,7 @@
         });
 
         // ======================================================================
-        //  GUARDAR
+        // GUARDAR
         // ======================================================================
         document.getElementById('clientForm').addEventListener('submit', function(e) {
             e.preventDefault();
@@ -1244,7 +857,6 @@
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
             submitBtn.disabled = true;
-
             try {
                 const name = document.getElementById('fName').value.trim();
                 const business = document.getElementById('fBusiness').value.trim();
@@ -1255,73 +867,37 @@
                 const visitNote = document.getElementById('fVisitNote').value.trim();
                 const lat = document.getElementById('fLat').value.trim();
                 const lng = document.getElementById('fLng').value.trim();
-
-                if (!name) { showToast('Nombre obligatorio', 'error');
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false; return; }
-                if (!address) { showToast('Dirección obligatoria', 'error');
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false; return; }
-
+                if (!name) { showToast('Nombre obligatorio', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
+                if (!address) { showToast('Dirección obligatoria', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
                 const id = document.getElementById('clientId').value;
-                const clientData = {
-                    name,
-                    business: business || '',
-                    address,
-                    colony: colony || '',
-                    phone: phone || '',
-                    references: references || '',
-                    lat: lat || null,
-                    lng: lng || null,
-                    photo: photoDataUrl || null,
-                    updatedAt: Date.now()
-                };
-
+                const clientData = { name, business: business || '', address, colony: colony || '', phone: phone || '', references: references || '', lat: lat || null, lng: lng || null, photo: photoDataUrl || null, updatedAt: Date.now() };
                 if (id) {
                     const existing = getClient(id);
                     if (!existing) throw new Error('No existe');
                     let visits = existing.visits || [];
-                    if (visitNote !== '') {
-                        visits.push({ date: Date.now(), notes: visitNote });
-                        showToast('✅ Nueva visita registrada', 'success');
-                    }
+                    if (visitNote !== '') { visits.push({ date: Date.now(), notes: visitNote }); showToast('✅ Nueva visita registrada', 'success'); }
                     clientData.visits = visits;
                     clientData.createdAt = existing.createdAt || Date.now();
                     clientData.id = id;
                     saveClient(clientData);
                     showToast('Cliente actualizado ✅', 'success');
                 } else {
-                    const newClient = {
-                        ...clientData,
-                        visits: visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [],
-                        createdAt: Date.now()
-                    };
+                    const newClient = { ...clientData, visits: visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [], createdAt: Date.now() };
                     saveClient(newClient);
                     showToast('Cliente registrado ✅', 'success');
                 }
-
-                if (lat && lng) {
-                    updateMap(parseFloat(lat), parseFloat(lng));
-                } else {
-                    resetMapPlaceholder();
-                }
-
+                if (lat && lng) updateMap(parseFloat(lat), parseFloat(lng));
+                else resetMapPlaceholder();
                 resetForm();
                 switchView('viewList');
                 refreshList();
-            } catch (err) {
-                showToast('Error: ' + err.message, 'error');
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
+            } catch (err) { showToast('Error: ' + err.message, 'error'); } finally { submitBtn.innerHTML = originalText; submitBtn.disabled = false; }
         });
 
-        document.getElementById('formCancelBtn').addEventListener('click', () => { resetForm();
-            switchView('viewList'); });
+        document.getElementById('formCancelBtn').addEventListener('click', () => { resetForm(); switchView('viewList'); });
 
         // ======================================================================
-        //  EXPORT / IMPORT
+        // EXPORT / IMPORT
         // ======================================================================
         document.getElementById('exportDataBtn').addEventListener('click', function() {
             const clients = getAllClients();
@@ -1339,23 +915,18 @@
         document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
             const clients = getAllClients();
             if (clients.length === 0) { showToast('No hay clientes', 'error'); return; }
-            const cleanClients = clients.map(c => {
-                const { photo, ...rest } = c;
-                return rest;
-            });
-            const blob = new Blob([JSON.stringify(cleanClients, null, 2)], { type: 'application/json' });
+            const clean = clients.map(({ photo, ...rest }) => rest);
+            const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `clientes_sin_fotos_${new Date().toISOString().slice(0,10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            showToast(`Exportados ${cleanClients.length} clientes (sin fotos) ✅`, 'success');
+            showToast(`Exportados ${clean.length} clientes (sin fotos) ✅`, 'success');
         });
 
-        document.getElementById('importDataBtn').addEventListener('click', function() {
-            document.getElementById('importFileInput').click();
-        });
+        document.getElementById('importDataBtn').addEventListener('click', function() { document.getElementById('importFileInput').click(); });
         document.getElementById('importFileInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -1364,17 +935,12 @@
                 try {
                     const data = JSON.parse(ev.target.result);
                     if (!Array.isArray(data)) throw new Error('Formato inválido');
-
-                    showModal('Importar Datos',
-                        `Se encontraron <strong>${data.length}</strong> clientes. ¿Reemplazar o fusionar?`,
-                        'Reemplazar',
-                        function() {
-                            saveAllClients(data);
-                            showToast(`Importados ${data.length} clientes ✅`, 'success');
-                            refreshList();
-                            e.target.value = '';
-                        }
-                    );
+                    showModal('Importar Datos', `Se encontraron <strong>${data.length}</strong> clientes. ¿Reemplazar o fusionar?`, 'Reemplazar', function() {
+                        saveAllClients(data);
+                        showToast(`Importados ${data.length} clientes ✅`, 'success');
+                        refreshList();
+                        e.target.value = '';
+                    });
                     const footer = document.querySelector('.modal-footer');
                     const mergeBtn = document.createElement('button');
                     mergeBtn.className = 'btn btn-primary';
@@ -1403,25 +969,20 @@
                         e.target.value = '';
                     };
                     footer.appendChild(mergeBtn);
-                } catch (err) {
-                    showToast('Error al importar: ' + err.message, 'error');
-                    e.target.value = '';
-                }
+                } catch (err) { showToast('Error al importar: ' + err.message, 'error'); e.target.value = ''; }
             };
             reader.readAsText(file);
         });
 
         // ======================================================================
-        //  REFRESH LIST
+        // REFRESH
         // ======================================================================
         function refreshList() {
             const clients = getAllClients();
             clientDataCache = clients;
             renderClientList(clients);
             updateStatsBadge(clients);
-            if (document.getElementById('viewStats').classList.contains('active')) {
-                renderStats();
-            }
+            if (document.getElementById('viewStats').classList.contains('active')) renderStats();
         }
 
         function renderStats() {
@@ -1431,20 +992,16 @@
                 document.getElementById('statVisits').textContent = '0';
                 document.getElementById('statToday').textContent = '0';
                 document.getElementById('statTop').textContent = '—';
-                document.getElementById('weeklyChart').innerHTML =
-                    '<div class="text-muted text-sm" style="padding:20px 0;text-align:center;">Sin datos</div>';
+                document.getElementById('weeklyChart').innerHTML = '<div class="text-muted text-sm" style="padding:20px 0;text-align:center;">Sin datos</div>';
                 return;
             }
             const today = new Date();
             const days = [];
-            for (let i = 6; i >= 0; i--) { const d = new Date(today);
-                d.setDate(d.getDate() - i);
-                days.push(d); }
+            for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); days.push(d); }
             const dayCounts = {};
             const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
             days.forEach(d => dayCounts[d.toDateString()] = 0);
-            let totalVisits = 0,
-                todayVisits = 0;
+            let totalVisits = 0, todayVisits = 0;
             const todayStr = new Date().toDateString();
             for (const c of clients) {
                 if (c.visits) {
@@ -1459,11 +1016,9 @@
             document.getElementById('statTotal').textContent = clients.length;
             document.getElementById('statVisits').textContent = totalVisits;
             document.getElementById('statToday').textContent = todayVisits;
-            let topClient = null,
-                topCount = 0;
+            let topClient = null, topCount = 0;
             for (const c of clients) {
-                if (c.visits && c.visits.length > topCount) { topCount = c.visits.length;
-                    topClient = c; }
+                if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; }
             }
             document.getElementById('statTop').textContent = topClient ? topClient.name : '—';
             const chart = document.getElementById('weeklyChart');
@@ -1473,12 +1028,7 @@
                 const count = dayCounts[d.toDateString()] || 0;
                 const pct = maxVal > 0 ? (count / maxVal) * 100 : 0;
                 const label = dayNames[d.getDay()];
-                chartHtml += `
-                    <div class="bar-item">
-                        <div class="bar" style="height:${Math.max(4, pct)}%;background:${count > 0 ? 'var(--primary-light)' : 'var(--border)'};"></div>
-                        <div class="bar-label">${label}</div>
-                    </div>
-                `;
+                chartHtml += `<div class="bar-item"><div class="bar" style="height:${Math.max(4, pct)}%;background:${count > 0 ? 'var(--primary-light)' : 'var(--border)'};"></div><div class="bar-label">${label}</div></div>`;
             });
             chart.innerHTML = chartHtml;
         }
@@ -1495,16 +1045,11 @@
                     }
                 }
             }
-            if (todayVisits > 0) {
-                badge.textContent = todayVisits;
-                badge.style.display = 'inline';
-            } else {
-                badge.style.display = 'none';
-            }
+            if (todayVisits > 0) { badge.textContent = todayVisits; badge.style.display = 'inline'; } else { badge.style.display = 'none'; }
         }
 
         // ======================================================================
-        //  NAVEGACIÓN
+        // NAVEGACIÓN
         // ======================================================================
         function switchView(viewId) {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
@@ -1512,8 +1057,7 @@
             if (target) target.classList.add('active');
             currentView = viewId;
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const navMap = { 'viewList': 'viewList', 'viewForm': 'viewForm', 'viewStats': 'viewStats',
-                'viewDetail': 'viewList' };
+            const navMap = { 'viewList': 'viewList', 'viewForm': 'viewForm', 'viewStats': 'viewStats', 'viewDetail': 'viewList' };
             const navId = navMap[viewId] || 'viewList';
             const navItem = document.querySelector(`.nav-item[data-view="${navId}"]`);
             if (navItem) navItem.classList.add('active');
@@ -1536,78 +1080,46 @@
             });
         });
 
-        document.getElementById('addQuickBtn').addEventListener('click', () => { resetForm();
-            switchView('viewForm');
-            document.getElementById('fName').focus(); });
-
-        document.getElementById('detailBackBtn').addEventListener('click', () => { switchView('viewList');
-            refreshList(); });
-
+        document.getElementById('addQuickBtn').addEventListener('click', () => { resetForm(); switchView('viewForm'); document.getElementById('fName').focus(); });
+        document.getElementById('detailBackBtn').addEventListener('click', () => { switchView('viewList'); refreshList(); });
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const q = e.target.value.toLowerCase().trim();
             if (!q) { renderClientList(clientDataCache); return; }
-            const filtered = clientDataCache.filter(c =>
-                (c.name || '').toLowerCase().includes(q) ||
-                (c.business || '').toLowerCase().includes(q) ||
-                (c.address || '').toLowerCase().includes(q) ||
-                (c.colony || '').toLowerCase().includes(q) ||
-                (c.phone || '').includes(q)
-            );
+            const filtered = clientDataCache.filter(c => (c.name || '').toLowerCase().includes(q) || (c.business || '').toLowerCase().includes(q) || (c.address || '').toLowerCase().includes(q) || (c.colony || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
             renderClientList(filtered);
         });
 
         document.getElementById('geoBtn').addEventListener('click', geocodeManual);
-        document.getElementById('fAddress').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') { e.preventDefault();
-                geocodeManual(); }
-        });
+        document.getElementById('fAddress').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); geocodeManual(); } });
         document.getElementById('updateMapCoords').addEventListener('click', updateMapFromCoords);
         document.getElementById('fLat').addEventListener('input', updateLinks);
         document.getElementById('fLng').addEventListener('input', updateLinks);
 
         document.getElementById('resetDataBtn').addEventListener('click', function() {
-            showModal('Eliminar Todos', '¿Eliminar TODOS los clientes?', 'Eliminar',
-                function() {
-                    clearAllClients();
-                    showToast('Todos eliminados', 'info');
-                    refreshList();
-                });
+            showModal('Eliminar Todos', '¿Eliminar TODOS los clientes?', 'Eliminar', function() { clearAllClients(); showToast('Todos eliminados', 'info'); refreshList(); });
         });
 
         document.getElementById('printStatsBtn').addEventListener('click', printStatsReport);
         document.getElementById('printDirectoryBtn').addEventListener('click', printClientDirectory);
 
         // ======================================================================
-        //  INICIO
+        // INICIO
         // ======================================================================
         function init() {
             refreshList();
             updateLinks();
-            // Mostrar mapa inicial con coordenadas por defecto (CDMX)
             setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
             console.log('✅ CRM con Leaflet (mapa interactivo)');
         }
 
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', init);
-        } else {
-            init();
-        }
-
+        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                if (document.getElementById('modalOverlay').classList.contains('open')) {
-                    document.getElementById('modalOverlay').classList.remove('open');
-                }
-                if (currentView === 'viewForm') { resetForm();
-                    switchView('viewList'); }
-                if (currentView === 'viewDetail') { switchView('viewList');
-                    refreshList(); }
+                if (document.getElementById('modalOverlay').classList.contains('open')) document.getElementById('modalOverlay').classList.remove('open');
+                if (currentView === 'viewForm') { resetForm(); switchView('viewList'); }
+                if (currentView === 'viewDetail') { switchView('viewList'); refreshList(); }
             }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-                if (currentView === 'viewList') { e.preventDefault();
-                    document.getElementById('searchInput').focus(); }
-            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'f') { if (currentView === 'viewList') { e.preventDefault(); document.getElementById('searchInput').focus(); } }
         });
     </script>
 </body>
