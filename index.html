@@ -2,23 +2,22 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <!-- VIEWPORT QUE PERMITE ZOOM CON DEDOS -->
+    <!-- Viewport con zoom permitido -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
     <title>CRM Clientes</title>
-    <!-- Leaflet para mapa interactivo -->
+    <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* ===== RESET TOTAL ===== */
+        /* ===== ESTILOS PRINCIPALES (igual que antes) ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body {
             height: 100%;
             min-height: 100vh;
-            overflow: visible !important; /* PERMITE ZOOM */
+            overflow: visible !important;
             font-family: 'Segoe UI', system-ui, sans-serif;
             background: #f0f4ff;
-            /* No ponemos touch-action para no bloquear el zoom */
         }
         :root {
             --bg-app: #ffffff; --bg-main: #f8fafc; --bg-card: #ffffff;
@@ -48,7 +47,7 @@
             display: flex;
             flex-direction: column;
             transition: background 0.3s;
-            overflow: visible !important; /* PERMITE ZOOM */
+            overflow: visible !important;
         }
 
         .app-header {
@@ -93,10 +92,8 @@
             overflow-y: auto;
             padding: 16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom, 0px));
             background: var(--bg-main);
-            /* No ponemos touch-action para no bloquear el zoom */
         }
 
-        /* BARRA INFERIOR STICKY */
         .bottom-nav {
             position: sticky;
             bottom: 0;
@@ -134,12 +131,10 @@
             margin-left: 4px;
         }
 
-        /* VISTAS */
         .view { display:none; animation:fadeIn 0.25s ease; }
         .view.active { display:block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
-        /* LISTA */
         .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
         .list-header h2 { font-size:1.2rem; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text); }
         .list-header h2 span { font-size:0.75rem; background:var(--border); padding:0 10px; border-radius:30px; color:var(--text-muted); }
@@ -166,7 +161,6 @@
         .empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
 
-        /* FORMULARIO */
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
         .form-card .form-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--text); }
         .form-group { margin-bottom:12px; }
@@ -186,7 +180,6 @@
         .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:0.8rem; border:none; cursor:pointer; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
 
-        /* MAPA LEAFLET */
         #map-container {
             width:100%; height:300px; border-radius:8px; overflow:hidden;
             border:1.5px solid var(--border); margin-top:8px;
@@ -195,7 +188,6 @@
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
         .map-actions .btn-sm { flex:1; min-width:80px; }
 
-        /* FOTO */
         .photo-preview { width:100%; height:200px; object-fit:cover; border-radius:8px; border:1.5px solid var(--border); margin-top:6px; background:var(--bg-main); }
         .photo-placeholder { width:100%; height:80px; border:2px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:4px; cursor:pointer; background:var(--bg-main); margin-top:6px; }
         .file-input-wrapper { position:relative; overflow:hidden; }
@@ -442,7 +434,7 @@
         let mapInstance = null;
 
         // ======================================================================
-        // ZOOM CON BOTONES (alternativa si el gesto táctil no funciona)
+        // ZOOM CON BOTONES
         // ======================================================================
         document.getElementById('zoomInBtn').addEventListener('click', function() {
             const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
@@ -578,8 +570,82 @@
         }
 
         // ======================================================================
-        // IMPRESIONES
+        // IMPRESIONES MEJORADAS (con estilos para móvil y botón de zoom)
         // ======================================================================
+        function openPrintWindow(title, content, extraButtons = '') {
+            const win = window.open('', '_blank', 'width=800,height=700');
+            win.document.write(`
+                <html>
+                <head>
+                    <title>${title}</title>
+                    <style>
+                        body {
+                            font-family: 'Segoe UI', system-ui, sans-serif;
+                            padding: 20px;
+                            max-width: 700px;
+                            margin: auto;
+                            color: #0f172a;
+                            font-size: 18px; /* Tamaño base más grande para móvil */
+                            line-height: 1.6;
+                        }
+                        h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 1.8rem; }
+                        h2 { font-size: 1.4rem; margin-top: 20px; }
+                        .info { background: #f8fafc; padding: 14px; border-radius: 8px; border-left: 4px solid #1e3a8a; margin-bottom: 16px; }
+                        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; }
+                        .stat-card { background: #f1f5f9; padding: 12px; border-radius: 8px; text-align: center; margin: 6px 0; }
+                        .stat-number { font-size: 2rem; font-weight: 800; color: #1e3a8a; }
+                        .stat-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
+                        .chart { display: flex; justify-content: space-around; align-items: flex-end; height: 120px; margin: 14px 0; padding: 0 10px; }
+                        table { width: 100%; border-collapse: collapse; font-size: 1rem; margin: 12px 0; }
+                        th { background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+                        td { padding: 8px; border-bottom: 1px solid #e2e8f0; }
+                        .footer { margin-top: 30px; text-align: center; font-size: 0.9rem; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+                        .btn-group { margin: 20px 0; display: flex; gap: 10px; flex-wrap: wrap; }
+                        .btn { padding: 10px 20px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 1.1rem; flex: 1; }
+                        .btn-secondary { background: #e2e8f0; color: #0f172a; }
+                        .btn-danger { background: #dc2626; color: #fff; }
+                        @media print {
+                            .btn-group { display: none; }
+                            body { font-size: 14px; }
+                        }
+                        @media (max-width: 600px) {
+                            body { font-size: 16px; padding: 12px; }
+                            .info-grid { grid-template-columns: 1fr; }
+                            .chart { height: 80px; }
+                            table { font-size: 0.9rem; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div id="printContent">
+                        ${content}
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="window.print()"><i class="fas fa-print"></i> Imprimir</button>
+                        <button class="btn btn-secondary" id="zoomInPrint">🔍+</button>
+                        <button class="btn btn-secondary" id="zoomOutPrint">🔍−</button>
+                        <button class="btn btn-danger" onclick="window.close()">Cerrar</button>
+                        ${extraButtons}
+                    </div>
+                    <script>
+                        // Zoom en la ventana de impresión
+                        document.getElementById('zoomInPrint').addEventListener('click', function() {
+                            const body = document.body;
+                            const current = parseFloat(body.style.fontSize) || 18;
+                            body.style.fontSize = (current + 2) + 'px';
+                        });
+                        document.getElementById('zoomOutPrint').addEventListener('click', function() {
+                            const body = document.body;
+                            const current = parseFloat(body.style.fontSize) || 18;
+                            if (current > 12) body.style.fontSize = (current - 2) + 'px';
+                        });
+                    <\/script>
+                </body>
+                </html>
+            `);
+            win.document.close();
+        }
+
         function printClientDirectory() {
             const clients = getAllClients();
             if (!clients || clients.length === 0) { showToast('No hay clientes', 'error'); return; }
@@ -588,9 +654,16 @@
             sorted.forEach((c, i) => {
                 rows += `<tr><td>${i+1}</td><td><strong>${escHtml(c.name||'—')}</strong></td><td>${escHtml(c.business||'—')}</td><td>${escHtml(c.address||'—')}</td><td>${escHtml(c.colony||'—')}</td><td>${escHtml(c.phone||'—')}</td><td>${escHtml(c.references||'—')}</td><td>${c.lat&&c.lng?c.lat+', '+c.lng:'—'}</td><td style="text-align:center">${(c.visits||[]).length}</td></tr>`;
             });
-            const win = window.open('', '_blank', 'width=1000,height=700');
-            win.document.write(`<html><head><title>Directorio</title><style>body{font-family:sans-serif;padding:20px;max-width:1100px;margin:auto;color:#0f172a}h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}table{width:100%;border-collapse:collapse;font-size:0.75rem}th{background:#f1f5f9;padding:8px 6px;border-bottom:2px solid #e2e8f0;text-align:left}td{padding:6px;border-bottom:1px solid #e2e8f0}.footer{margin-top:30px;text-align:center;font-size:0.7rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}</style></head><body><h1>📇 Directorio de Clientes</h1><p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead><tbody>${rows}</tbody></table><div class="footer">Generado desde CRM Visitas</div><button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button><button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button></body></html>`);
-            win.document.close();
+            const content = `
+                <h1>📇 Directorio de Clientes</h1>
+                <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
+                <table>
+                    <thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div class="footer">Generado desde CRM Visitas</div>
+            `;
+            openPrintWindow('Directorio de Clientes', content);
         }
 
         function printClientVisits(client) {
@@ -599,12 +672,27 @@
             let visitsHtml = '';
             sorted.forEach((v, i) => {
                 const d = new Date(v.date);
-                visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span></div>`;
+                visitsHtml += `<div style="padding:8px 0;border-bottom:1px solid #e2e8f0;">
+                    <strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}
+                    <br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span>
+                </div>`;
             });
-            const info = `<div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}<div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}`;
-            const win = window.open('', '_blank', 'width=800,height=600');
-            win.document.write(`<html><head><title>Visitas de ${escHtml(client.name)}</title><style>body{font-family:sans-serif;padding:20px;max-width:700px;margin:auto;color:#0f172a}h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}.info{background:#f8fafc;padding:10px 14px;border-radius:8px;margin:14px 0;border-left:4px solid #1e3a8a}.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px}.footer{margin-top:30px;text-align:center;font-size:0.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}</style></head><body><h1>📋 Historial de visitas</h1><div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div><div>${visitsHtml}</div><div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div><button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button><button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button></body></html>`);
-            win.document.close();
+            const info = `
+                <div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>
+                ${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}
+                <div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>
+                ${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}
+                ${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}
+                ${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}
+                ${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}
+            `;
+            const content = `
+                <h1>📋 Historial de visitas</h1>
+                <div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div>
+                <div>${visitsHtml}</div>
+                <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
+            `;
+            openPrintWindow(`Visitas de ${client.name}`, content);
         }
 
         function printStatsReport() {
@@ -622,14 +710,28 @@
             days.forEach(d => dayCounts[d.toDateString()] = 0);
             for (const c of clients) { if (c.visits) { for (const v of c.visits) { const key = new Date(v.date).toDateString(); if (dayCounts[key] !== undefined) dayCounts[key]++; } } }
             let chartHtml = '';
-            days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:0.6rem;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:0.55rem;color:#64748b;">${count}</div></div>`; });
-            const win = window.open('', '_blank', 'width=800,height=600');
-            win.document.write(`<html><head><title>Reporte de visitas</title><style>body{font-family:sans-serif;padding:20px;max-width:700px;margin:auto;color:#0f172a}h1{color:#1e3a8a;border-bottom:2px solid #f59e0b;padding-bottom:10px}.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.stat-card{background:#f8fafc;padding:10px;border-radius:8px;text-align:center;border-left:4px solid #1e3a8a}.stat-number{font-size:1.6rem;font-weight:800;color:#1e3a8a}.stat-label{font-size:0.6rem;color:#64748b;text-transform:uppercase}.chart{display:flex;justify-content:space-around;align-items:flex-end;height:100px;margin:14px 0;padding:0 10px}table{width:100%;border-collapse:collapse;font-size:0.8rem}th{background:#f1f5f9;padding:6px;text-align:left;border-bottom:2px solid #e2e8f0}td{padding:6px;border-bottom:1px solid #e2e8f0}.footer{margin-top:30px;text-align:center;font-size:0.8rem;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}</style></head><body><h1>📊 Reporte de visitas</h1><div class="stats-grid"><div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div><div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div><div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div><div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div></div><h2 style="font-size:0.9rem;margin-top:14px;">Visitas por día (últimos 7 días)</h2><div class="chart">${chartHtml}</div><h2 style="font-size:0.9rem;margin-top:14px;">Lista de clientes</h2><table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody></table><div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div><button onclick="window.print()" style="margin-top:20px;padding:8px 16px;background:#1e3a8a;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨️ Imprimir</button><button onclick="window.close()" style="margin-top:20px;margin-left:8px;padding:8px 16px;background:#e2e8f0;border:none;border-radius:6px;cursor:pointer">Cerrar</button></body></html>`);
-            win.document.close();
+            days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(8, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:8px;"></div><div style="font-size:0.8rem;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:0.7rem;color:#64748b;">${count}</div></div>`; });
+            const content = `
+                <h1>📊 Reporte de visitas</h1>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0;">
+                    <div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div>
+                    <div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div>
+                    <div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div>
+                    <div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div>
+                </div>
+                <h2>Visitas por día (últimos 7 días)</h2>
+                <div class="chart">${chartHtml}</div>
+                <h2>Lista de clientes</h2>
+                <table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>
+                ${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}
+                </tbody></table>
+                <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
+            `;
+            openPrintWindow('Reporte de Visitas', content);
         }
 
         // ======================================================================
-        // DETALLE
+        // DETALLE - COMPARTIR MEJORADO
         // ======================================================================
         function showClientDetail(id) {
             const client = getClient(id);
@@ -649,6 +751,7 @@
                 <div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div><div class="visit-timeline">${visitHtml}</div><div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>
             `;
 
+            // Mapa Leaflet
             if (lat && lng) {
                 setTimeout(() => {
                     const mapContainer = document.getElementById('detail-map');
@@ -664,6 +767,7 @@
                 if (mapContainer) mapContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>';
             }
 
+            // Registrar visita
             document.getElementById('addVisitBtn').addEventListener('click', () => {
                 showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', async () => {
                     const note = document.getElementById('visitNoteInput')?.value || '';
@@ -673,8 +777,13 @@
                     showClientDetail(id);
                 });
             });
-            document.getElementById('shareVisitBtn').addEventListener('click', () => {
-                if (!visits || visits.length === 0) { showToast('No hay visitas', 'error'); return; }
+
+            // COMPARTIR - Mejorado con API nativa y copia al portapapeles
+            document.getElementById('shareVisitBtn').addEventListener('click', async function() {
+                if (!visits || visits.length === 0) {
+                    showToast('No hay visitas para compartir', 'error');
+                    return;
+                }
                 let msg = `📋 CLIENTE: ${client.name}\n`;
                 if (client.business) msg += `🏢 Negocio: ${client.business}\n`;
                 if (client.address) msg += `📍 Dirección: ${client.address}\n`;
@@ -686,9 +795,46 @@
                     const date = new Date(v.date);
                     msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
                 });
-                navigator.clipboard.writeText(msg).then(() => showToast('Visitas copiadas 📋', 'success')).catch(() => showToast('Error al copiar', 'error'));
+
+                // Intentar usar la API nativa de compartir (WhatsApp, etc.)
+                try {
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: `Visitas de ${client.name}`,
+                            text: msg
+                        });
+                        showToast('Compartido exitosamente 📤', 'success');
+                        return;
+                    }
+                } catch (err) {
+                    // Si el usuario cancela o no soporta, usamos copia
+                }
+
+                // Fallback: copiar al portapapeles
+                try {
+                    await navigator.clipboard.writeText(msg);
+                    showToast('📋 Visitas copiadas al portapapeles', 'success');
+                } catch (err) {
+                    // Fallback antiguo para navegadores sin clipboard API
+                    const textarea = document.createElement('textarea');
+                    textarea.value = msg;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    try {
+                        document.execCommand('copy');
+                        showToast('📋 Visitas copiadas al portapapeles', 'success');
+                    } catch (e) {
+                        showToast('Error al copiar. Selecciona el texto manualmente.', 'error');
+                    }
+                    document.body.removeChild(textarea);
+                }
             });
-            document.getElementById('printVisitBtn').addEventListener('click', () => printClientVisits(client));
+
+            // Imprimir visitas (usando la nueva función mejorada)
+            document.getElementById('printVisitBtn').addEventListener('click', () => {
+                printClientVisits(client);
+            });
+
             document.getElementById('detailEditBtn').onclick = () => editClient(id);
             document.getElementById('detailDeleteBtn').onclick = () => {
                 showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', () => { deleteClient(id); showToast('Eliminado', 'info'); switchView('viewList'); refreshList(); });
@@ -1143,8 +1289,8 @@
             refreshList();
             updateLinks();
             setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
-            console.log('✅ CRM con Leaflet (mapa interactivo) y botones de zoom');
-            showToast('🔍 Puedes hacer zoom con dos dedos o usar los botones + y -', 'info', 3000);
+            console.log('✅ CRM con Leaflet, botones de zoom y compartir mejorado');
+            showToast('🔍 Usa los botones + y - para acercar/alejar', 'info', 3000);
         }
 
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
