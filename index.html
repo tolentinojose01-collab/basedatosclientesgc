@@ -2,16 +2,19 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <!-- Permitir zoom con los dedos en toda la app -->
+    <!-- Permitir zoom con los dedos -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Registro de Clientes · CRM</title>
+    <!-- Leaflet CSS y JS (para el mapa interactivo) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
         /* ===== RESET Y BASE ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body {
             height: 100%;
-            overflow: hidden;
+            overflow: visible; /* permitir zoom en toda la página */
             font-family:'Segoe UI', system-ui, sans-serif;
             background:#f0f4ff;
             color:#0f172a;
@@ -38,8 +41,8 @@
         #app {
             max-width: 480px;
             margin: 0 auto;
-            height: 100vh;
-            height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             background: var(--bg-app);
@@ -184,20 +187,12 @@
         .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:0.8rem; border:none; cursor:pointer; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
 
-        /* MAPA - sin controles + y -, solo vista */
+        /* MAPA CON LEAFLET - total mente interactivo */
         #map-container {
-            width:100%; height:280px; border-radius:8px; overflow:hidden;
+            width:100%; height:300px; border-radius:8px; overflow:hidden;
             border:1.5px solid var(--border); margin-top:8px;
-            background:var(--bg-main); position:relative; touch-action:auto;
-        }
-        #map-container iframe {
-            position:absolute; top:0; left:0; width:100% !important; height:100% !important;
-            border:none !important; display:block; touch-action:auto;
-        }
-        .map-placeholder {
-            width:100%; height:100%; display:flex; align-items:center; justify-content:center;
-            color:var(--text-muted); flex-direction:column; gap:6px;
-            background:var(--bg-main); position:absolute; top:0; left:0;
+            background:var(--bg-main); position:relative;
+            touch-action: auto; /* permite zoom táctil dentro del mapa */
         }
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
         .map-actions .btn-sm { flex:1; min-width:80px; }
@@ -280,11 +275,11 @@
         .fw-600 { font-weight:600; }
 
         @media (min-width:640px) {
-            #app { border-radius:20px; margin-top:16px; height:calc(100dvh - 32px); border-left:1px solid var(--border); border-right:1px solid var(--border); }
+            #app { border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); border-left:1px solid var(--border); border-right:1px solid var(--border); }
             .toast-container { max-width:480px; }
         }
         @media (min-width:1024px) {
-            #app { margin-top:24px; height:calc(100dvh - 48px); }
+            #app { margin-top:24px; min-height:calc(100dvh - 48px); }
             .modal-overlay .modal { border-radius:16px; max-height:80vh; margin-bottom:20px; }
             .modal-overlay { align-items:center; }
         }
@@ -373,12 +368,7 @@
                                     <i class="fas fa-search-location"></i> Buscar
                                 </button>
                             </div>
-                            <div id="map-container">
-                                <div class="map-placeholder">
-                                    <i class="fas fa-map-marked-alt"></i>
-                                    <span>Escribe una dirección y presiona "Buscar"</span>
-                                </div>
-                            </div>
+                            <div id="map-container"></div>
                             <div class="map-actions">
                                 <button type="button" class="btn btn-accent btn-sm" id="updateMapCoords">
                                     <i class="fas fa-location-dot"></i> Ver en mapa
@@ -914,9 +904,7 @@
                 ).join('');
             const lat = client.lat || '';
             const lng = client.lng || '';
-            const mapEmbed = (lat && lng) ?
-                `<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lng)-0.01},${parseFloat(lat)-0.01},${parseFloat(lng)+0.01},${parseFloat(lat)+0.01}&layer=mapnik&marker=${parseFloat(lat)},${parseFloat(lng)}" allowfullscreen loading="lazy" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none; touch-action:auto;"></iframe>` :
-                `<div class="map-placeholder"><i class="fas fa-map-marked-alt"></i><span>Ubicación no disponible</span></div>`;
+            // Mapa Leaflet se construirá con JavaScript, no con iframe
             const photoHtml = client.photo ?
                 `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` :
                 '<p class="text-muted text-sm">Sin foto</p>';
@@ -941,7 +929,7 @@
                 </div>
                 <div class="detail-card">
                     <div class="label"><i class="fas fa-map"></i> Ubicación</div>
-                    <div style="height:220px;border-radius:6px;overflow:hidden;border:1px solid var(--border);margin-top:4px;position:relative;touch-action:auto;">${mapEmbed}</div>
+                    <div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div>
                     <div class="map-actions" style="margin-top:6px;">
                         <a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;">
                             <i class="fab fa-google"></i> Google Maps
@@ -961,6 +949,25 @@
                     </div>
                 </div>
             `;
+
+            // Crear mapa Leaflet en detalle
+            if (lat && lng) {
+                setTimeout(() => {
+                    const mapContainer = document.getElementById('detail-map');
+                    if (mapContainer && !mapContainer._leaflet_id) {
+                        const map = L.map(mapContainer).setView([parseFloat(lat), parseFloat(lng)], 15);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            attribution: '&copy; OpenStreetMap'
+                        }).addTo(map);
+                        L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map);
+                        // Ajustar tamaño después de renderizar
+                        setTimeout(() => map.invalidateSize(), 100);
+                    }
+                }, 200);
+            } else {
+                const mapContainer = document.getElementById('detail-map');
+                if (mapContainer) mapContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>';
+            }
 
             document.getElementById('addVisitBtn').addEventListener('click', () => {
                 showModal('Registrar Visita',
@@ -1084,16 +1091,17 @@
         }
 
         // ======================================================================
-        //  MAPA Y ENLACES
+        //  MAPA CON LEAFLET (en el formulario)
         // ======================================================================
+        let mapInstance = null;
+
         function resetMapPlaceholder() {
             const container = document.getElementById('map-container');
-            container.innerHTML = `
-                <div class="map-placeholder">
-                    <i class="fas fa-map-marked-alt"></i>
-                    <span>Escribe una dirección y presiona "Buscar"</span>
-                </div>
-            `;
+            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:6px;"><i class="fas fa-map-marked-alt"></i><span>Escribe una dirección y presiona "Buscar"</span></div>';
+            if (mapInstance) {
+                mapInstance.remove();
+                mapInstance = null;
+            }
             updateLinks();
         }
 
@@ -1103,14 +1111,24 @@
             const latNum = parseFloat(lat);
             const lngNum = parseFloat(lng);
             if (isNaN(latNum) || isNaN(lngNum)) { resetMapPlaceholder(); return; }
-            container.innerHTML = `
-                <iframe
-                    src="https://www.openstreetmap.org/export/embed.html?bbox=${lngNum-0.01},${latNum-0.01},${lngNum+0.01},${latNum+0.01}&layer=mapnik&marker=${latNum},${lngNum}"
-                    allowfullscreen
-                    loading="lazy"
-                    style="position:absolute; top:0; left:0; width:100%; height:100%; border:none; touch-action:auto;"
-                ></iframe>
-            `;
+
+            // Si ya existe un mapa, eliminarlo
+            if (mapInstance) {
+                mapInstance.remove();
+                mapInstance = null;
+            }
+
+            // Crear nuevo mapa Leaflet
+            container.innerHTML = ''; // vaciar contenido
+            const map = L.map(container).setView([latNum, lngNum], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+            L.marker([latNum, lngNum]).addTo(map);
+            mapInstance = map;
+
+            // Ajustar tamaño después de renderizar
+            setTimeout(() => map.invalidateSize(), 200);
             updateLinks();
         }
 
@@ -1143,7 +1161,7 @@
             const address = document.getElementById('fAddress').value.trim();
             if (!address) { showToast('Escribe una dirección', 'error'); return; }
             const container = document.getElementById('map-container');
-            container.innerHTML = `<div class="map-placeholder"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>`;
+            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
             try {
                 const url =
                     `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
@@ -1565,8 +1583,9 @@
         function init() {
             refreshList();
             updateLinks();
+            // Mostrar mapa inicial con coordenadas por defecto (CDMX)
             setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
-            console.log('✅ CRM con mapa y enlaces a Google Maps y OpenStreetMap');
+            console.log('✅ CRM con Leaflet (mapa interactivo)');
         }
 
         if (document.readyState === 'loading') {
