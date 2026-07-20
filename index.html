@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+    <!-- QUITAMOS maximum-scale para permitir zoom con dedos -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Registro de Clientes · CRM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
@@ -27,7 +28,6 @@
             --shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
-        /* APP: contenedor principal con scroll y espacio para la barra fija */
         #app {
             max-width: 480px;
             margin: 0 auto;
@@ -38,12 +38,11 @@
             background: var(--bg-app);
             border-left: 1px solid var(--border);
             border-right: 1px solid var(--border);
-            overflow: hidden; /* el scroll se maneja en main-content */
+            overflow: hidden;
             transition: background 0.3s, color 0.3s, border 0.3s;
             position: relative;
         }
 
-        /* HEADER fijo en la parte superior */
         .app-header {
             display: flex;
             align-items: center;
@@ -77,16 +76,17 @@
             display:flex; align-items:center; gap:4px;
         }
 
-        /* CONTENIDO PRINCIPAL: ocupa el espacio restante y hace scroll */
         .main-content {
             flex: 1;
             overflow-y: auto;
             padding: 16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom, 0px));
             background: var(--bg-main);
             transition: background 0.3s;
+            /* Permitir zoom táctil en el contenido */
+            touch-action: pan-x pan-y;
         }
 
-        /* BARRA DE NAVEGACIÓN INFERIOR FIJA */
+        /* BARRA FIJA INFERIOR */
         .bottom-nav {
             position: fixed;
             bottom: 0;
@@ -131,12 +131,11 @@
             margin-left: 4px;
         }
 
-        /* VISTAS */
         .view { display:none; animation:fadeIn 0.25s ease; }
         .view.active { display:block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
-        /* RESTO DE ESTILOS (sin cambios) */
+        /* RESTO DE ESTILOS (sin cambios importantes, solo ajustes en foto y mapa) */
         .list-header {
             display:flex;
             justify-content:space-between;
@@ -366,15 +365,18 @@
             cursor:pointer;
         }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
+        
+        /* MAPA - más alto y con soporte táctil */
         #map-container {
             width:100%;
-            height:240px;
+            height:280px; /* aumentado para mejor interacción */
             border-radius:8px;
             overflow:hidden;
             border:1.5px solid var(--border);
             margin-top:8px;
             background:var(--bg-main);
             position:relative;
+            touch-action: auto; /* permite gestos táctiles */
         }
         #map-container iframe {
             position:absolute;
@@ -384,6 +386,7 @@
             height:100% !important;
             border:none !important;
             display:block;
+            touch-action: auto;
         }
         .map-placeholder {
             width:100%;
@@ -401,10 +404,12 @@
         }
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
         .map-actions .btn-sm { flex:1; min-width:60px; }
+        
+        /* FOTO - ahora ocupa todo el recuadro */
         .photo-preview {
             width:100%;
-            max-height:200px;
-            object-fit:contain;
+            height:200px; /* altura fija */
+            object-fit:cover; /* recorta para llenar */
             border-radius:8px;
             border:1.5px solid var(--border);
             margin-top:6px;
@@ -876,6 +881,10 @@
                     <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;">
                         <i class="fas fa-download"></i> Exportar JSON
                     </button>
+                    <!-- Nuevo botón para exportar sin fotos -->
+                    <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;">
+                        <i class="fas fa-file-code"></i> JSON sin fotos
+                    </button>
                     <button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;">
                         <i class="fas fa-upload"></i> Importar JSON
                     </button>
@@ -933,7 +942,7 @@
         </div>
     </div>
 
-    <!-- ========== SCRIPT (sin cambios, solo se mantiene la lógica) ========== -->
+    <!-- ========== SCRIPT (con mejoras) ========== -->
     <script>
         // ======================================================================
         //  ALMACENAMIENTO LOCAL
@@ -1268,10 +1277,10 @@
             const lat = client.lat || '';
             const lng = client.lng || '';
             const mapEmbed = (lat && lng) ?
-                `<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lng)-0.01},${parseFloat(lat)-0.01},${parseFloat(lng)+0.01},${parseFloat(lat)+0.01}&layer=mapnik&marker=${parseFloat(lat)},${parseFloat(lng)}" allowfullscreen loading="lazy" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;"></iframe>` :
+                `<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=${parseFloat(lng)-0.01},${parseFloat(lat)-0.01},${parseFloat(lng)+0.01},${parseFloat(lat)+0.01}&layer=mapnik&marker=${parseFloat(lat)},${parseFloat(lng)}" allowfullscreen loading="lazy" style="position:absolute; top:0; left:0; width:100%; height:100%; border:none; touch-action:auto;"></iframe>` :
                 `<div class="map-placeholder"><i class="fas fa-map-marked-alt"></i><span>Ubicación no disponible</span></div>`;
             const photoHtml = client.photo ?
-                `<img src="${client.photo}" class="photo-preview" alt="Foto" style="max-height:200px;width:100%;object-fit:contain;">` :
+                `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` :
                 '<p class="text-muted text-sm">Sin foto</p>';
 
             container.innerHTML = `
@@ -1294,7 +1303,7 @@
                 </div>
                 <div class="detail-card">
                     <div class="label"><i class="fas fa-map"></i> Ubicación</div>
-                    <div style="height:180px;border-radius:6px;overflow:hidden;border:1px solid var(--border);margin-top:4px;position:relative;">${mapEmbed}</div>
+                    <div style="height:220px;border-radius:6px;overflow:hidden;border:1px solid var(--border);margin-top:4px;position:relative;touch-action:auto;">${mapEmbed}</div>
                     <div class="map-actions" style="margin-top:6px;">
                         <a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;">
                             <i class="fab fa-google"></i> Google Maps
@@ -1461,7 +1470,7 @@
                     src="https://www.openstreetmap.org/export/embed.html?bbox=${lngNum-0.01},${latNum-0.01},${lngNum+0.01},${latNum+0.01}&layer=mapnik&marker=${latNum},${lngNum}"
                     allowfullscreen
                     loading="lazy"
-                    style="position:absolute; top:0; left:0; width:100%; height:100%; border:none;"
+                    style="position:absolute; top:0; left:0; width:100%; height:100%; border:none; touch-action:auto;"
                 ></iframe>
             `;
             updateLinks();
@@ -1656,7 +1665,7 @@
             switchView('viewList'); });
 
         // ======================================================================
-        //  EXPORT / IMPORT
+        //  EXPORT / IMPORT (con opción sin fotos)
         // ======================================================================
         document.getElementById('exportDataBtn').addEventListener('click', function() {
             const clients = getAllClients();
@@ -1669,6 +1678,25 @@
             a.click();
             URL.revokeObjectURL(url);
             showToast(`Exportados ${clients.length} clientes ✅`, 'success');
+        });
+
+        // Exportar sin fotos (para archivo pequeño)
+        document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
+            const clients = getAllClients();
+            if (clients.length === 0) { showToast('No hay clientes', 'error'); return; }
+            // Clonar y eliminar la propiedad 'photo'
+            const cleanClients = clients.map(c => {
+                const { photo, ...rest } = c;
+                return rest;
+            });
+            const blob = new Blob([JSON.stringify(cleanClients, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `clientes_sin_fotos_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`Exportados ${cleanClients.length} clientes (sin fotos) ✅`, 'success');
         });
 
         document.getElementById('importDataBtn').addEventListener('click', function() {
