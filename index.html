@@ -2,14 +2,21 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8" />
-    <!-- QUITAMOS maximum-scale para permitir zoom con dedos -->
+    <!-- Permitir zoom con dedos (sin maximum-scale) -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Registro de Clientes · CRM</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* ===== ESTILOS BASE ===== */
+        /* ===== RESET Y BASE ===== */
         * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:'Segoe UI', system-ui, sans-serif; background:#f0f4ff; color:#0f172a; height:100vh; height:100dvh; overflow:hidden; }
+        html, body {
+            height: 100%;
+            overflow: hidden; /* evitamos scroll doble */
+            font-family:'Segoe UI', system-ui, sans-serif;
+            background:#f0f4ff;
+            color:#0f172a;
+            touch-action: pan-x pan-y; /* permite zoom táctil en toda la página */
+        }
         :root {
             --bg-app: #ffffff; --bg-main: #f8fafc; --bg-card: #ffffff;
             --text: #0f172a; --text-secondary: #334155; --text-muted: #64748b;
@@ -28,6 +35,7 @@
             --shadow: 0 4px 20px rgba(0,0,0,0.3);
         }
 
+        /* APP: contenedor sin overflow hidden para permitir zoom */
         #app {
             max-width: 480px;
             margin: 0 auto;
@@ -38,11 +46,12 @@
             background: var(--bg-app);
             border-left: 1px solid var(--border);
             border-right: 1px solid var(--border);
-            overflow: hidden;
+            overflow: visible; /* permite zoom */
             transition: background 0.3s, color 0.3s, border 0.3s;
             position: relative;
         }
 
+        /* HEADER FIJO */
         .app-header {
             display: flex;
             align-items: center;
@@ -52,9 +61,8 @@
             color: #fff;
             flex-shrink: 0;
             border-bottom: 2px solid var(--accent);
-            z-index: 10;
+            z-index: 100;
         }
-
         .app-header .logo {
             display: flex;
             align-items: center;
@@ -76,32 +84,32 @@
             display:flex; align-items:center; gap:4px;
         }
 
+        /* CONTENIDO PRINCIPAL: scroll y padding para la barra */
         .main-content {
             flex: 1;
             overflow-y: auto;
             padding: 16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom, 0px));
             background: var(--bg-main);
             transition: background 0.3s;
-            /* Permitir zoom táctil en el contenido */
-            touch-action: pan-x pan-y;
+            touch-action: pan-x pan-y; /* permite zoom táctil */
         }
 
-        /* BARRA FIJA INFERIOR */
+        /* BARRA INFERIOR STICKY (siempre al final) */
         .bottom-nav {
-            position: fixed;
+            position: sticky;
             bottom: 0;
-            left: 50%;
-            transform: translateX(-50%);
             width: 100%;
             max-width: 480px;
+            margin: 0 auto;
             background: var(--bg-card);
             border-top: 2px solid var(--accent-light);
             display: flex;
             padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
-            z-index: 1000;
+            z-index: 9999;
             transition: background 0.3s, border 0.3s;
             height: var(--nav-height);
             box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+            flex-shrink: 0;
         }
 
         .nav-item {
@@ -131,11 +139,11 @@
             margin-left: 4px;
         }
 
+        /* ===== RESTO DE ESTILOS (igual que antes, solo ajustes en mapa y foto) ===== */
         .view { display:none; animation:fadeIn 0.25s ease; }
         .view.active { display:block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
-        /* RESTO DE ESTILOS (sin cambios importantes, solo ajustes en foto y mapa) */
         .list-header {
             display:flex;
             justify-content:space-between;
@@ -366,17 +374,17 @@
         }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
         
-        /* MAPA - más alto y con soporte táctil */
+        /* MAPA - sin controles + y -, solo vista */
         #map-container {
             width:100%;
-            height:280px; /* aumentado para mejor interacción */
+            height:280px;
             border-radius:8px;
             overflow:hidden;
             border:1.5px solid var(--border);
             margin-top:8px;
             background:var(--bg-main);
             position:relative;
-            touch-action: auto; /* permite gestos táctiles */
+            touch-action: auto;
         }
         #map-container iframe {
             position:absolute;
@@ -402,14 +410,22 @@
             top:0;
             left:0;
         }
-        .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
-        .map-actions .btn-sm { flex:1; min-width:60px; }
-        
-        /* FOTO - ahora ocupa todo el recuadro */
+        .map-actions {
+            display:flex;
+            gap:8px;
+            margin-top:8px;
+            flex-wrap:wrap;
+        }
+        .map-actions .btn-sm {
+            flex:1;
+            min-width:80px;
+        }
+
+        /* FOTO - ocupa todo el recuadro */
         .photo-preview {
             width:100%;
-            height:200px; /* altura fija */
-            object-fit:cover; /* recorta para llenar */
+            height:200px;
+            object-fit:cover;
             border-radius:8px;
             border:1.5px solid var(--border);
             margin-top:6px;
@@ -563,7 +579,7 @@
             transform:translateX(-50%);
             max-width:calc(480px - 32px);
             width:100%;
-            z-index:999;
+            z-index:9999;
             pointer-events:none;
         }
         .toast {
@@ -591,7 +607,7 @@
             inset:0;
             background:rgba(0,0,0,0.4);
             backdrop-filter:blur(4px);
-            z-index:100;
+            z-index:10000;
             display:none;
             align-items:flex-end;
             justify-content:center;
@@ -881,7 +897,6 @@
                     <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;">
                         <i class="fas fa-download"></i> Exportar JSON
                     </button>
-                    <!-- Nuevo botón para exportar sin fotos -->
                     <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;">
                         <i class="fas fa-file-code"></i> JSON sin fotos
                     </button>
@@ -906,7 +921,7 @@
 
         </div><!-- /main-content -->
 
-        <!-- BOTTOM NAV -->
+        <!-- BOTTOM NAV (sticky, siempre visible al final) -->
         <nav class="bottom-nav">
             <button class="nav-item active" data-view="viewList" id="navList">
                 <i class="fas fa-list-ul"></i>
@@ -942,7 +957,7 @@
         </div>
     </div>
 
-    <!-- ========== SCRIPT (con mejoras) ========== -->
+    <!-- ========== SCRIPT (igual que antes, sin cambios) ========== -->
     <script>
         // ======================================================================
         //  ALMACENAMIENTO LOCAL
@@ -1665,7 +1680,7 @@
             switchView('viewList'); });
 
         // ======================================================================
-        //  EXPORT / IMPORT (con opción sin fotos)
+        //  EXPORT / IMPORT
         // ======================================================================
         document.getElementById('exportDataBtn').addEventListener('click', function() {
             const clients = getAllClients();
@@ -1680,11 +1695,9 @@
             showToast(`Exportados ${clients.length} clientes ✅`, 'success');
         });
 
-        // Exportar sin fotos (para archivo pequeño)
         document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
             const clients = getAllClients();
             if (clients.length === 0) { showToast('No hay clientes', 'error'); return; }
-            // Clonar y eliminar la propiedad 'photo'
             const cleanClients = clients.map(c => {
                 const { photo, ...rest } = c;
                 return rest;
