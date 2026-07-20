@@ -8,7 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <style>
-        /* ===== RESET ===== */
+        /* === RESET === */
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body {
             height: 100%;
@@ -91,6 +91,7 @@
             background: var(--bg-main);
         }
 
+        /* BARRA INFERIOR */
         .bottom-nav {
             position: sticky;
             bottom: 0;
@@ -128,10 +129,12 @@
             margin-left: 4px;
         }
 
+        /* VISTAS */
         .view { display:none; animation:fadeIn 0.25s ease; }
         .view.active { display:block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 
+        /* LISTA */
         .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
         .list-header h2 { font-size:1.2rem; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text); }
         .list-header h2 span { font-size:0.75rem; background:var(--border); padding:0 10px; border-radius:30px; color:var(--text-muted); }
@@ -158,6 +161,7 @@
         .empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
 
+        /* FORMULARIO */
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
         .form-card .form-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--text); }
         .form-group { margin-bottom:12px; }
@@ -177,6 +181,7 @@
         .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:0.8rem; border:none; cursor:pointer; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
 
+        /* MAPA LEAFLET */
         #map-container {
             width:100%; height:300px; border-radius:8px; overflow:hidden;
             border:1.5px solid var(--border); margin-top:8px;
@@ -185,6 +190,7 @@
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
         .map-actions .btn-sm { flex:1; min-width:80px; }
 
+        /* FOTO */
         .photo-preview { width:100%; height:200px; object-fit:cover; border-radius:8px; border:1.5px solid var(--border); margin-top:6px; background:var(--bg-main); }
         .photo-placeholder { width:100%; height:80px; border:2px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:4px; cursor:pointer; background:var(--bg-main); margin-top:6px; }
         .file-input-wrapper { position:relative; overflow:hidden; }
@@ -252,26 +258,10 @@
 
         .hidden { display:none !important; }
 
-        /* ===== ESTILOS PARA IMPRESIÓN (más grande y legible) ===== */
+        /* Estilos para las ventanas de impresión (móvil) */
         @media print {
-            body * { visibility: hidden; }
-            #printContent, #printContent * { visibility: visible; }
-            #printContent { 
-                position: absolute; 
-                left: 0; 
-                top: 0; 
-                width: 100%; 
-                padding: 20px;
-                font-size: 16px !important;
-                line-height: 1.6;
-                color: #000;
-                background: #fff;
-            }
-            #printContent h1 { font-size: 24px !important; }
-            #printContent h2 { font-size: 20px !important; }
-            #printContent table { font-size: 14px !important; border-collapse: collapse; width: 100%; }
-            #printContent th, #printContent td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-            #printContent .header { background: #f0f0f0; }
+            body { background: white; }
+            .no-print { display: none !important; }
         }
 
         @media (min-width:640px) {
@@ -340,9 +330,6 @@
                                 <button type="button" class="btn btn-accent btn-sm" id="updateMapCoords"><i class="fas fa-location-dot"></i> Ver en mapa</button>
                                 <a href="#" id="openGoogleMaps" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fab fa-google"></i> Google Maps</a>
                                 <a href="#" id="openOsmLink" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fas fa-map"></i> OpenStreetMap</a>
-                            </div>
-                            <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">
-                                <i class="fas fa-info-circle"></i> Si el mapa no muestra bien la ubicación, ajusta las coordenadas manualmente o usa Google Maps.
                             </div>
                         </div>
                         <div class="form-row">
@@ -434,8 +421,6 @@
         </div>
     </div>
 
-    <div id="printContent" style="display:none;"></div>
-
     <script>
         // ======================================================================
         // ALMACENAMIENTO
@@ -449,7 +434,7 @@
         let mapInstance = null;
 
         // ======================================================================
-        // ZOOM CON BOTONES
+        // ZOOM CON BOTONES (alternativa)
         // ======================================================================
         document.getElementById('zoomInBtn').addEventListener('click', function() {
             const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
@@ -585,7 +570,7 @@
         }
 
         // ======================================================================
-        // IMPRESIONES MEJORADAS (más grande y con contenido específico)
+        // IMPRESIONES mejoradas para móvil
         // ======================================================================
         function printClientDirectory() {
             const clients = getAllClients();
@@ -595,16 +580,28 @@
             sorted.forEach((c, i) => {
                 rows += `<tr><td>${i+1}</td><td><strong>${escHtml(c.name||'—')}</strong></td><td>${escHtml(c.business||'—')}</td><td>${escHtml(c.address||'—')}</td><td>${escHtml(c.colony||'—')}</td><td>${escHtml(c.phone||'—')}</td><td>${escHtml(c.references||'—')}</td><td>${c.lat&&c.lng?c.lat+', '+c.lng:'—'}</td><td style="text-align:center">${(c.visits||[]).length}</td></tr>`;
             });
-            const content = `
-                <h1>📇 Directorio de Clientes</h1>
-                <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
-                <table>
-                    <thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
-                <div style="margin-top:20px; font-size:12px; color:#888;">Generado desde CRM Visitas</div>
-            `;
-            printContent(content);
+            const win = window.open('', '_blank', 'width=800,height=700');
+            win.document.write(`<!DOCTYPE html><html><head><title>Directorio</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+            <style>
+                body { font-family: Arial, sans-serif; padding: 10px; max-width: 1100px; margin: auto; color: #0f172a; font-size: 14px; }
+                h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; font-size: 20px; }
+                table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                th { background: #f1f5f9; padding: 6px; border-bottom: 2px solid #e2e8f0; text-align: left; }
+                td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
+                .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+                @media (max-width: 600px) { table { font-size: 10px; } th, td { padding: 4px; } }
+                button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+                .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }
+            </style></head><body>
+            <h1>📇 Directorio de Clientes</h1>
+            <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
+            <table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead><tbody>${rows}</tbody></table>
+            <div class="footer">Generado desde CRM Visitas</div>
+            <button onclick="window.print()">🖨️ Imprimir</button>
+            <button class="close-btn" onclick="window.close()">Cerrar</button>
+            </body></html>`);
+            win.document.close();
         }
 
         function printClientVisits(client) {
@@ -613,27 +610,29 @@
             let visitsHtml = '';
             sorted.forEach((v, i) => {
                 const d = new Date(v.date);
-                visitsHtml += `<div style="padding:6px 0; border-bottom:1px solid #eee;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#555;">${escHtml(v.notes||'Sin nota')}</span></div>`;
+                visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span></div>`;
             });
-            const info = `
-                <div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>
-                ${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}
-                <div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>
-                ${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}
-                ${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}
-                ${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}
-                ${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}
-            `;
-            const content = `
-                <h1>📋 Historial de visitas</h1>
-                <div style="background:#f8fafc; padding:12px; border-radius:8px; margin:14px 0; border-left:4px solid #1e3a8a;">
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 16px;">${info}</div>
-                    <div style="margin-top:8px; border-top:1px dashed #ddd; padding-top:8px;"><strong>Total visitas:</strong> ${sorted.length}</div>
-                </div>
-                <div>${visitsHtml}</div>
-                <div style="margin-top:20px; font-size:12px; color:#888;">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-            `;
-            printContent(content);
+            const info = `<div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}<div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}`;
+            const win = window.open('', '_blank', 'width=800,height=600');
+            win.document.write(`<!DOCTYPE html><html><head><title>Visitas de ${escHtml(client.name)}</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+            <style>
+                body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; }
+                h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; }
+                .info { background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin: 14px 0; border-left: 4px solid #1e3a8a; }
+                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
+                .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+                button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+                .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }
+            </style></head><body>
+            <h1>📋 Historial de visitas</h1>
+            <div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div>
+            <div>${visitsHtml}</div>
+            <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
+            <button onclick="window.print()">🖨️ Imprimir</button>
+            <button class="close-btn" onclick="window.close()">Cerrar</button>
+            </body></html>`);
+            win.document.close();
         }
 
         function printStatsReport() {
@@ -651,88 +650,41 @@
             days.forEach(d => dayCounts[d.toDateString()] = 0);
             for (const c of clients) { if (c.visits) { for (const v of c.visits) { const key = new Date(v.date).toDateString(); if (dayCounts[key] !== undefined) dayCounts[key]++; } } }
             let chartHtml = '';
-            days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:0.6rem;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:0.55rem;color:#64748b;">${count}</div></div>`; });
-            const content = `
-                <h1>📊 Reporte de visitas</h1>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:14px 0;">
-                    <div style="background:#f8fafc; padding:10px; border-radius:8px; text-align:center; border-left:4px solid #1e3a8a;"><div style="font-size:1.6rem; font-weight:800; color:#1e3a8a;">${clients.length}</div><div style="font-size:0.6rem; color:#64748b; text-transform:uppercase;">Total Clientes</div></div>
-                    <div style="background:#f8fafc; padding:10px; border-radius:8px; text-align:center; border-left:4px solid #1e3a8a;"><div style="font-size:1.6rem; font-weight:800; color:#1e3a8a;">${totalVisits}</div><div style="font-size:0.6rem; color:#64748b; text-transform:uppercase;">Visitas Totales</div></div>
-                    <div style="background:#f8fafc; padding:10px; border-radius:8px; text-align:center; border-left:4px solid #1e3a8a;"><div style="font-size:1.6rem; font-weight:800; color:#1e3a8a;">${todayVisits}</div><div style="font-size:0.6rem; color:#64748b; text-transform:uppercase;">Visitas Hoy</div></div>
-                    <div style="background:#f8fafc; padding:10px; border-radius:8px; text-align:center; border-left:4px solid #1e3a8a;"><div style="font-size:1.6rem; font-weight:800; color:#1e3a8a;">${topClient ? topClient.name : '—'}</div><div style="font-size:0.6rem; color:#64748b; text-transform:uppercase;">Más Visitado (${topCount})</div></div>
-                </div>
-                <h2 style="font-size:1rem; margin-top:14px;">Visitas por día (últimos 7 días)</h2>
-                <div style="display:flex; justify-content:space-around; align-items:flex-end; height:100px; margin:14px 0; padding:0 10px;">${chartHtml}</div>
-                <h2 style="font-size:1rem; margin-top:14px;">Lista de clientes</h2>
-                <table>
-                    <thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead>
-                    <tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody>
-                </table>
-                <div style="margin-top:20px; font-size:12px; color:#888;">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-            `;
-            printContent(content);
-        }
-
-        // ======================================================================
-        // FUNCIÓN GENERAL PARA IMPRIMIR CON ESTILO MEJORADO
-        // ======================================================================
-        function printContent(htmlContent) {
-            const printDiv = document.getElementById('printContent');
-            printDiv.innerHTML = htmlContent;
-            printDiv.style.display = 'block';
-            window.print();
-            setTimeout(() => { printDiv.style.display = 'none'; }, 500);
-        }
-
-        // ======================================================================
-        // COMPARTIR MEJORADO (copia toda la información del cliente)
-        // ======================================================================
-        function shareClientInfo(client) {
-            if (!client) { showToast('Cliente no encontrado', 'error'); return; }
-            let msg = `📋 CLIENTE: ${client.name}\n`;
-            if (client.business) msg += `🏢 Negocio: ${client.business}\n`;
-            if (client.address) msg += `📍 Dirección: ${client.address}\n`;
-            if (client.colony) msg += `🏘️ Colonia: ${client.colony}\n`;
-            if (client.phone) msg += `📞 Teléfono: ${client.phone}\n`;
-            if (client.references) msg += `📌 Referencias: ${client.references}\n`;
-            if (client.lat && client.lng) msg += `🌐 Coordenadas: ${client.lat}, ${client.lng}\n`;
-            const visits = client.visits || [];
-            if (visits.length > 0) {
-                msg += `\n📅 VISITAS:\n`;
-                const sorted = [...visits].sort((a, b) => b.date - a.date);
-                sorted.forEach((v, i) => {
-                    const date = new Date(v.date);
-                    msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
-                });
-            } else {
-                msg += `\n📅 Sin visitas registradas.`;
-            }
-            // Copiar al portapapeles
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(msg).then(() => {
-                    showToast('📋 Información copiada al portapapeles', 'success');
-                }).catch(() => {
-                    fallbackCopy(msg);
-                });
-            } else {
-                fallbackCopy(msg);
-            }
-        }
-
-        function fallbackCopy(text) {
-            const textarea = document.createElement('textarea');
-            textarea.value = text;
-            textarea.style.position = 'fixed';
-            textarea.style.top = '-9999px';
-            textarea.style.left = '-9999px';
-            document.body.appendChild(textarea);
-            textarea.select();
-            try {
-                document.execCommand('copy');
-                showToast('📋 Información copiada al portapapeles', 'success');
-            } catch (e) {
-                showToast('Error al copiar. Selecciona y copia manualmente.', 'error');
-            }
-            document.body.removeChild(textarea);
+            days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:12px;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:11px;color:#64748b;">${count}</div></div>`; });
+            const win = window.open('', '_blank', 'width=800,height=600');
+            win.document.write(`<!DOCTYPE html><html><head><title>Reporte de visitas</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+            <style>
+                body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; }
+                h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; }
+                .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
+                .stat-card { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border-left: 4px solid #1e3a8a; }
+                .stat-number { font-size: 24px; font-weight: 800; color: #1e3a8a; }
+                .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
+                .chart { display: flex; justify-content: space-around; align-items: flex-end; height: 100px; margin: 14px 0; padding: 0 10px; }
+                table { width: 100%; border-collapse: collapse; font-size: 12px; }
+                th { background: #f1f5f9; padding: 6px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+                td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
+                .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+                button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+                .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }
+            </style></head><body>
+            <h1>📊 Reporte de visitas</h1>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div>
+                <div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div>
+                <div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div>
+                <div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div>
+            </div>
+            <h2 style="font-size:16px;margin-top:14px;">Visitas por día (últimos 7 días)</h2>
+            <div class="chart">${chartHtml}</div>
+            <h2 style="font-size:16px;margin-top:14px;">Lista de clientes</h2>
+            <table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody></table>
+            <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
+            <button onclick="window.print()">🖨️ Imprimir</button>
+            <button class="close-btn" onclick="window.close()">Cerrar</button>
+            </body></html>`);
+            win.document.close();
         }
 
         // ======================================================================
@@ -752,10 +704,11 @@
                 <div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>${escHtml(client.name || '—')}</strong></div>${client.business ? `<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">${escHtml(client.business)}</div>` : ''}</div>
                 <div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Dirección</div><div class="value">${escHtml(client.address || 'Sin dirección')}</div>${client.colony ? `<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">${escHtml(client.colony)}</div>` : ''}${client.references ? `<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">${escHtml(client.references)}</div>` : ''}${client.phone ? `<div class="label"><i class="fas fa-phone"></i> Teléfono</div><div class="value"><a href="tel:${escHtml(client.phone)}" style="color:var(--primary);text-decoration:none;">${escHtml(client.phone)}</a></div>` : ''}${lat && lng ? `<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">${lat}, ${lng}</div>` : ''}</div>
                 <div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">${photoHtml}</div></div>
-                <div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicación</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;"><i class="fab fa-google"></i> Google Maps</a><a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : '#'}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:${lat && lng ? 'inline-flex' : 'none'}; align-items:center; justify-content:center; gap:4px;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>
+                <div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicación</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fab fa-google"></i> Google Maps</a><a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>
                 <div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div><div class="visit-timeline">${visitHtml}</div><div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>
             `;
 
+            // Mapa Leaflet en detalle
             if (lat && lng) {
                 setTimeout(() => {
                     const mapContainer = document.getElementById('detail-map');
@@ -780,13 +733,39 @@
                     showClientDetail(id);
                 });
             });
-            // BOTÓN COMPARTIR MEJORADO
+
+            // Botón Compartir mejorado
             document.getElementById('shareVisitBtn').addEventListener('click', () => {
-                shareClientInfo(client);
+                if (!visits || visits.length === 0) { showToast('No hay visitas', 'error'); return; }
+                let msg = `📋 CLIENTE: ${client.name}\n`;
+                if (client.business) msg += `🏢 Negocio: ${client.business}\n`;
+                if (client.address) msg += `📍 Dirección: ${client.address}\n`;
+                if (client.colony) msg += `🏘️ Colonia: ${client.colony}\n`;
+                if (client.phone) msg += `📞 Teléfono: ${client.phone}\n`;
+                msg += `📅 Visitas:\n\n`;
+                const sorted = [...visits].sort((a, b) => b.date - a.date);
+                sorted.forEach((v, i) => {
+                    const date = new Date(v.date);
+                    msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
+                });
+                // Usar Web Share API si está disponible
+                if (navigator.share) {
+                    navigator.share({
+                        title: 'Visitas de ' + client.name,
+                        text: msg
+                    }).catch(() => {});
+                } else {
+                    // Fallback: copiar al portapapeles
+                    navigator.clipboard.writeText(msg).then(() => {
+                        showToast('Visitas copiadas al portapapeles 📋', 'success');
+                    }).catch(() => {
+                        // Si clipboard no funciona, mostrar en un modal o alert
+                        showModal('Visitas', `<pre style="white-space:pre-wrap;font-size:0.8rem;">${escHtml(msg)}</pre>`, 'Cerrar');
+                    });
+                }
             });
-            document.getElementById('printVisitBtn').addEventListener('click', () => {
-                printClientVisits(client);
-            });
+
+            document.getElementById('printVisitBtn').addEventListener('click', () => printClientVisits(client));
             document.getElementById('detailEditBtn').onclick = () => editClient(id);
             document.getElementById('detailDeleteBtn').onclick = () => {
                 showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', () => { deleteClient(id); showToast('Eliminado', 'info'); switchView('viewList'); refreshList(); });
@@ -863,7 +842,7 @@
         }
 
         // ======================================================================
-        // MAPA CON LEAFLET (mejorado)
+        // MAPA CON LEAFLET
         // ======================================================================
         function resetMapPlaceholder() {
             const container = document.getElementById('map-container');
@@ -890,6 +869,7 @@
         function updateLinks() {
             const lat = document.getElementById('fLat').value.trim();
             const lng = document.getElementById('fLng').value.trim();
+            const address = document.getElementById('fAddress').value.trim();
             const googleLink = document.getElementById('openGoogleMaps');
             const osmLink = document.getElementById('openOsmLink');
             if (lat && lng) {
@@ -901,6 +881,12 @@
                     osmLink.style.display = 'inline-flex';
                     return;
                 }
+            } else if (address) {
+                googleLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+                googleLink.style.display = 'inline-flex';
+                osmLink.href = `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`;
+                osmLink.style.display = 'inline-flex';
+                return;
             }
             googleLink.href = '#';
             googleLink.style.display = 'none';
@@ -909,7 +895,7 @@
         }
 
         // ======================================================================
-        // GEOCODIFICACIÓN (mejorada con más detalles)
+        // GEOCODIFICACIÓN mejorada
         // ======================================================================
         async function geocodeManual() {
             const address = document.getElementById('fAddress').value.trim();
@@ -917,42 +903,36 @@
             const container = document.getElementById('map-container');
             container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
             try {
-                // Búsqueda más amplia (sin limitar a México para dar más opciones)
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=5`;
+                // Intentar con Nominatim
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
                 const response = await fetch(url, { headers: { 'User-Agent': 'CRM-Client/1.0' } });
                 const data = await response.json();
                 if (data && data.length > 0) {
-                    // Tomamos el primer resultado (el más relevante)
                     const lat = parseFloat(data[0].lat);
                     const lng = parseFloat(data[0].lon);
                     selectedLat = lat; selectedLng = lng;
                     document.getElementById('fLat').value = lat;
                     document.getElementById('fLng').value = lng;
                     updateMap(lat, lng);
-                    // Intentamos extraer colonia de la dirección
                     const parts = data[0].display_name.split(',');
                     if (parts.length > 2) {
-                        // Buscar un posible nombre de colonia (suele estar en la posición -3 o -4)
-                        let colony = '';
-                        for (let i = parts.length - 1; i >= 0; i--) {
-                            const p = parts[i].trim();
-                            if (p && !p.match(/^\d+$/)) {
-                                colony = p;
-                                break;
-                            }
-                        }
+                        const colony = parts[parts.length - 3]?.trim() || '';
                         if (colony && !document.getElementById('fColony').value) {
                             document.getElementById('fColony').value = colony;
                         }
                     }
-                    showToast('📍 Ubicación encontrada. Revisa que sea correcta.', 'success');
+                    showToast('Ubicación encontrada 📍', 'success');
                 } else {
+                    // Si no encuentra, ofrecer abrir en Google Maps con la dirección
                     resetMapPlaceholder();
-                    showToast('No se encontró la dirección. Intenta ser más específico.', 'error');
+                    showToast('No se encontró la ubicación. Usa el botón "Google Maps" para abrir la dirección.', 'error');
+                    // Activar enlaces de mapa con la dirección
+                    updateLinks();
                 }
             } catch (err) {
                 resetMapPlaceholder();
-                showToast('Error al geocodificar. Revisa tu conexión.', 'error');
+                showToast('Error al geocodificar. Intenta abrir en Google Maps.', 'error');
+                updateLinks();
             }
         }
 
@@ -1237,6 +1217,7 @@
         document.getElementById('updateMapCoords').addEventListener('click', updateMapFromCoords);
         document.getElementById('fLat').addEventListener('input', updateLinks);
         document.getElementById('fLng').addEventListener('input', updateLinks);
+        document.getElementById('fAddress').addEventListener('input', updateLinks);
 
         document.getElementById('resetDataBtn').addEventListener('click', function() {
             showModal('Eliminar Todos', '¿Eliminar TODOS los clientes?', 'Eliminar', function() { clearAllClients(); showToast('Todos eliminados', 'info'); refreshList(); });
@@ -1252,8 +1233,8 @@
             refreshList();
             updateLinks();
             setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
-            console.log('✅ CRM con todas las mejoras');
-            showToast('🔍 Puedes hacer zoom con dos dedos o usar los botones + y -', 'info', 3000);
+            console.log('✅ CRM con Leaflet y mejoras de impresión/compartir');
+            showToast('🔍 Busca direcciones o usa el botón Google Maps', 'info', 3000);
         }
 
         if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
