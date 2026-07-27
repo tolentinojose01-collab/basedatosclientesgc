@@ -313,7 +313,9 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 db.enablePersistence({ synchronizeTabs: true })
-    .catch((err) => { console.warn('⚠️ Persistencia offline no disponible:', err); });
+    .catch((err) => { 
+        console.warn('⚠️ Persistencia offline no disponible:', err); 
+    });
 
 const CLIENTS_COLLECTION = 'clientes';
 const STORAGE_KEY = 'clientes_crm_data';
@@ -332,7 +334,6 @@ let selectedLat = null, selectedLng = null;
 let photoDataUrl = null;
 let mapInstance = null;
 let currentView = 'viewList';
-let isSaving = false;
 
 // ======================================================================
 // UI DE CONEXIÓN
@@ -347,14 +348,25 @@ function updateConnectionStatus(status) {
     else if (status === 'syncing') { statusDot.classList.add('syncing'); statusText.textContent = 'sincronizando...'; }
 }
 
-window.addEventListener('online', () => { isOnline = true; updateConnectionStatus('online'); showToast('🌐 Conexión restablecida', 'success'); syncWithFirebase(); });
-window.addEventListener('offline', () => { isOnline = false; updateConnectionStatus('offline'); showToast('📡 Sin conexión - modo offline', 'warning'); });
+window.addEventListener('online', () => { 
+    isOnline = true; 
+    updateConnectionStatus('online'); 
+    if (listenerUnsubscribe) {
+        listenerUnsubscribe();
+        listenerUnsubscribe = null;
+    }
+    listenToFirestore();
+});
+window.addEventListener('offline', () => { 
+    isOnline = false; 
+    updateConnectionStatus('offline'); 
+});
 updateConnectionStatus(isOnline ? 'online' : 'offline');
 
 // ======================================================================
 // TOAST Y MODAL
 // ======================================================================
-function showToast(msg, type = 'info', dur = 2800) {
+function showToast(msg, type = 'info', dur = 2000) {
     const c = document.getElementById('toastContainer');
     if (!c) return;
     const el = document.createElement('div');
@@ -362,7 +374,12 @@ function showToast(msg, type = 'info', dur = 2800) {
     const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
     el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
     c.appendChild(el);
-    setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(12px)'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, dur);
+    setTimeout(() => { 
+        el.style.opacity = '0'; 
+        el.style.transform = 'translateY(12px)'; 
+        el.style.transition = '0.3s'; 
+        setTimeout(() => el.remove(), 300); 
+    }, dur);
 }
 
 function showModal(title, body, confirmText, onConfirm) {
@@ -387,32 +404,86 @@ function showModal(title, body, confirmText, onConfirm) {
     newConfirm.onclick = () => { close(); if (onConfirm) onConfirm(); };
 }
 
-function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function escHtml(str) { 
+    if (!str) return ''; 
+    const d = document.createElement('div'); 
+    d.textContent = str; 
+    return d.innerHTML; 
+}
 
 // ======================================================================
-// CRUD
+// CRUD - SIMPLIFICADO
 // ======================================================================
 function getAllClients() { return clientDataCache; }
 function getClient(id) { return clientDataCache.find(c => c.id == id) || null; }
 
 async function saveClient(client) {
-    if (isSaving) { return; }
-    isSaving = true;
     try {
-        if (client.id) {
-            const idx = clientDataCache.findIndex(c => c.id == client.id);
-            if (idx !== -1) clientDataCache[idx] = client;
-            else { client.id = client.id || Date.now() + '_' + Math.random().toString(36).substr(2, 6); clientDataCache.push(client); }
-        } else {
-            client.id = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-            clientDataCache.push(client);
+        if (!client.id) {
+            client.id = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         }
+        
+        const idx = clientDataCache.findIndex(c => c.id == client.id);
+        if (idx !== -1) {
+            clientDataCache[idx] = { ...client };
+        } else {
+            clientDataCache.push({ ...client });
+        }
+        
         localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
         refreshUI();
-        await saveClientToFirestore(client);
-        return client.id;
-    } finally {
-        isSaving = false;
+        
+        if (isOnline) {
+            await saveClientToFirestore(client);
+        } else {
+            pendingChanges.push({ type: 'save', data: client });
+        }
+        
+        return true;
+    } catch (err) {
+        console.error('Error al guardar cliente:', err);
+        return false;
+    }
+}
+
+async function saveClientToFirestore(client) {
+    if (!isOnline) {
+        pendingChanges.push({ type: 'save', data: client });
+        return false;
+    }
+    try {
+        isSyncing = true;
+        updateConnectionStatus('syncing');
+        
+        const clientData = { ...client };
+        const docId = clientData.id;
+        delete clientData.id;
+        
+        if (clientData.visits) {
+            clientData.visits = clientData.visits.map(v => ({
+                ...v,
+                date: v.date
+            }));
+        }
+        
+        await db.collection(CLIENTS_COLLECTION).doc(docId).set(clientData, { merge: true });
+        
+        const cachedClient = getClient(docId);
+        if (cachedClient) {
+            cachedClient._synced = true;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+            refreshUI();
+        }
+        
+        isSyncing = false;
+        updateConnectionStatus(isOnline ? 'online' : 'offline');
+        return true;
+    } catch (err) {
+        console.error('Error guardando en Firestore:', err);
+        isSyncing = false;
+        updateConnectionStatus(isOnline ? 'online' : 'offline');
+        pendingChanges.push({ type: 'save', data: client });
+        return false;
     }
 }
 
@@ -422,7 +493,32 @@ async function deleteClient(id) {
         clientDataCache.splice(idx, 1);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
         refreshUI();
-        await deleteClientFromFirestore(id);
+        if (isOnline) {
+            await deleteClientFromFirestore(id);
+        } else {
+            pendingChanges.push({ type: 'delete', id: id });
+        }
+    }
+}
+
+async function deleteClientFromFirestore(clientId) {
+    if (!isOnline) {
+        pendingChanges.push({ type: 'delete', id: clientId });
+        return false;
+    }
+    try {
+        isSyncing = true;
+        updateConnectionStatus('syncing');
+        await db.collection(CLIENTS_COLLECTION).doc(clientId).delete();
+        isSyncing = false;
+        updateConnectionStatus(isOnline ? 'online' : 'offline');
+        return true;
+    } catch (err) {
+        console.error('Error eliminando de Firestore:', err);
+        isSyncing = false;
+        updateConnectionStatus(isOnline ? 'online' : 'offline');
+        pendingChanges.push({ type: 'delete', id: clientId });
+        return false;
     }
 }
 
@@ -432,81 +528,66 @@ function clearAllClients() {
     refreshUI();
     if (isOnline) {
         db.collection(CLIENTS_COLLECTION).get()
-            .then((snapshot) => { const batch = db.batch(); snapshot.forEach((doc) => { batch.delete(doc.ref); }); return batch.commit(); })
-            .then(() => { showToast('🗑️ Todos los clientes eliminados de la nube', 'info'); })
-            .catch((err) => { console.error('Error eliminando todos de Firestore:', err); showToast('⚠️ Algunos datos pueden quedar en la nube', 'warning'); });
+            .then((snapshot) => { 
+                const batch = db.batch(); 
+                snapshot.forEach((doc) => { batch.delete(doc.ref); }); 
+                return batch.commit(); 
+            })
+            .catch((err) => { 
+                console.error('Error eliminando todos de Firestore:', err); 
+            });
     }
 }
 
 // ======================================================================
-// FIRESTORE OPERACIONES
+// FIRESTORE OPERACIONES - LISTENER
 // ======================================================================
-async function saveClientToFirestore(client) {
-    if (!isOnline) { pendingChanges.push({ type: 'save', data: client }); return false; }
-    try {
-        isSyncing = true; updateConnectionStatus('syncing');
-        const clientData = { ...client };
-        if (!clientData.id) { clientData.id = db.collection(CLIENTS_COLLECTION).doc().id; }
-        if (clientData.visits) { clientData.visits = clientData.visits.map(v => ({ ...v, date: v.date })); }
-        await db.collection(CLIENTS_COLLECTION).doc(clientData.id).set(clientData);
-        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
-        return true;
-    } catch (err) {
-        console.error('Error guardando en Firestore:', err);
-        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
-        showToast('❌ Error al guardar en la nube', 'error');
-        pendingChanges.push({ type: 'save', data: client });
-        return false;
-    }
-}
-
-async function deleteClientFromFirestore(clientId) {
-    if (!isOnline) { pendingChanges.push({ type: 'delete', id: clientId }); return false; }
-    try {
-        isSyncing = true; updateConnectionStatus('syncing');
-        await db.collection(CLIENTS_COLLECTION).doc(clientId).delete();
-        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
-        return true;
-    } catch (err) {
-        console.error('Error eliminando de Firestore:', err);
-        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
-        showToast('❌ Error al eliminar de la nube', 'error');
-        pendingChanges.push({ type: 'delete', id: clientId });
-        return false;
-    }
-}
-
 function listenToFirestore() {
-    if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
+    if (listenerUnsubscribe) { 
+        listenerUnsubscribe(); 
+        listenerUnsubscribe = null; 
+    }
     try {
         listenerUnsubscribe = db.collection(CLIENTS_COLLECTION)
             .onSnapshot((snapshot) => {
                 const clients = [];
-                snapshot.forEach((doc) => { const data = doc.data(); clients.push({ ...data, id: doc.id }); });
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    clients.push({ ...data, id: doc.id });
+                });
                 clientDataCache = clients;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
                 refreshUI();
-                if (firebaseInitialized) { showToast(`📥 ${clients.length} clientes sincronizados`, 'success', 1500); }
                 firebaseInitialized = true;
-                if (pendingChanges.length > 0 && isOnline) { pendingChanges = []; }
+                pendingChanges = [];
                 updateConnectionStatus(isOnline ? 'online' : 'offline');
             }, (err) => {
                 console.error('Error en listener de Firestore:', err);
                 updateConnectionStatus(isOnline ? 'online' : 'offline');
                 const localData = localStorage.getItem(STORAGE_KEY);
-                if (localData) { try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) {} }
+                if (localData) {
+                    try {
+                        clientDataCache = JSON.parse(localData);
+                        refreshUI();
+                    } catch (e) {}
+                }
             });
     } catch (err) {
         console.error('Error configurando listener:', err);
         const localData = localStorage.getItem(STORAGE_KEY);
-        if (localData) { try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) {} }
+        if (localData) {
+            try {
+                clientDataCache = JSON.parse(localData);
+                refreshUI();
+            } catch (e) {}
+        }
     }
 }
 
 async function syncWithFirebase() {
-    if (!isOnline) { showToast('📡 Sin conexión - no se puede sincronizar', 'warning'); return; }
-    if (isSyncing) { showToast('⏳ Ya está sincronizando...', 'info'); return; }
-    showToast('🔄 Sincronizando...', 'info', 2000);
+    if (!isOnline) { showToast('📡 Sin conexión', 'warning'); return; }
+    if (isSyncing) { return; }
+    showToast('🔄 Sincronizando...', 'info', 1500);
     const changes = [...pendingChanges];
     pendingChanges = [];
     for (const change of changes) {
@@ -516,14 +597,12 @@ async function syncWithFirebase() {
     if (changes.length === 0) {
         if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
         listenToFirestore();
-        showToast('✅ Datos sincronizados', 'success');
-    } else {
-        showToast(`✅ ${changes.length} cambios sincronizados`, 'success');
     }
+    showToast('✅ Sincronizado', 'success', 1500);
 }
 
 // ======================================================================
-// RENDER LISTA
+// RENDER LISTA (TOOLTIP REMOVIDO)
 // ======================================================================
 function renderClientList(clients) {
     const container = document.getElementById('clientListContainer');
@@ -543,6 +622,8 @@ function renderClientList(clients) {
         const avatarHtml = c.photo ? `<img src="${c.photo}" alt="foto" />` : initial;
         const syncStatus = c._synced ? 'synced' : 'pending';
         const syncLabel = c._synced ? '✅' : '⏳';
+        
+        // Se removió el atributo title para evitar el mensaje flotante al pasar la flecha
         html += `<div class="client-card" data-id="${c.id}">
             <div class="avatar">${avatarHtml}</div>
             <div class="info">
@@ -574,7 +655,7 @@ function refreshUI() {
 // ======================================================================
 function showClientDetail(id) {
     const client = getClient(id);
-    if (!client) { showToast('Cliente no encontrado', 'error'); return; }
+    if (!client) { showToast('No encontrado', 'error'); return; }
     const container = document.getElementById('detailContent');
     if (!container) return;
     document.getElementById('detailName').textContent = client.name || 'Cliente';
@@ -613,7 +694,7 @@ function showClientDetail(id) {
             const note = document.getElementById('visitNoteInput')?.value || '';
             if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
             await addVisitToClient(id, note);
-            showToast('Visita registrada ✅', 'success');
+            showToast('✅ Visita', 'success');
             showClientDetail(id);
         });
     });
@@ -635,7 +716,7 @@ function showClientDetail(id) {
             navigator.share({ title: 'Visitas de ' + client.name, text: msg }).catch(() => {});
         } else {
             navigator.clipboard.writeText(msg).then(() => {
-                showToast('Visitas copiadas al portapapeles 📋', 'success');
+                showToast('📋 Copiado', 'success');
             }).catch(() => {
                 showModal('Visitas', `<pre style="white-space:pre-wrap;font-size:0.8rem;">${escHtml(msg)}</pre>`, 'Cerrar');
             });
@@ -647,7 +728,7 @@ function showClientDetail(id) {
     document.getElementById('detailDeleteBtn').onclick = () => {
         showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', async () => {
             await deleteClient(id);
-            showToast('Cliente eliminado', 'info');
+            showToast('🗑️ Eliminado', 'info');
             switchView('viewList');
             refreshUI();
         });
@@ -667,7 +748,7 @@ async function addVisitToClient(clientId, notes = '') {
 }
 
 // ======================================================================
-// IMPRESIONES (resumidas por espacio)
+// IMPRESIONES
 // ======================================================================
 function printClientDirectory() {
     const clients = getAllClients();
@@ -891,15 +972,15 @@ async function geocodeManual() {
                     document.getElementById('fColony').value = colony;
                 }
             }
-            showToast('Ubicación encontrada 📍', 'success');
+            showToast('📍 Ubicación', 'success');
         } else {
             resetMapPlaceholder();
-            showToast('No se encontró la ubicación.', 'error');
+            showToast('No encontrada', 'error');
             updateLinks();
         }
     } catch (err) {
         resetMapPlaceholder();
-        showToast('Error al geocodificar.', 'error');
+        showToast('Error al geocodificar', 'error');
         updateLinks();
     }
 }
@@ -912,13 +993,13 @@ function updateMapFromCoords() {
         if (!isNaN(latNum) && !isNaN(lngNum)) {
             selectedLat = latNum; selectedLng = lngNum;
             updateMap(latNum, lngNum);
-            showToast('Mapa actualizado 📍', 'success');
+            showToast('📍 Mapa actualizado', 'success');
         } else { showToast('Coordenadas inválidas', 'error'); }
     } else { showToast('Ingresa latitud y longitud', 'error'); }
 }
 
 // ======================================================================
-// FOTO - CON OPCIÓN QUITAR
+// FOTO
 // ======================================================================
 document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
 document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
@@ -934,7 +1015,7 @@ document.getElementById('fPhoto').addEventListener('change', function(e) {
         preview.src = photoDataUrl;
         preview.classList.remove('hidden');
         document.getElementById('photoPlaceholder').style.display = 'none';
-        showToast('Foto cargada ✅', 'success');
+        showToast('📸 Foto cargada', 'success');
     };
     reader.onerror = function() { showToast('Error al leer', 'error'); };
     reader.readAsDataURL(file);
@@ -950,87 +1031,107 @@ document.getElementById('removePhotoBtn').addEventListener('click', function() {
 });
 
 // ======================================================================
-// GUARDAR - CORREGIDO (ESTA ES LA PARTE IMPORTANTE)
+// GUARDAR - CORRECCIÓN DEFINITIVA DE PROMESA Y BOTÓN COLGADO
 // ======================================================================
-document.getElementById('clientForm').addEventListener('submit', async function(e) {
+document.getElementById('clientForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    
-    if (isSaving) {
-        showToast('⏳ Ya se está guardando...', 'warning');
-        return;
-    }
     
     const submitBtn = document.getElementById('formSubmitBtn');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-    submitBtn.disabled = true;
     
-    try {
-        const name = document.getElementById('fName').value.trim();
-        const business = document.getElementById('fBusiness').value.trim();
-        const address = document.getElementById('fAddress').value.trim();
-        const colony = document.getElementById('fColony').value.trim();
-        const phone = document.getElementById('fPhone').value.trim();
-        const references = document.getElementById('fReferences').value.trim();
-        const visitNote = document.getElementById('fVisitNote').value.trim();
-        const lat = document.getElementById('fLat').value.trim();
-        const lng = document.getElementById('fLng').value.trim();
-        
-        if (!name) { showToast('Nombre obligatorio', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
-        if (!address) { showToast('Dirección obligatoria', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
-        
-        const id = document.getElementById('clientId').value;
-        const clientData = { 
-            name: name, 
-            business: business || '', 
-            address: address, 
-            colony: colony || '', 
-            phone: phone || '', 
-            references: references || '', 
-            lat: lat || null, 
-            lng: lng || null, 
-            photo: photoDataUrl || null, 
-            updatedAt: Date.now(), 
-            _synced: false 
-        };
-
-        if (id) {
-            const existing = getClient(id);
-            if (!existing) { throw new Error('No existe el cliente'); }
-            let visits = existing.visits || [];
-            if (visitNote !== '') { 
-                visits.push({ date: Date.now(), notes: visitNote }); 
-                showToast('✅ Nueva visita registrada', 'success'); 
-            }
-            clientData.visits = visits;
-            clientData.createdAt = existing.createdAt || Date.now();
-            clientData.id = id;
-        } else {
-            clientData.visits = visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [];
-            clientData.createdAt = Date.now();
-        }
-        
-        await saveClient(clientData);
-        showToast(id ? '✅ Cliente actualizado' : '✅ Cliente registrado', 'success');
-        
-        if (lat && lng) updateMap(parseFloat(lat), parseFloat(lng));
-        else resetMapPlaceholder();
-        
-        resetForm();
-        switchView('viewList');
-        refreshUI();
-        
-    } catch (err) { 
-        console.error('Error al guardar:', err);
-        showToast('Error: ' + err.message, 'error'); 
-    } finally { 
-        // ==========================================================
-        // ESTA ES LA ÚNICA LÍNEA QUE AGREGÉ PARA ARREGLAR EL BOTÓN
-        // ==========================================================
-        submitBtn.innerHTML = originalText; 
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    
+    function restoreButton() {
         submitBtn.disabled = false;
-        isSaving = false;
+        submitBtn.innerHTML = originalText;
     }
+    
+    const name = document.getElementById('fName').value.trim();
+    const business = document.getElementById('fBusiness').value.trim();
+    const address = document.getElementById('fAddress').value.trim();
+    const colony = document.getElementById('fColony').value.trim();
+    const phone = document.getElementById('fPhone').value.trim();
+    const references = document.getElementById('fReferences').value.trim();
+    const visitNote = document.getElementById('fVisitNote').value.trim();
+    const lat = document.getElementById('fLat').value.trim();
+    const lng = document.getElementById('fLng').value.trim();
+    const id = document.getElementById('clientId').value;
+    
+    if (!name) {
+        showToast('⚠️ Nombre obligatorio', 'error', 3000);
+        restoreButton();
+        return;
+    }
+    if (!address) {
+        showToast('⚠️ Dirección obligatoria', 'error', 3000);
+        restoreButton();
+        return;
+    }
+    
+    if (!id) {
+        const exists = clientDataCache.some(c => 
+            (c.name || '').toLowerCase().trim() === name.toLowerCase().trim() && 
+            (c.address || '').toLowerCase().trim() === address.toLowerCase().trim()
+        );
+        if (exists) {
+            showToast('⚠️ Cliente ya existe con ese nombre y dirección', 'warning', 3000);
+            restoreButton();
+            return;
+        }
+    }
+    
+    const clientData = { 
+        name: name, 
+        business: business || '', 
+        address: address, 
+        colony: colony || '', 
+        phone: phone || '', 
+        references: references || '', 
+        lat: lat || null, 
+        lng: lng || null, 
+        photo: photoDataUrl || null, 
+        updatedAt: Date.now(), 
+        _synced: false 
+    };
+
+    if (id) {
+        const existing = getClient(id);
+        if (!existing) {
+            showToast('❌ Cliente no encontrado', 'error', 3000);
+            restoreButton();
+            return;
+        }
+        let visits = existing.visits || [];
+        if (visitNote !== '') { 
+            visits.push({ date: Date.now(), notes: visitNote }); 
+        }
+        clientData.visits = visits;
+        clientData.createdAt = existing.createdAt || Date.now();
+        clientData.id = id;
+    } else {
+        clientData.visits = visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [];
+        clientData.createdAt = Date.now();
+    }
+    
+    saveClient(clientData)
+        .then(function(result) {
+            if (result) {
+                resetForm();
+                switchView('viewList');
+                refreshUI();
+                showToast('✅ Guardado', 'success');
+            } else {
+                showToast('❌ Error al guardar', 'error', 3000);
+            }
+        })
+        .catch(function(err) {
+            console.error('❌ Error:', err);
+            showToast('❌ Error al guardar', 'error', 3000);
+        })
+        .finally(function() {
+            restoreButton();
+        });
 });
 
 document.getElementById('formCancelBtn').addEventListener('click', () => { resetForm(); switchView('viewList'); });
@@ -1140,7 +1241,13 @@ document.getElementById('detailBackBtn').addEventListener('click', () => { switc
 document.getElementById('searchInput').addEventListener('input', function(e) {
     const q = e.target.value.toLowerCase().trim();
     if (!q) { renderClientList(clientDataCache); return; }
-    const filtered = clientDataCache.filter(c => (c.name || '').toLowerCase().includes(q) || (c.business || '').toLowerCase().includes(q) || (c.address || '').toLowerCase().includes(q) || (c.colony || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
+    const filtered = clientDataCache.filter(c => 
+        (c.name || '').toLowerCase().includes(q) || 
+        (c.business || '').toLowerCase().includes(q) || 
+        (c.address || '').toLowerCase().includes(q) || 
+        (c.colony || '').toLowerCase().includes(q) || 
+        (c.phone || '').includes(q)
+    );
     renderClientList(filtered);
 });
 
@@ -1154,7 +1261,7 @@ document.getElementById('fAddress').addEventListener('input', updateLinks);
 document.getElementById('resetDataBtn').addEventListener('click', function() {
     showModal('Eliminar Todos', '¿Eliminar TODOS los clientes? Esta acción no se puede deshacer.', 'Eliminar', function() {
         clearAllClients();
-        showToast('Todos los clientes eliminados', 'info');
+        showToast('🗑️ Eliminados', 'info');
         refreshUI();
     });
 });
@@ -1175,7 +1282,7 @@ document.getElementById('exportDataBtn').addEventListener('click', function() {
     a.download = `clientes_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exportados ${clientDataCache.length} clientes ✅`, 'success');
+    showToast(`✅ ${clientDataCache.length} exportados`, 'success');
 });
 
 document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
@@ -1188,7 +1295,7 @@ document.getElementById('exportDataNoPhotoBtn').addEventListener('click', functi
     a.download = `clientes_sin_fotos_${new Date().toISOString().slice(0,10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exportados ${clean.length} clientes (sin fotos) ✅`, 'success');
+    showToast(`✅ ${clean.length} exportados`, 'success');
 });
 
 document.getElementById('importDataBtn').addEventListener('click', function() {
@@ -1227,7 +1334,7 @@ document.getElementById('importFileInput').addEventListener('change', function(e
                 clientDataCache = data;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
                 refreshUI();
-                showToast(`Importados ${data.length} clientes (reemplazo) ✅`, 'success');
+                showToast(`✅ ${data.length} importados`, 'success');
                 e.target.value = '';
                 for (const c of clientDataCache) { saveClientToFirestore(c); }
             });
@@ -1251,7 +1358,7 @@ document.getElementById('importFileInput').addEventListener('change', function(e
                 }
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
                 refreshUI();
-                showToast(`Fusionados ${added} nuevos clientes ✅`, 'success');
+                showToast(`✅ ${added} fusionados`, 'success');
                 e.target.value = '';
                 for (const c of clientDataCache.slice(-added)) { saveClientToFirestore(c); }
             });
@@ -1259,7 +1366,7 @@ document.getElementById('importFileInput').addEventListener('change', function(e
             overlay.classList.add('open');
         } catch (err) {
             console.error('Error en importación:', err);
-            showToast('Error al importar: ' + err.message, 'error');
+            showToast('Error al importar', 'error');
             e.target.value = '';
         }
     };
@@ -1308,13 +1415,22 @@ if (localStorage.getItem('theme') === 'dark') {
 function init() {
     const localData = localStorage.getItem(STORAGE_KEY);
     if (localData) {
-        try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) { clientDataCache = []; }
-    } else { clientDataCache = []; refreshUI(); }
+        try { 
+            clientDataCache = JSON.parse(localData); 
+            refreshUI(); 
+        } catch (e) { 
+            clientDataCache = []; 
+        }
+    } else { 
+        clientDataCache = []; 
+        refreshUI(); 
+    }
     listenToFirestore();
     setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
-    if (isOnline) { setTimeout(syncWithFirebase, 2000); }
+    if (isOnline) { 
+        setTimeout(syncWithFirebase, 2000); 
+    }
     console.log('✅ CRM con Firebase activo');
-    showToast('🔥 CRM conectado a Firebase', 'success', 2500);
 }
 
 if (document.readyState === 'loading') {
@@ -1329,7 +1445,12 @@ document.addEventListener('keydown', function(e) {
         if (currentView === 'viewForm') { resetForm(); switchView('viewList'); }
         if (currentView === 'viewDetail') { switchView('viewList'); refreshUI(); }
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') { if (currentView === 'viewList') { e.preventDefault(); document.getElementById('searchInput').focus(); } }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') { 
+        if (currentView === 'viewList') { 
+            e.preventDefault(); 
+            document.getElementById('searchInput').focus(); 
+        } 
+    }
 });
 </script>
 </body>
