@@ -7,11 +7,8 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
-    <!-- FIREBASE SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body { height:100%; font-family:'Segoe UI',system-ui,sans-serif; background:#f0f4ff; overflow:visible !important; }
@@ -98,7 +95,7 @@
         .visit-item:last-child { border-bottom:none; }
         .visit-item .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
         .visit-item .v-info { flex:1; }
-        .visit-item .v-info .v-date { font-weight:500; font-size:.8rem; }
+        .visit-item .v-info .v-date { font-weight:500; font-size:.8rem; color:var(--text); }
         .visit-item .v-info .v-notes { font-size:.75rem; color:var(--text-secondary); }
         .visit-item .v-time { font-size:.65rem; color:var(--text-muted); }
         .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
@@ -138,12 +135,11 @@
 <body>
 
 <div id="app">
-
     <header class="app-header">
         <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas</div>
         <div class="header-actions">
             <button class="zoom-btn" id="zoomInBtn" title="Acercar">+</button>
-            <button class="zoom-btn" id="zoomOutBtn" title="Alejar">−</button>
+            <button class="zoom-btn" id="zoomOutBtn" title="Alejar">-</button>
             <span class="connection-status" id="connectionStatus">
                 <span class="status-dot online" id="statusDot"></span>
                 <span id="statusText">online</span>
@@ -153,8 +149,6 @@
     </header>
 
     <div class="main-content" id="mainContent">
-
-        <!-- VISTA LISTA -->
         <div class="view active" id="viewList">
             <div class="list-header">
                 <h2><i class="fas fa-users" style="color:var(--primary);"></i> Clientes <span id="clientCount">0</span></h2>
@@ -169,7 +163,6 @@
             </div>
         </div>
 
-        <!-- VISTA FORMULARIO -->
         <div class="view" id="viewForm">
             <div class="form-card">
                 <div class="form-title"><i class="fas fa-pen" style="color:var(--primary);"></i> <span id="formTitle">Nuevo Cliente</span></div>
@@ -184,7 +177,7 @@
                         <div class="input-wrap"><i class="fas fa-building"></i><input type="text" id="fBusiness" /></div>
                     </div>
                     <div class="form-group">
-                        <label>Dirección *</label>
+                        <label>Direccion *</label>
                         <div class="input-wrap" style="flex-wrap:wrap;">
                             <i class="fas fa-map-pin"></i>
                             <input type="text" id="fAddress" required style="flex:1; min-width:100px;" />
@@ -203,7 +196,7 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group"><label>Colonia</label><div class="input-wrap"><i class="fas fa-location-dot"></i><input type="text" id="fColony" /></div></div>
-                        <div class="form-group"><label>Teléfono</label><div class="input-wrap"><i class="fas fa-phone"></i><input type="tel" id="fPhone" /></div></div>
+                        <div class="form-group"><label>Telefono</label><div class="input-wrap"><i class="fas fa-phone"></i><input type="tel" id="fPhone" /></div></div>
                     </div>
                     <div class="form-group">
                         <label>Referencias</label>
@@ -223,7 +216,7 @@
                     <div class="form-group">
                         <label>Nueva visita (opcional)</label>
                         <div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="fVisitNote"></textarea></div>
-                        <div style="font-size:.7rem; color:var(--text-muted);">Solo se guardará si escribes algo.</div>
+                        <div style="font-size:.7rem; color:var(--text-muted);">Solo se guardara si escribes algo.</div>
                     </div>
                     <div class="form-actions">
                         <button type="button" class="btn btn-secondary" id="formCancelBtn"><i class="fas fa-times"></i> Cancelar</button>
@@ -233,7 +226,6 @@
             </div>
         </div>
 
-        <!-- VISTA DETALLE -->
         <div class="view" id="viewDetail">
             <div class="detail-header">
                 <button class="back-btn" id="detailBackBtn"><i class="fas fa-arrow-left"></i></button>
@@ -246,19 +238,18 @@
             <div id="detailContent"></div>
         </div>
 
-        <!-- VISTA ESTADÍSTICAS -->
         <div class="view" id="viewStats">
             <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--text);">
-                <i class="fas fa-chart-simple" style="color:var(--primary);"></i> Estadísticas
+                <i class="fas fa-chart-simple" style="color:var(--primary);"></i> Estadisticas
             </h2>
             <div class="stats-grid">
                 <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Clientes</div></div>
                 <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-number" id="statVisits">0</div><div class="stat-label">Visitas Totales</div></div>
                 <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-number" id="statToday">0</div><div class="stat-label">Visitas Hoy</div></div>
-                <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">—</div><div class="stat-label">Más Visitado</div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">-</div><div class="stat-label">Mas Visitado</div></div>
             </div>
             <div class="chart-container">
-                <h4><i class="fas fa-calendar-week"></i> Visitas por día (últimos 7 días)</h4>
+                <h4><i class="fas fa-calendar-week"></i> Visitas por dia (ultimos 7 dias)</h4>
                 <div class="bar-chart" id="weeklyChart"></div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
@@ -274,13 +265,12 @@
                 <button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;"><i class="fas fa-trash-can"></i> Eliminar todos</button>
             </div>
         </div>
-
     </div>
 
     <nav class="bottom-nav">
         <button class="nav-item active" data-view="viewList" id="navList"><i class="fas fa-list-ul"></i>Clientes</button>
         <button class="nav-item" data-view="viewForm" id="navAdd"><i class="fas fa-plus-circle"></i>Agregar</button>
-        <button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadísticas <span class="badge" id="statsBadge" style="display:none;">0</span></button>
+        <button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadisticas <span class="badge" id="statsBadge" style="display:none;">0</span></button>
     </nav>
 </div>
 
@@ -299,7 +289,7 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN DE FIREBASE
+// CONFIGURACION FIREBASE
 // ======================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",
@@ -312,10 +302,9 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-db.enablePersistence({ synchronizeTabs: true })
-    .catch((err) => { 
-        console.warn('⚠️ Persistencia offline no disponible:', err); 
-    });
+db.enablePersistence({ synchronizeTabs: true }).catch(function(err) {
+    console.warn('Persistencia offline:', err);
+});
 
 const CLIENTS_COLLECTION = 'clientes';
 const STORAGE_KEY = 'clientes_crm_data';
@@ -330,55 +319,126 @@ let firebaseInitialized = false;
 let clientDataCache = [];
 let listenerUnsubscribe = null;
 let editingId = null;
-let selectedLat = null, selectedLng = null;
+let selectedLat = null;
+let selectedLng = null;
 let photoDataUrl = null;
 let mapInstance = null;
 let currentView = 'viewList';
 
 // ======================================================================
-// UI DE CONEXIÓN
+// FIX: Compresion de fotos para no exceder limite de Firestore (1MB)
+// ======================================================================
+function compressPhoto(dataUrl, maxWidth, quality) {
+    maxWidth = maxWidth || 400;
+    quality = quality || 0.5;
+
+    return new Promise(function(resolve) {
+        try {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                let w = img.width;
+                let h = img.height;
+
+                // Reducir tamaño si es muy grande
+                if (w > maxWidth) {
+                    h = Math.round(h * maxWidth / w);
+                    w = maxWidth;
+                }
+
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+
+                // Comprimir con calidad reducida
+                const compressed = canvas.toDataURL('image/jpeg', quality);
+                resolve(compressed);
+            };
+            img.onerror = function() {
+                // Si no se puede cargar, devolver original
+                resolve(dataUrl);
+            };
+            img.src = dataUrl;
+        } catch (e) {
+            resolve(dataUrl);
+        }
+    });
+}
+
+// ======================================================================
+// FIX: Timeout para operaciones que pueden quedar colgadas
+// ======================================================================
+function withTimeout(promiseMs, timeoutMs, errorMsg) {
+    timeoutMs = timeoutMs || 15000;
+    errorMsg = errorMsg || 'La operacion tardó demasiado (15s). Se guardo localmente.';
+
+    return new Promise(function(resolve, reject) {
+        const timer = setTimeout(function() {
+            reject(new Error(errorMsg));
+        }, timeoutMs);
+
+        promiseMs.then(function(val) {
+            clearTimeout(timer);
+            resolve(val);
+        }).catch(function(err) {
+            clearTimeout(timer);
+            reject(err);
+        });
+    });
+}
+
+// ======================================================================
+// UI DE CONEXION
 // ======================================================================
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 
 function updateConnectionStatus(status) {
     statusDot.className = 'status-dot';
-    if (status === 'online') { statusDot.classList.add('online'); statusText.textContent = 'online'; }
-    else if (status === 'offline') { statusDot.classList.add('offline'); statusText.textContent = 'offline'; }
-    else if (status === 'syncing') { statusDot.classList.add('syncing'); statusText.textContent = 'sincronizando...'; }
+    if (status === 'online') {
+        statusDot.classList.add('online');
+        statusText.textContent = 'online';
+    } else if (status === 'offline') {
+        statusDot.classList.add('offline');
+        statusText.textContent = 'offline';
+    } else if (status === 'syncing') {
+        statusDot.classList.add('syncing');
+        statusText.textContent = 'sincronizando...';
+    }
 }
 
-window.addEventListener('online', () => { 
-    isOnline = true; 
-    updateConnectionStatus('online'); 
-    if (listenerUnsubscribe) {
-        listenerUnsubscribe();
-        listenerUnsubscribe = null;
-    }
+window.addEventListener('online', function() {
+    isOnline = true;
+    updateConnectionStatus('online');
+    if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
     listenToFirestore();
+    syncPendingChanges();
 });
-window.addEventListener('offline', () => { 
-    isOnline = false; 
-    updateConnectionStatus('offline'); 
+window.addEventListener('offline', function() {
+    isOnline = false;
+    updateConnectionStatus('offline');
 });
 updateConnectionStatus(isOnline ? 'online' : 'offline');
 
 // ======================================================================
 // TOAST Y MODAL
 // ======================================================================
-function showToast(msg, type = 'info', dur = 2000) {
+function showToast(msg, type, dur) {
+    type = type || 'info';
+    dur = dur || 2500;
     const c = document.getElementById('toastContainer');
     if (!c) return;
     const el = document.createElement('div');
-    el.className = `toast ${type}`;
-    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-    el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+    el.className = 'toast ' + type;
+    const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
+    el.innerHTML = '<i class="fas ' + (icons[type] || icons.info) + '"></i> ' + msg;
     c.appendChild(el);
-    setTimeout(() => { 
-        el.style.opacity = '0'; 
-        el.style.transform = 'translateY(12px)'; 
-        el.style.transition = '0.3s'; 
-        setTimeout(() => el.remove(), 300); 
+    setTimeout(function() {
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(12px)';
+        el.style.transition = '0.3s';
+        setTimeout(function() { el.remove(); }, 300);
     }, dur);
 }
 
@@ -391,59 +451,69 @@ function showModal(title, body, confirmText, onConfirm) {
     const cancelBtn = footer.querySelector('#modalCancel');
     const confirmBtn = footer.querySelector('#modalConfirm');
     const extraBtns = footer.querySelectorAll('.btn:not(#modalCancel):not(#modalConfirm)');
-    extraBtns.forEach(b => b.remove());
+    extraBtns.forEach(function(b) { b.remove(); });
     confirmBtn.textContent = confirmText || 'Confirmar';
     confirmBtn.className = 'btn btn-danger';
     confirmBtn.style.display = '';
     const newConfirm = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
     overlay.classList.add('open');
-    const close = () => overlay.classList.remove('open');
+    const close = function() { overlay.classList.remove('open'); };
     document.getElementById('modalClose').onclick = close;
     footer.querySelector('#modalCancel').onclick = close;
-    newConfirm.onclick = () => { close(); if (onConfirm) onConfirm(); };
+    newConfirm.onclick = function() { close(); if (onConfirm) onConfirm(); };
 }
 
-function escHtml(str) { 
-    if (!str) return ''; 
-    const d = document.createElement('div'); 
-    d.textContent = str; 
-    return d.innerHTML; 
+function escHtml(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
 }
 
 // ======================================================================
-// CRUD - SIMPLIFICADO
+// CRUD
 // ======================================================================
 function getAllClients() { return clientDataCache; }
-function getClient(id) { return clientDataCache.find(c => c.id == id) || null; }
+function getClient(id) { return clientDataCache.find(function(c) { return c.id == id; }) || null; }
 
 async function saveClient(client) {
-    try {
-        if (!client.id) {
-            client.id = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        }
-        
-        const idx = clientDataCache.findIndex(c => c.id == client.id);
-        if (idx !== -1) {
-            clientDataCache[idx] = { ...client };
-        } else {
-            clientDataCache.push({ ...client });
-        }
-        
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
-        refreshUI();
-        
-        if (isOnline) {
-            await saveClientToFirestore(client);
-        } else {
-            pendingChanges.push({ type: 'save', data: client });
-        }
-        
-        return true;
-    } catch (err) {
-        console.error('Error al guardar cliente:', err);
-        return false;
+    if (!client.id) {
+        client.id = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     }
+
+    const idx = clientDataCache.findIndex(function(c) { return c.id == client.id; });
+    if (idx !== -1) {
+        clientDataCache[idx] = Object.assign({}, client);
+    } else {
+        clientDataCache.push(Object.assign({}, client));
+    }
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+    refreshUI();
+
+    if (isOnline) {
+        try {
+            // FIX: Timeout de 15 segundos para Firestore
+            const result = await withTimeout(
+                saveClientToFirestore(client),
+                15000,
+                'Timeout: se guardo localmente. Intenta sincronizar manualmente.'
+            );
+            if (!result) {
+                pendingChanges.push({ type: 'save', data: client });
+            }
+        } catch (timeoutErr) {
+            // Firestore tardó demasiado o falló
+            console.warn('Firestore timeout:', timeoutErr.message);
+            pendingChanges.push({ type: 'save', data: client });
+            showToast(timeoutErr.message, 'warning', 4000);
+        }
+    } else {
+        pendingChanges.push({ type: 'save', data: client });
+    }
+
+    return true;
 }
 
 async function saveClientToFirestore(client) {
@@ -454,27 +524,34 @@ async function saveClientToFirestore(client) {
     try {
         isSyncing = true;
         updateConnectionStatus('syncing');
-        
-        const clientData = { ...client };
+
+        const clientData = Object.assign({}, client);
         const docId = clientData.id;
         delete clientData.id;
-        
-        if (clientData.visits) {
-            clientData.visits = clientData.visits.map(v => ({
-                ...v,
-                date: v.date
-            }));
+
+        // FIX: Las fotos comprimidas ya se manejaron antes
+        // Si la foto es muy grande, no enviarla a Firestore
+        if (clientData.photo && clientData.photo.length > 900000) {
+            console.warn('Foto muy grande para Firestore (' + clientData.photo.length + ' bytes), se guarda solo localmente');
+            clientData.photo = null; // No enviar foto grande a Firestore
+            clientData._photoLocal = true; // Marcar que la foto esta solo en localStorage
         }
-        
-        await db.collection(CLIENTS_COLLECTION).doc(docId).set(clientData, { merge: true });
-        
+
+        if (clientData.visits && clientData.visits.length > 0) {
+            clientData.visits = clientData.visits.map(function(v) {
+                return Object.assign({}, v);
+            });
+        }
+
+        await db.collection(CLIENTS_COLLECTION).doc(docId).set(clientData);
+
         const cachedClient = getClient(docId);
         if (cachedClient) {
             cachedClient._synced = true;
             localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
             refreshUI();
         }
-        
+
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
         return true;
@@ -483,18 +560,23 @@ async function saveClientToFirestore(client) {
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
         pendingChanges.push({ type: 'save', data: client });
+        showToast('Error Firebase: ' + err.message, 'error', 4000);
         return false;
     }
 }
 
 async function deleteClient(id) {
-    const idx = clientDataCache.findIndex(c => c.id == id);
+    const idx = clientDataCache.findIndex(function(c) { return c.id == id; });
     if (idx !== -1) {
         clientDataCache.splice(idx, 1);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
         refreshUI();
         if (isOnline) {
-            await deleteClientFromFirestore(id);
+            try {
+                await withTimeout(deleteClientFromFirestore(id), 10000, 'Timeout eliminando');
+            } catch (e) {
+                pendingChanges.push({ type: 'delete', id: id });
+            }
         } else {
             pendingChanges.push({ type: 'delete', id: id });
         }
@@ -527,33 +609,26 @@ function clearAllClients() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
     refreshUI();
     if (isOnline) {
-        db.collection(CLIENTS_COLLECTION).get()
-            .then((snapshot) => { 
-                const batch = db.batch(); 
-                snapshot.forEach((doc) => { batch.delete(doc.ref); }); 
-                return batch.commit(); 
-            })
-            .catch((err) => { 
-                console.error('Error eliminando todos de Firestore:', err); 
-            });
+        db.collection(CLIENTS_COLLECTION).get().then(function(snapshot) {
+            const batch = db.batch();
+            snapshot.forEach(function(doc) { batch.delete(doc.ref); });
+            return batch.commit();
+        }).catch(function(err) { console.error(err); });
     }
 }
 
 // ======================================================================
-// FIRESTORE OPERACIONES - LISTENER
+// FIREBASE LISTENER - Sincronizacion en tiempo real
 // ======================================================================
 function listenToFirestore() {
-    if (listenerUnsubscribe) { 
-        listenerUnsubscribe(); 
-        listenerUnsubscribe = null; 
-    }
+    if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
     try {
         listenerUnsubscribe = db.collection(CLIENTS_COLLECTION)
-            .onSnapshot((snapshot) => {
+            .onSnapshot(function(snapshot) {
                 const clients = [];
-                snapshot.forEach((doc) => {
+                snapshot.forEach(function(doc) {
                     const data = doc.data();
-                    clients.push({ ...data, id: doc.id });
+                    clients.push(Object.assign({}, data, { id: doc.id }));
                 });
                 clientDataCache = clients;
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
@@ -561,55 +636,60 @@ function listenToFirestore() {
                 firebaseInitialized = true;
                 pendingChanges = [];
                 updateConnectionStatus(isOnline ? 'online' : 'offline');
-            }, (err) => {
-                console.error('Error en listener de Firestore:', err);
+            }, function(err) {
+                console.error('Error en listener:', err);
+                // FIX: Reintentar conexion automaticamente
+                setTimeout(function() {
+                    if (isOnline) {
+                        console.log('Reintentando conexion...');
+                        listenToFirestore();
+                    }
+                }, 5000);
                 updateConnectionStatus(isOnline ? 'online' : 'offline');
                 const localData = localStorage.getItem(STORAGE_KEY);
                 if (localData) {
-                    try {
-                        clientDataCache = JSON.parse(localData);
-                        refreshUI();
-                    } catch (e) {}
+                    try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) {}
                 }
             });
     } catch (err) {
         console.error('Error configurando listener:', err);
         const localData = localStorage.getItem(STORAGE_KEY);
-        if (localData) {
-            try {
-                clientDataCache = JSON.parse(localData);
-                refreshUI();
-            } catch (e) {}
+        if (localData) { try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) {} }
+    }
+}
+
+async function syncPendingChanges() {
+    if (!isOnline || isSyncing) return;
+    const changes = pendingChanges.slice();
+    pendingChanges = [];
+    for (let i = 0; i < changes.length; i++) {
+        const change = changes[i];
+        if (change.type === 'save') {
+            try { await withTimeout(saveClientToFirestore(change.data), 15000, 'Timeout sync'); } catch (e) { pendingChanges.push(change); }
+        } else if (change.type === 'delete') {
+            try { await withTimeout(deleteClientFromFirestore(change.id), 10000, 'Timeout sync'); } catch (e) { pendingChanges.push(change); }
         }
     }
 }
 
 async function syncWithFirebase() {
-    if (!isOnline) { showToast('📡 Sin conexión', 'warning'); return; }
+    if (!isOnline) { showToast('Sin conexion', 'warning'); return; }
     if (isSyncing) { return; }
-    showToast('🔄 Sincronizando...', 'info', 1500);
-    const changes = [...pendingChanges];
-    pendingChanges = [];
-    for (const change of changes) {
-        if (change.type === 'save') { await saveClientToFirestore(change.data); }
-        else if (change.type === 'delete') { await deleteClientFromFirestore(change.id); }
-    }
-    if (changes.length === 0) {
-        if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
-        listenToFirestore();
-    }
-    showToast('✅ Sincronizado', 'success', 1500);
+    showToast('Sincronizando...', 'info', 1500);
+    await syncPendingChanges();
+    if (!listenerUnsubscribe) { listenToFirestore(); }
+    showToast('Sincronizado', 'success', 1500);
 }
 
 // ======================================================================
-// RENDER LISTA (TOOLTIP REMOVIDO)
+// RENDER LISTA
 // ======================================================================
 function renderClientList(clients) {
     const container = document.getElementById('clientListContainer');
     const countEl = document.getElementById('clientCount');
     if (!container) return;
     if (!clients || clients.length === 0) {
-        container.innerHTML = `<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes registrados</h3><p>Toca "Nuevo" para agregar.</p></div>`;
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div>';
         if (countEl) countEl.textContent = '0';
         return;
     }
@@ -619,33 +699,41 @@ function renderClientList(clients) {
         const initial = (c.name || '?')[0].toUpperCase();
         const visitCount = (c.visits || []).length;
         const lastVisit = c.visits && c.visits.length > 0 ? new Date(c.visits[c.visits.length - 1].date).toLocaleDateString('es') : 'Sin visitas';
-        const avatarHtml = c.photo ? `<img src="${c.photo}" alt="foto" />` : initial;
+        const avatarHtml = c.photo ? '<img src="' + c.photo + '" alt="foto" />' : initial;
         const syncStatus = c._synced ? 'synced' : 'pending';
-        const syncLabel = c._synced ? '✅' : '⏳';
-        
-        // Se removió el atributo title para evitar el mensaje flotante al pasar la flecha
-        html += `<div class="client-card" data-id="${c.id}">
-            <div class="avatar">${avatarHtml}</div>
-            <div class="info">
-                <div class="name">${escHtml(c.name || 'Sin nombre')}</div>
-                <div class="business">${escHtml(c.business || 'Sin negocio')}</div>
-                <div class="address">${escHtml(c.address || 'Sin dirección')}</div>
-            </div>
-            <div class="meta">
-                <span class="visits"><i class="fas fa-calendar-check"></i> ${visitCount}</span>
-                <span class="date">${lastVisit}</span>
-                <span class="sync-badge ${syncStatus}">${syncLabel}</span>
-            </div>
-        </div>`;
+        const syncLabel = c._synced ? '&#10003;' : '&#9203;';
+        html += '<div class="client-card" data-id="' + c.id + '">' +
+            '<div class="avatar">' + avatarHtml + '</div>' +
+            '<div class="info">' +
+                '<div class="name">' + escHtml(c.name || 'Sin nombre') + '</div>' +
+                '<div class="business">' + escHtml(c.business || 'Sin negocio') + '</div>' +
+                '<div class="address">' + escHtml(c.address || 'Sin direccion') + '</div>' +
+            '</div>' +
+            '<div class="meta">' +
+                '<span class="visits"><i class="fas fa-calendar-check"></i> ' + visitCount + '</span>' +
+                '<span class="date">' + lastVisit + '</span>' +
+                '<span class="sync-badge ' + syncStatus + '">' + syncLabel + '</span>' +
+            '</div></div>';
     }
     container.innerHTML = html;
-    container.querySelectorAll('.client-card').forEach(el => {
-        el.addEventListener('click', () => showClientDetail(el.dataset.id));
+    container.querySelectorAll('.client-card').forEach(function(el) {
+        el.addEventListener('click', function() { showClientDetail(el.dataset.id); });
     });
 }
 
 function refreshUI() {
-    renderClientList(clientDataCache);
+    const searchVal = document.getElementById('searchInput') ? document.getElementById('searchInput').value.toLowerCase() : '';
+    let filtered = clientDataCache;
+    if (searchVal) {
+        filtered = clientDataCache.filter(function(c) {
+            return (c.name||'').toLowerCase().includes(searchVal) ||
+                   (c.business||'').toLowerCase().includes(searchVal) ||
+                   (c.address||'').toLowerCase().includes(searchVal) ||
+                   (c.colony||'').toLowerCase().includes(searchVal) ||
+                   (c.phone||'').toLowerCase().includes(searchVal);
+        });
+    }
+    renderClientList(filtered);
     updateStatsBadge(clientDataCache);
     if (document.getElementById('viewStats').classList.contains('active')) renderStats();
 }
@@ -657,86 +745,74 @@ function showClientDetail(id) {
     const client = getClient(id);
     if (!client) { showToast('No encontrado', 'error'); return; }
     const container = document.getElementById('detailContent');
-    if (!container) return;
     document.getElementById('detailName').textContent = client.name || 'Cliente';
     const visits = client.visits || [];
-    const visitHtml = visits.length === 0 ? '<p class="text-muted text-sm">No hay visitas.</p>' : visits.map(v =>
-        `<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">${new Date(v.date).toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</div>${v.notes ? `<div class="v-notes">${escHtml(v.notes)}</div>` : ''}</div><div class="v-time">${new Date(v.date).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })}</div></div>`
-    ).join('');
-    const lat = client.lat || '', lng = client.lng || '';
-    const photoHtml = client.photo ? `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` : '<p class="text-muted text-sm">Sin foto</p>';
+    const visitHtml = visits.length === 0 ? '<p style="color:var(--text-muted);font-size:.8rem;">No hay visitas.</p>' : visits.map(function(v) {
+        return '<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">' + new Date(v.date).toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', year:'numeric' }) + '</div>' + (v.notes ? '<div class="v-notes">' + escHtml(v.notes) + '</div>' : '') + '</div><div class="v-time">' + new Date(v.date).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' }) + '</div></div>';
+    }).join('');
+    const lat = client.lat || '';
+    const lng = client.lng || '';
+    const photoHtml = client.photo ? '<img src="' + client.photo + '" class="photo-preview" style="height:200px;object-fit:cover;width:100%;border-radius:8px;">' : '<p style="color:var(--text-muted);font-size:.8rem;">Sin foto</p>';
 
-    container.innerHTML = `
-        <div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>${escHtml(client.name || '—')}</strong></div>${client.business ? `<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">${escHtml(client.business)}</div>` : ''}</div>
-        <div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Dirección</div><div class="value">${escHtml(client.address || 'Sin dirección')}</div>${client.colony ? `<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">${escHtml(client.colony)}</div>` : ''}${client.references ? `<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">${escHtml(client.references)}</div>` : ''}${client.phone ? `<div class="label"><i class="fas fa-phone"></i> Teléfono</div><div class="value"><a href="tel:${escHtml(client.phone)}" style="color:var(--primary);text-decoration:none;">${escHtml(client.phone)}</a></div>` : ''}${lat && lng ? `<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">${lat}, ${lng}</div>` : ''}</div>
-        <div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">${photoHtml}</div></div>
-        <div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicación</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fab fa-google"></i> Google Maps</a><a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>
-        <div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div><div class="visit-timeline">${visitHtml}</div><div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>
-    `;
+    container.innerHTML =
+        '<div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>' + escHtml(client.name||'-') + '</strong></div>' + (client.business ? '<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">' + escHtml(client.business) + '</div>' : '') + '</div>' +
+        '<div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Direccion</div><div class="value">' + escHtml(client.address||'-') + '</div>' + (client.colony ? '<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">' + escHtml(client.colony) + '</div>' : '') + (client.references ? '<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">' + escHtml(client.references) + '</div>' : '') + (client.phone ? '<div class="label"><i class="fas fa-phone"></i> Telefono</div><div class="value"><a href="tel:' + escHtml(client.phone) + '" style="color:var(--primary);">' + escHtml(client.phone) + '</a></div>' : '') + (lat&&lng ? '<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">' + lat + ', ' + lng + '</div>' : '') + '</div>' +
+        '<div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">' + photoHtml + '</div></div>' +
+        '<div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicacion</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="' + (lat&&lng ? 'https://www.google.com/maps?q='+lat+','+lng : 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(client.address||'')) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;"><i class="fab fa-google"></i> Google Maps</a><a href="' + (lat&&lng ? 'https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15' : 'https://www.openstreetmap.org/search?query='+encodeURIComponent(client.address||'')) + '" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>' +
+        '<div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (' + visits.length + ')</div><div class="visit-timeline">' + visitHtml + '</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>';
 
     if (lat && lng && typeof L !== 'undefined') {
-        setTimeout(() => {
-            const mapContainer = document.getElementById('detail-map');
-            if (mapContainer && !mapContainer._leaflet_id) {
-                const map = L.map(mapContainer).setView([parseFloat(lat), parseFloat(lng)], 15);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-                L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map);
-                setTimeout(() => map.invalidateSize(), 100);
+        setTimeout(function() {
+            const mapEl = document.getElementById('detail-map');
+            if (mapEl && !mapEl._leaflet_id) {
+                const m = L.map(mapEl).setView([parseFloat(lat), parseFloat(lng)], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(m);
+                L.marker([parseFloat(lat), parseFloat(lng)]).addTo(m);
+                setTimeout(function() { m.invalidateSize(); }, 100);
             }
         }, 200);
     } else {
-        const mapContainer = document.getElementById('detail-map');
-        if (mapContainer) mapContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>';
+        const mapEl = document.getElementById('detail-map');
+        if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>';
     }
 
-    document.getElementById('addVisitBtn').addEventListener('click', () => {
-        showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', async () => {
-            const note = document.getElementById('visitNoteInput')?.value || '';
-            if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
+    document.getElementById('addVisitBtn').addEventListener('click', function() {
+        showModal('Registrar Visita', '<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>', 'Registrar', async function() {
+            const note = document.getElementById('visitNoteInput') ? document.getElementById('visitNoteInput').value : '';
+            if (!note.trim()) { showToast('Escribe una nota', 'error'); return; }
             await addVisitToClient(id, note);
-            showToast('✅ Visita', 'success');
+            showToast('Visita registrada', 'success');
             showClientDetail(id);
         });
     });
 
-    document.getElementById('shareVisitBtn').addEventListener('click', () => {
-        if (!visits || visits.length === 0) { showToast('No hay visitas', 'error'); return; }
-        let msg = `📋 CLIENTE: ${client.name}\n`;
-        if (client.business) msg += `🏢 Negocio: ${client.business}\n`;
-        if (client.address) msg += `📍 Dirección: ${client.address}\n`;
-        if (client.colony) msg += `🏘️ Colonia: ${client.colony}\n`;
-        if (client.phone) msg += `📞 Teléfono: ${client.phone}\n`;
-        msg += `📅 Visitas:\n\n`;
-        const sorted = [...visits].sort((a, b) => b.date - a.date);
-        sorted.forEach((v, i) => {
-            const date = new Date(v.date);
-            msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
+    document.getElementById('shareVisitBtn').addEventListener('click', function() {
+        if (!visits.length) { showToast('No hay visitas', 'error'); return; }
+        let msg = 'CLIENTE: ' + client.name + '\n';
+        if (client.business) msg += 'Negocio: ' + client.business + '\n';
+        if (client.address) msg += 'Direccion: ' + client.address + '\n';
+        msg += 'Visitas:\n';
+        visits.slice().sort(function(a,b){return b.date-a.date;}).forEach(function(v,i) {
+            const d = new Date(v.date);
+            msg += (i+1)+'. '+d.toLocaleDateString('es')+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+' - '+((v.notes||'Sin nota'))+'\n';
         });
-        if (navigator.share) {
-            navigator.share({ title: 'Visitas de ' + client.name, text: msg }).catch(() => {});
-        } else {
-            navigator.clipboard.writeText(msg).then(() => {
-                showToast('📋 Copiado', 'success');
-            }).catch(() => {
-                showModal('Visitas', `<pre style="white-space:pre-wrap;font-size:0.8rem;">${escHtml(msg)}</pre>`, 'Cerrar');
-            });
-        }
+        if (navigator.share) { navigator.share({title:'Visitas',text:msg}).catch(function(){}); }
+        else { navigator.clipboard.writeText(msg).then(function(){showToast('Copiado','success');}).catch(function(){showModal('Visitas','<pre style="white-space:pre-wrap;font-size:0.8rem;">'+escHtml(msg)+'</pre>','Cerrar');}); }
     });
 
-    document.getElementById('printVisitBtn').addEventListener('click', () => printClientVisits(client));
-    document.getElementById('detailEditBtn').onclick = () => editClient(id);
-    document.getElementById('detailDeleteBtn').onclick = () => {
-        showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', async () => {
+    document.getElementById('printVisitBtn').addEventListener('click', function() { printClientVisits(client); });
+    document.getElementById('detailEditBtn').onclick = function() { editClient(id); };
+    document.getElementById('detailDeleteBtn').onclick = function() {
+        showModal('Eliminar', 'Eliminar a <strong>' + escHtml(client.name) + '</strong>?', 'Eliminar', async function() {
             await deleteClient(id);
-            showToast('🗑️ Eliminado', 'info');
+            showToast('Eliminado', 'info');
             switchView('viewList');
-            refreshUI();
         });
     };
     switchView('viewDetail');
 }
 
-async function addVisitToClient(clientId, notes = '') {
+async function addVisitToClient(clientId, notes) {
     const client = getClient(clientId);
     if (!client) return;
     const visits = client.visits || [];
@@ -744,7 +820,6 @@ async function addVisitToClient(clientId, notes = '') {
     client.visits = visits;
     client._synced = false;
     await saveClient(client);
-    refreshUI();
 }
 
 // ======================================================================
@@ -752,706 +827,449 @@ async function addVisitToClient(clientId, notes = '') {
 // ======================================================================
 function printClientDirectory() {
     const clients = getAllClients();
-    if (!clients || clients.length === 0) { showToast('No hay clientes', 'error'); return; }
-    const sorted = [...clients].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    if (!clients.length) { showToast('No hay clientes', 'error'); return; }
+    const sorted = clients.slice().sort(function(a,b){return (a.name||'').localeCompare(b.name||'');});
     let rows = '';
-    sorted.forEach((c, i) => {
-        rows += `<tr><td>${i+1}</td><td><strong>${escHtml(c.name||'—')}</strong></td><td>${escHtml(c.business||'—')}</td><td>${escHtml(c.address||'—')}</td><td>${escHtml(c.colony||'—')}</td><td>${escHtml(c.phone||'—')}</td><td>${escHtml(c.references||'—')}</td><td>${c.lat&&c.lng?c.lat+', '+c.lng:'—'}</td><td style="text-align:center">${(c.visits||[]).length}</td></tr>`;
+    sorted.forEach(function(c,i) {
+        rows += '<tr><td>'+i+'</td><td><strong>'+escHtml(c.name||'-')+'</strong></td><td>'+escHtml(c.business||'-')+'</td><td>'+escHtml(c.address||'-')+'</td><td>'+escHtml(c.colony||'-')+'</td><td>'+escHtml(c.phone||'-')+'</td><td>'+((c.visits||[]).length)+'</td></tr>';
     });
-    const win = window.open('', '_blank', 'width=800,height=700');
+    const win = window.open('', '_blank');
     if (!win) { showToast('Permite ventanas emergentes', 'error'); return; }
-    win.document.write(`<!DOCTYPE html><html><head><title>Directorio</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-        <style>body { font-family: Arial, sans-serif; padding: 10px; max-width: 1100px; margin: auto; color: #0f172a; font-size: 14px; } h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; font-size: 20px; } table { width: 100%; border-collapse: collapse; font-size: 12px; } th { background: #f1f5f9; padding: 6px; border-bottom: 2px solid #e2e8f0; text-align: left; } td { padding: 6px; border-bottom: 1px solid #e2e8f0; } .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; } @media (max-width: 600px) { table { font-size: 10px; } th, td { padding: 4px; } } button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; } .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }</style></head><body>
-        <h1>📇 Directorio de Clientes</h1>
-        <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
-        <table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead><tbody>${rows}</tbody></table>
-        <div class="footer">Generado desde CRM Visitas</div>
-        <button onclick="window.print()">🖨️ Imprimir</button>
-        <button class="close-btn" onclick="window.close()">Cerrar</button>
-        </body></html>`);
+    win.document.write('<!DOCTYPE html><html><head><title>Directorio</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px;font-size:.85rem;}th{background:#1e3a8a;color:#fff;}</style></head><body><h1>Directorio</h1><p>Total: '+clients.length+'</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Direccion</th><th>Colonia</th><th>Telefono</th><th>Visitas</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
     win.document.close();
+    setTimeout(function(){win.print();},300);
 }
 
 function printClientVisits(client) {
-    if (!client || !client.visits || client.visits.length === 0) { showToast('No hay visitas', 'error'); return; }
-    const sorted = [...client.visits].sort((a, b) => b.date - a.date);
-    let visitsHtml = '';
-    sorted.forEach((v, i) => {
-        const d = new Date(v.date);
-        visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span></div>`;
+    const visits = client.visits || [];
+    let rows = '';
+    visits.forEach(function(v,i) {
+        rows += '<tr><td>'+i+'</td><td>'+new Date(v.date).toLocaleDateString('es')+'</td><td>'+new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+'</td><td>'+escHtml(v.notes||'-')+'</td></tr>';
     });
-    const info = `<div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}<div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}`;
-    const win = window.open('', '_blank', 'width=800,height=600');
+    const win = window.open('', '_blank');
     if (!win) { showToast('Permite ventanas emergentes', 'error'); return; }
-    win.document.write(`<!DOCTYPE html><html><head><title>Visitas de ${escHtml(client.name)}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-        <style>body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; } h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; } .info { background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin: 14px 0; border-left: 4px solid #1e3a8a; } .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; } .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; } button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; } .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }</style></head><body>
-        <h1>📋 Historial de visitas</h1>
-        <div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div>
-        <div>${visitsHtml}</div>
-        <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-        <button onclick="window.print()">🖨️ Imprimir</button>
-        <button class="close-btn" onclick="window.close()">Cerrar</button>
-        </body></html>`);
+    win.document.write('<!DOCTYPE html><html><head><title>Visitas</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px;}th{background:#1e3a8a;color:#fff;}</style></head><body><h1>'+escHtml(client.name)+'</h1><p>Visitas: '+visits.length+'</p><table><thead><tr><th>#</th><th>Fecha</th><th>Hora</th><th>Nota</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
     win.document.close();
+    setTimeout(function(){win.print();},300);
 }
 
 function printStatsReport() {
     const clients = getAllClients();
-    if (!clients || clients.length === 0) { showToast('No hay datos', 'error'); return; }
-    const totalVisits = clients.reduce((acc, c) => acc + (c.visits ? c.visits.length : 0), 0);
-    const today = new Date().toDateString();
-    const todayVisits = clients.reduce((acc, c) => { if (c.visits) return acc + c.visits.filter(v => new Date(v.date).toDateString() === today).length; return acc; }, 0);
-    let topClient = null, topCount = 0;
-    for (const c of clients) { if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; } }
-    const days = [];
-    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
-    const dayCounts = {};
-    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    days.forEach(d => dayCounts[d.toDateString()] = 0);
-    for (const c of clients) { if (c.visits) { for (const v of c.visits) { const key = new Date(v.date).toDateString(); if (dayCounts[key] !== undefined) dayCounts[key]++; } } }
-    let chartHtml = '';
-    days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:12px;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:11px;color:#64748b;">${count}</div></div>`; });
-    const win = window.open('', '_blank', 'width=800,height=600');
+    const totalVisits = clients.reduce(function(s,c){return s+(c.visits||[]).length;},0);
+    const win = window.open('', '_blank');
     if (!win) { showToast('Permite ventanas emergentes', 'error'); return; }
-    win.document.write(`<!DOCTYPE html><html><head><title>Reporte de visitas</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-        <style>body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; } h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; } .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; } .stat-card { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border-left: 4px solid #1e3a8a; } .stat-number { font-size: 24px; font-weight: 800; color: #1e3a8a; } .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; } .chart { display: flex; justify-content: space-around; align-items: flex-end; height: 100px; margin: 14px 0; padding: 0 10px; } table { width: 100%; border-collapse: collapse; font-size: 12px; } th { background: #f1f5f9; padding: 6px; text-align: left; border-bottom: 2px solid #e2e8f0; } td { padding: 6px; border-bottom: 1px solid #e2e8f0; } .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; } button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; } .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }</style></head><body>
-        <h1>📊 Reporte de visitas</h1>
-        <div class="stats-grid">
-            <div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div>
-            <div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div>
-            <div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div>
-            <div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div>
-        </div>
-        <h2 style="font-size:16px;margin-top:14px;">Visitas por día (últimos 7 días)</h2>
-        <div class="chart">${chartHtml}</div>
-        <h2 style="font-size:16px;margin-top:14px;">Lista de clientes</h2>
-        <table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody></table>
-        <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-        <button onclick="window.print()">🖨️ Imprimir</button>
-        <button class="close-btn" onclick="window.close()">Cerrar</button>
-        </body></html>`);
+    win.document.write('<!DOCTYPE html><html><head><title>Reporte</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}</style></head><body><h1>Reporte CRM</h1><p>Clientes: '+clients.length+' | Visitas: '+totalVisits+' | Fecha: '+new Date().toLocaleDateString('es')+'</p></body></html>');
     win.document.close();
+    setTimeout(function(){win.print();},300);
+}
+
+// ======================================================================
+// EXPORTAR / IMPORTAR
+// ======================================================================
+function exportData(includePhotos) {
+    let exportClients = getAllClients();
+    if (!includePhotos) {
+        exportClients = exportClients.map(function(c) { const copy = Object.assign({}, c); delete copy.photo; return copy; });
+    }
+    const blob = new Blob([JSON.stringify(exportClients, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'crm_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Exportado', 'success');
+}
+
+function importData(jsonStr) {
+    try {
+        const imported = JSON.parse(jsonStr);
+        if (!Array.isArray(imported)) { showToast('Formato invalido', 'error'); return; }
+        imported.forEach(function(c) {
+            if (!c.id) c.id = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
+            const idx = clientDataCache.findIndex(function(e){return e.id==c.id;});
+            if (idx !== -1) clientDataCache[idx] = c;
+            else clientDataCache.push(c);
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+        refreshUI();
+        if (isOnline) imported.forEach(function(c){saveClientToFirestore(c);});
+        showToast('Importados: ' + imported.length, 'success');
+    } catch (e) { showToast('Error: ' + e.message, 'error'); }
+}
+
+// ======================================================================
+// ESTADISTICAS
+// ======================================================================
+function updateStatsBadge(clients) {
+    const badge = document.getElementById('statsBadge');
+    const total = clients.reduce(function(s,c){return s+(c.visits||[]).length;},0);
+    if (badge) { badge.textContent = total; badge.style.display = total > 0 ? '' : 'none'; }
+}
+
+function renderStats() {
+    const clients = getAllClients();
+    const totalVisits = clients.reduce(function(s,c){return s+(c.visits||[]).length;},0);
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const todayVisits = clients.reduce(function(s,c){return s+(c.visits||[]).filter(function(v){return v.date>=todayStart.getTime();}).length;},0);
+    let topClient = '-';
+    let maxVisits = 0;
+    clients.forEach(function(c){const v=(c.visits||[]).length;if(v>maxVisits){maxVisits=v;topClient=c.name||'-';}});
+
+    document.getElementById('statTotal').textContent = clients.length;
+    document.getElementById('statVisits').textContent = totalVisits;
+    document.getElementById('statToday').textContent = todayVisits;
+    document.getElementById('statTop').textContent = maxVisits > 0 ? topClient : '-';
+
+    const chartEl = document.getElementById('weeklyChart');
+    if (!chartEl) return;
+    const days = [];
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(now); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
+        const start = d.getTime(); const end = start + 86400000;
+        const count = clients.reduce(function(s,c){return s+(c.visits||[]).filter(function(v){return v.date>=start&&v.date<end;}).length;},0);
+        days.push({ label: d.toLocaleDateString('es',{weekday:'short'}), count: count });
+    }
+    const maxC = Math.max.apply(null, days.map(function(d){return d.count;})) || 1;
+    chartEl.innerHTML = days.map(function(d) {
+        const h = Math.max(4, (d.count/maxC)*80);
+        return '<div class="bar-item"><div class="bar" style="height:'+h+'px;"></div><div class="bar-label">'+d.label+'</div></div>';
+    }).join('');
+}
+
+// ======================================================================
+// VISTAS
+// ======================================================================
+function switchView(viewId) {
+    document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+    const target = document.getElementById(viewId);
+    if (target) target.classList.add('active');
+    currentView = viewId;
+    document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+    const nav = document.querySelector('.nav-item[data-view="'+viewId+'"]');
+    if (nav) nav.classList.add('active');
+    if (viewId === 'viewForm' && !editingId) resetForm();
+    if (viewId === 'viewStats') renderStats();
 }
 
 // ======================================================================
 // FORMULARIO
 // ======================================================================
-function editClient(id) {
-    editingId = id;
-    document.getElementById('formTitle').textContent = 'Editar Cliente';
-    document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Actualizar';
-    const c = getClient(id);
-    if (!c) { showToast('No encontrado', 'error'); return; }
-    document.getElementById('clientId').value = c.id;
-    document.getElementById('fName').value = c.name || '';
-    document.getElementById('fBusiness').value = c.business || '';
-    document.getElementById('fAddress').value = c.address || '';
-    document.getElementById('fColony').value = c.colony || '';
-    document.getElementById('fPhone').value = c.phone || '';
-    document.getElementById('fReferences').value = c.references || '';
+function resetForm() {
+    editingId = null;
+    photoDataUrl = null;
+    selectedLat = null;
+    selectedLng = null;
+    document.getElementById('clientId').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('fBusiness').value = '';
+    document.getElementById('fAddress').value = '';
+    document.getElementById('fLat').value = '';
+    document.getElementById('fLng').value = '';
+    document.getElementById('fColony').value = '';
+    document.getElementById('fPhone').value = '';
+    document.getElementById('fReferences').value = '';
     document.getElementById('fVisitNote').value = '';
-    document.getElementById('fLat').value = c.lat || '';
-    document.getElementById('fLng').value = c.lng || '';
-    selectedLat = c.lat || null;
-    selectedLng = c.lng || null;
-    switchView('viewForm');
-    setTimeout(() => {
-        if (selectedLat && selectedLng) updateMap(selectedLat, selectedLng);
-        else resetMapPlaceholder();
-    }, 200);
-    updateLinks();
-    if (c.photo) {
-        photoDataUrl = c.photo;
-        document.getElementById('photoPreview').src = c.photo;
+    document.getElementById('photoPreview').classList.add('hidden');
+    document.getElementById('photoPlaceholder').classList.remove('hidden');
+    document.getElementById('formTitle').textContent = 'Nuevo Cliente';
+
+    // FIX: Resetear boton INMEDIATAMENTE
+    const btn = document.getElementById('formSubmitBtn');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
+    btn.style.background = '';
+
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+    document.getElementById('map-container').innerHTML = '';
+    document.getElementById('openGoogleMaps').style.display = 'none';
+    document.getElementById('openOsmLink').style.display = 'none';
+}
+
+function editClient(id) {
+    const client = getClient(id);
+    if (!client) { showToast('No encontrado', 'error'); return; }
+    editingId = id;
+    document.getElementById('clientId').value = id;
+    document.getElementById('fName').value = client.name || '';
+    document.getElementById('fBusiness').value = client.business || '';
+    document.getElementById('fAddress').value = client.address || '';
+    document.getElementById('fLat').value = client.lat || '';
+    document.getElementById('fLng').value = client.lng || '';
+    document.getElementById('fColony').value = client.colony || '';
+    document.getElementById('fPhone').value = client.phone || '';
+    document.getElementById('fReferences').value = client.references || '';
+    document.getElementById('fVisitNote').value = '';
+    document.getElementById('formTitle').textContent = 'Editar Cliente';
+
+    if (client.photo) {
+        photoDataUrl = client.photo;
+        document.getElementById('photoPreview').src = client.photo;
         document.getElementById('photoPreview').classList.remove('hidden');
-        document.getElementById('photoPlaceholder').style.display = 'none';
+        document.getElementById('photoPlaceholder').classList.add('hidden');
     } else {
         photoDataUrl = null;
         document.getElementById('photoPreview').classList.add('hidden');
-        document.getElementById('photoPlaceholder').style.display = 'flex';
+        document.getElementById('photoPlaceholder').classList.remove('hidden');
     }
-}
 
-function resetForm() {
-    document.getElementById('clientForm').reset();
-    document.getElementById('clientId').value = '';
-    editingId = null;
-    document.getElementById('formTitle').textContent = 'Nuevo Cliente';
-    document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
-    selectedLat = null; selectedLng = null;
-    document.getElementById('fLat').value = '';
-    document.getElementById('fLng').value = '';
-    resetMapPlaceholder();
-    document.getElementById('fVisitNote').value = '';
-    photoDataUrl = null;
-    document.getElementById('photoPreview').classList.add('hidden');
-    document.getElementById('photoPreview').src = '';
-    document.getElementById('photoPlaceholder').style.display = 'flex';
-    document.getElementById('fPhoto').value = '';
-    updateLinks();
+    selectedLat = client.lat ? parseFloat(client.lat) : null;
+    selectedLng = client.lng ? parseFloat(client.lng) : null;
+    switchView('viewForm');
+    setTimeout(function(){initFormMap();},200);
 }
 
 // ======================================================================
 // MAPA
 // ======================================================================
-function resetMapPlaceholder() {
-    const container = document.getElementById('map-container');
-    if (!container) return;
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:6px;"><i class="fas fa-map-marked-alt"></i><span>Escribe una dirección y presiona "Buscar"</span></div>';
+function initFormMap() {
+    const mc = document.getElementById('map-container');
+    if (!mc) return;
     if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-    updateLinks();
+    const lat = selectedLat || 19.4326;
+    const lng = selectedLng || -99.1332;
+    mapInstance = L.map(mc).setView([lat,lng],15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OSM'}).addTo(mapInstance);
+    if (selectedLat && selectedLng) { L.marker([selectedLat,selectedLng]).addTo(mapInstance); updateMapLinks(selectedLat,selectedLng); }
+    mapInstance.on('click', function(e) {
+        selectedLat = e.latlng.lat; selectedLng = e.latlng.lng;
+        document.getElementById('fLat').value = selectedLat.toFixed(6);
+        document.getElementById('fLng').value = selectedLng.toFixed(6);
+        mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l);});
+        L.marker([selectedLat,selectedLng]).addTo(mapInstance);
+        updateMapLinks(selectedLat,selectedLng);
+        showToast('Ubicacion seleccionada','success',1500);
+    });
+    setTimeout(function(){mapInstance.invalidateSize();},100);
 }
 
-function updateMap(lat, lng) {
-    const container = document.getElementById('map-container');
-    if (!container) return;
-    if (!lat || !lng) { resetMapPlaceholder(); return; }
-    const latNum = parseFloat(lat), lngNum = parseFloat(lng);
-    if (isNaN(latNum) || isNaN(lngNum)) { resetMapPlaceholder(); return; }
-    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-    container.innerHTML = '';
-    const map = L.map(container).setView([latNum, lngNum], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-    L.marker([latNum, lngNum]).addTo(map);
-    mapInstance = map;
-    setTimeout(() => map.invalidateSize(), 200);
-    updateLinks();
+function updateMapLinks(lat,lng) {
+    const g = document.getElementById('openGoogleMaps');
+    const o = document.getElementById('openOsmLink');
+    if (g) { g.href='https://www.google.com/maps?q='+lat+','+lng; g.style.display=''; }
+    if (o) { o.href='https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15'; o.style.display=''; }
 }
 
-function updateLinks() {
-    const lat = document.getElementById('fLat').value.trim();
-    const lng = document.getElementById('fLng').value.trim();
-    const address = document.getElementById('fAddress').value.trim();
-    const googleLink = document.getElementById('openGoogleMaps');
-    const osmLink = document.getElementById('openOsmLink');
-    if (!googleLink || !osmLink) return;
-    if (lat && lng) {
-        const latNum = parseFloat(lat), lngNum = parseFloat(lng);
-        if (!isNaN(latNum) && !isNaN(lngNum)) {
-            googleLink.href = `https://www.google.com/maps?q=${latNum},${lngNum}`;
-            googleLink.style.display = 'inline-flex';
-            osmLink.href = `https://www.openstreetmap.org/?mlat=${latNum}&mlon=${lngNum}&zoom=15`;
-            osmLink.style.display = 'inline-flex';
-            return;
-        }
-    } else if (address) {
-        googleLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-        googleLink.style.display = 'inline-flex';
-        osmLink.href = `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`;
-        osmLink.style.display = 'inline-flex';
-        return;
-    }
-    googleLink.href = '#'; googleLink.style.display = 'none';
-    osmLink.href = '#'; osmLink.style.display = 'none';
-}
-
-async function geocodeManual() {
-    const address = document.getElementById('fAddress').value.trim();
-    if (!address) { showToast('Escribe una dirección', 'error'); return; }
-    const container = document.getElementById('map-container');
-    if (!container) return;
-    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
+// ======================================================================
+// GEO SEARCH
+// ======================================================================
+async function geoSearch() {
+    const addr = document.getElementById('fAddress').value.trim();
+    if (!addr) { showToast('Escribe una direccion','warning'); return; }
+    showToast('Buscando...','info',1500);
     try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
-        const response = await fetch(url, { headers: { 'User-Agent': 'CRM-Client/1.0' } });
-        const data = await response.json();
-        if (data && data.length > 0) {
-            const lat = parseFloat(data[0].lat);
-            const lng = parseFloat(data[0].lon);
-            selectedLat = lat; selectedLng = lng;
-            document.getElementById('fLat').value = lat;
-            document.getElementById('fLng').value = lng;
-            updateMap(lat, lng);
-            const parts = data[0].display_name.split(',');
-            if (parts.length > 2) {
-                const colony = parts[parts.length - 3]?.trim() || '';
-                if (colony && !document.getElementById('fColony').value) {
-                    document.getElementById('fColony').value = colony;
-                }
-            }
-            showToast('📍 Ubicación', 'success');
-        } else {
-            resetMapPlaceholder();
-            showToast('No encontrada', 'error');
-            updateLinks();
+        const r = await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=5');
+        const results = await r.json();
+        if (!results.length) { showToast('No encontrado','warning'); return; }
+        const first = results[0];
+        selectedLat = parseFloat(first.lat); selectedLng = parseFloat(first.lon);
+        document.getElementById('fLat').value = selectedLat.toFixed(6);
+        document.getElementById('fLng').value = selectedLng.toFixed(6);
+        if (first.address && (first.address.suburb||first.address.neighbourhood)) {
+            document.getElementById('fColony').value = first.address.suburb || first.address.neighbourhood;
         }
-    } catch (err) {
-        resetMapPlaceholder();
-        showToast('Error al geocodificar', 'error');
-        updateLinks();
-    }
-}
-
-function updateMapFromCoords() {
-    const lat = document.getElementById('fLat').value.trim();
-    const lng = document.getElementById('fLng').value.trim();
-    if (lat && lng) {
-        const latNum = parseFloat(lat), lngNum = parseFloat(lng);
-        if (!isNaN(latNum) && !isNaN(lngNum)) {
-            selectedLat = latNum; selectedLng = lngNum;
-            updateMap(latNum, lngNum);
-            showToast('📍 Mapa actualizado', 'success');
-        } else { showToast('Coordenadas inválidas', 'error'); }
-    } else { showToast('Ingresa latitud y longitud', 'error'); }
+        if (mapInstance) {
+            mapInstance.setView([selectedLat,selectedLng],16);
+            mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l);});
+            L.marker([selectedLat,selectedLng]).addTo(mapInstance);
+        } else { initFormMap(); }
+        updateMapLinks(selectedLat,selectedLng);
+        showToast('Encontrado','success');
+    } catch(e) { showToast('Error en busqueda','error'); }
 }
 
 // ======================================================================
-// FOTO
+// FOTO - FIX: Comprimir antes de guardar
 // ======================================================================
-document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
-document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
-
-document.getElementById('fPhoto').addEventListener('change', function(e) {
+async function handlePhotoSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 1024 * 1024) { showToast('Máx 1MB', 'error'); this.value = ''; return; }
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        photoDataUrl = ev.target.result;
-        const preview = document.getElementById('photoPreview');
-        preview.src = photoDataUrl;
-        preview.classList.remove('hidden');
-        document.getElementById('photoPlaceholder').style.display = 'none';
-        showToast('📸 Foto cargada', 'success');
-    };
-    reader.onerror = function() { showToast('Error al leer', 'error'); };
-    reader.readAsDataURL(file);
-});
 
-document.getElementById('removePhotoBtn').addEventListener('click', function() {
+    // Primero mostrar preview con la imagen original
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+        // FIX: Comprimir la foto antes de guardarla
+        // Max 400px ancho, calidad 50% = aprox 30-50KB (siempre menor a 1MB)
+        const compressed = await compressPhoto(ev.target.result, 400, 0.5);
+        photoDataUrl = compressed;
+        document.getElementById('photoPreview').src = compressed;
+        document.getElementById('photoPreview').classList.remove('hidden');
+        document.getElementById('photoPlaceholder').classList.add('hidden');
+        showToast('Foto comprimida y cargada', 'success', 1500);
+    };
+    reader.readAsDataURL(file);
+}
+
+function removePhoto() {
     photoDataUrl = null;
     document.getElementById('photoPreview').classList.add('hidden');
-    document.getElementById('photoPreview').src = '';
-    document.getElementById('photoPlaceholder').style.display = 'flex';
+    document.getElementById('photoPlaceholder').classList.remove('hidden');
     document.getElementById('fPhoto').value = '';
-    showToast('Foto eliminada', 'info');
-});
+}
 
 // ======================================================================
-// GUARDAR - CORRECCIÓN DEFINITIVA DE PROMESA Y BOTÓN COLGADO
+// TEMA
 // ======================================================================
-document.getElementById('clientForm').addEventListener('submit', function(e) {
+function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme');
+    const next = cur === 'dark' ? '' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('crm_theme', next || 'light');
+    const icon = document.querySelector('#themeToggle i');
+    if (icon) icon.className = next === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+}
+
+function changeZoom(delta) {
+    let cur = parseFloat(document.documentElement.style.fontSize) || 16;
+    cur = Math.max(12, Math.min(24, cur + delta));
+    document.documentElement.style.fontSize = cur + 'px';
+    localStorage.setItem('crm_zoom', cur);
+}
+
+// ======================================================================
+// FIX BUG 1: Form submit con try/catch/finally y timeout
+// ======================================================================
+document.getElementById('clientForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    
-    const submitBtn = document.getElementById('formSubmitBtn');
-    const originalText = submitBtn.innerHTML;
-    
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-    
-    function restoreButton() {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    }
-    
+
+    const btn = document.getElementById('formSubmitBtn');
     const name = document.getElementById('fName').value.trim();
-    const business = document.getElementById('fBusiness').value.trim();
-    const address = document.getElementById('fAddress').value.trim();
-    const colony = document.getElementById('fColony').value.trim();
-    const phone = document.getElementById('fPhone').value.trim();
-    const references = document.getElementById('fReferences').value.trim();
-    const visitNote = document.getElementById('fVisitNote').value.trim();
-    const lat = document.getElementById('fLat').value.trim();
-    const lng = document.getElementById('fLng').value.trim();
-    const id = document.getElementById('clientId').value;
-    
+
     if (!name) {
-        showToast('⚠️ Nombre obligatorio', 'error', 3000);
-        restoreButton();
+        showToast('El nombre es obligatorio', 'error');
         return;
     }
-    if (!address) {
-        showToast('⚠️ Dirección obligatoria', 'error', 3000);
-        restoreButton();
-        return;
-    }
-    
-    if (!id) {
-        const exists = clientDataCache.some(c => 
-            (c.name || '').toLowerCase().trim() === name.toLowerCase().trim() && 
-            (c.address || '').toLowerCase().trim() === address.toLowerCase().trim()
-        );
-        if (exists) {
-            showToast('⚠️ Cliente ya existe con ese nombre y dirección', 'warning', 3000);
-            restoreButton();
-            return;
-        }
-    }
-    
-    const clientData = { 
-        name: name, 
-        business: business || '', 
-        address: address, 
-        colony: colony || '', 
-        phone: phone || '', 
-        references: references || '', 
-        lat: lat || null, 
-        lng: lng || null, 
-        photo: photoDataUrl || null, 
-        updatedAt: Date.now(), 
-        _synced: false 
+
+    // Marcar boton como guardando
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    btn.style.background = '';
+
+    const client = {
+        id: editingId || null,
+        name: name,
+        business: document.getElementById('fBusiness').value.trim(),
+        address: document.getElementById('fAddress').value.trim(),
+        lat: document.getElementById('fLat').value.trim(),
+        lng: document.getElementById('fLng').value.trim(),
+        colony: document.getElementById('fColony').value.trim(),
+        phone: document.getElementById('fPhone').value.trim(),
+        references: document.getElementById('fReferences').value.trim(),
+        photo: photoDataUrl || null,
+        visits: [],
+        _synced: false
     };
 
-    if (id) {
-        const existing = getClient(id);
-        if (!existing) {
-            showToast('❌ Cliente no encontrado', 'error', 3000);
-            restoreButton();
-            return;
-        }
-        let visits = existing.visits || [];
-        if (visitNote !== '') { 
-            visits.push({ date: Date.now(), notes: visitNote }); 
-        }
-        clientData.visits = visits;
-        clientData.createdAt = existing.createdAt || Date.now();
-        clientData.id = id;
-    } else {
-        clientData.visits = visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [];
-        clientData.createdAt = Date.now();
+    // Si editamos, mantener visitas existentes
+    if (editingId) {
+        const existing = getClient(editingId);
+        if (existing) client.visits = existing.visits || [];
     }
-    
-    saveClient(clientData)
-        .then(function(result) {
-            if (result) {
+
+    // Agregar visita nueva si se escribio algo
+    const visitNote = document.getElementById('fVisitNote').value.trim();
+    if (visitNote) {
+        client.visits.push({ date: Date.now(), notes: visitNote });
+    }
+
+    try {
+        // FIX: Timeout de 15 segundos
+        // Si Firebase no responde en 15s, se cancela y se guarda localmente
+        const result = await withTimeout(
+            saveClient(client),
+            15000,
+            'Timeout: se guardo localmente. Sincroniza manualmente despues.'
+        );
+
+        if (result) {
+            // Exito
+            btn.innerHTML = '<i class="fas fa-check"></i> Guardado';
+            btn.style.background = '#22c55e';
+            showToast('Cliente guardado', 'success');
+            setTimeout(function() {
                 resetForm();
                 switchView('viewList');
-                refreshUI();
-                showToast('✅ Guardado', 'success');
-            } else {
-                showToast('❌ Error al guardar', 'error', 3000);
-            }
-        })
-        .catch(function(err) {
-            console.error('❌ Error:', err);
-            showToast('❌ Error al guardar', 'error', 3000);
-        })
-        .finally(function() {
-            restoreButton();
-        });
-});
-
-document.getElementById('formCancelBtn').addEventListener('click', () => { resetForm(); switchView('viewList'); });
-
-// ======================================================================
-// ESTADÍSTICAS
-// ======================================================================
-function renderStats() {
-    const clients = getAllClients();
-    if (!clients || clients.length === 0) {
-        document.getElementById('statTotal').textContent = '0';
-        document.getElementById('statVisits').textContent = '0';
-        document.getElementById('statToday').textContent = '0';
-        document.getElementById('statTop').textContent = '—';
-        document.getElementById('weeklyChart').innerHTML = '<div class="text-muted text-sm" style="padding:20px 0;text-align:center;">Sin datos</div>';
-        return;
-    }
-    const today = new Date();
-    const days = [];
-    for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); days.push(d); }
-    const dayCounts = {};
-    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    days.forEach(d => dayCounts[d.toDateString()] = 0);
-    let totalVisits = 0, todayVisits = 0;
-    const todayStr = new Date().toDateString();
-    for (const c of clients) {
-        if (c.visits) {
-            totalVisits += c.visits.length;
-            for (const v of c.visits) {
-                const visitDate = new Date(v.date).toDateString();
-                if (visitDate === todayStr) todayVisits++;
-                if (dayCounts[visitDate] !== undefined) dayCounts[visitDate]++;
-            }
+            }, 1000);
+        } else {
+            throw new Error('No se pudo guardar');
         }
-    }
-    document.getElementById('statTotal').textContent = clients.length;
-    document.getElementById('statVisits').textContent = totalVisits;
-    document.getElementById('statToday').textContent = todayVisits;
-    let topClient = null, topCount = 0;
-    for (const c of clients) {
-        if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; }
-    }
-    document.getElementById('statTop').textContent = topClient ? topClient.name : '—';
-    const chart = document.getElementById('weeklyChart');
-    const maxVal = Math.max(1, ...Object.values(dayCounts));
-    let chartHtml = '';
-    days.forEach((d) => {
-        const count = dayCounts[d.toDateString()] || 0;
-        const pct = maxVal > 0 ? (count / maxVal) * 100 : 0;
-        const label = dayNames[d.getDay()];
-        chartHtml += `<div class="bar-item"><div class="bar" style="height:${Math.max(4, pct)}%;background:${count > 0 ? 'var(--primary-light)' : 'var(--border)'};"></div><div class="bar-label">${label}</div></div>`;
-    });
-    chart.innerHTML = chartHtml;
-}
+    } catch (error) {
+        // Error o timeout
+        btn.innerHTML = '<i class="fas fa-times"></i> Error - guardado local';
+        btn.style.background = '#f59e0b';
+        showToast(error.message, 'warning', 4000);
 
-function updateStatsBadge(clients) {
-    const badge = document.getElementById('statsBadge');
-    if (!badge) return;
-    if (!clients || clients.length === 0) { badge.style.display = 'none'; return; }
-    const today = new Date().toDateString();
-    let todayVisits = 0;
-    for (const c of clients) {
-        if (c.visits) {
-            for (const v of c.visits) {
-                if (new Date(v.date).toDateString() === today) todayVisits++;
-            }
-        }
-    }
-    if (todayVisits > 0) { badge.textContent = todayVisits; badge.style.display = 'inline'; } else { badge.style.display = 'none'; }
-}
-
-// ======================================================================
-// NAVEGACIÓN
-// ======================================================================
-function switchView(viewId) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    const target = document.getElementById(viewId);
-    if (target) target.classList.add('active');
-    currentView = viewId;
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    const navMap = { 'viewList': 'viewList', 'viewForm': 'viewForm', 'viewStats': 'viewStats', 'viewDetail': 'viewList' };
-    const navId = navMap[viewId] || 'viewList';
-    const navItem = document.querySelector(`.nav-item[data-view="${navId}"]`);
-    if (navItem) navItem.classList.add('active');
-    document.getElementById('mainContent').scrollTop = 0;
-    if (viewId === 'viewStats') renderStats();
-}
-
-document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', function() {
-        const view = this.dataset.view;
-        if (view === 'viewForm') {
+        // Despues de 2 segundos, ir a la lista (el dato ya se guardo en localStorage)
+        setTimeout(function() {
             resetForm();
-            if (!editingId) {
-                document.getElementById('formTitle').textContent = 'Nuevo Cliente';
-                document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
+            switchView('viewList');
+        }, 2000);
+    } finally {
+        // FIX CRITICAL: finally SIEMPRE resetea el boton inmediatamente
+        // No use setTimeout aqui - el boton debe resetearse SIEMPRE
+        btn.disabled = false;
+        // El texto se resetea despues de mostrar el estado por 2 segundos
+        setTimeout(function() {
+            if (!btn.disabled) {
+                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
+                btn.style.background = '';
             }
-        }
-        switchView(view);
-        if (view === 'viewStats') renderStats();
-    });
-});
-
-document.getElementById('addQuickBtn').addEventListener('click', () => { resetForm(); switchView('viewForm'); document.getElementById('fName').focus(); });
-document.getElementById('detailBackBtn').addEventListener('click', () => { switchView('viewList'); refreshUI(); });
-
-document.getElementById('searchInput').addEventListener('input', function(e) {
-    const q = e.target.value.toLowerCase().trim();
-    if (!q) { renderClientList(clientDataCache); return; }
-    const filtered = clientDataCache.filter(c => 
-        (c.name || '').toLowerCase().includes(q) || 
-        (c.business || '').toLowerCase().includes(q) || 
-        (c.address || '').toLowerCase().includes(q) || 
-        (c.colony || '').toLowerCase().includes(q) || 
-        (c.phone || '').includes(q)
-    );
-    renderClientList(filtered);
-});
-
-document.getElementById('geoBtn').addEventListener('click', geocodeManual);
-document.getElementById('fAddress').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); geocodeManual(); } });
-document.getElementById('updateMapCoords').addEventListener('click', updateMapFromCoords);
-document.getElementById('fLat').addEventListener('input', updateLinks);
-document.getElementById('fLng').addEventListener('input', updateLinks);
-document.getElementById('fAddress').addEventListener('input', updateLinks);
-
-document.getElementById('resetDataBtn').addEventListener('click', function() {
-    showModal('Eliminar Todos', '¿Eliminar TODOS los clientes? Esta acción no se puede deshacer.', 'Eliminar', function() {
-        clearAllClients();
-        showToast('🗑️ Eliminados', 'info');
-        refreshUI();
-    });
-});
-
-document.getElementById('syncFirebaseBtn').addEventListener('click', syncWithFirebase);
-document.getElementById('printStatsBtn').addEventListener('click', printStatsReport);
-document.getElementById('printDirectoryBtn').addEventListener('click', printClientDirectory);
-
-// ======================================================================
-// EXPORT / IMPORT
-// ======================================================================
-document.getElementById('exportDataBtn').addEventListener('click', function() {
-    if (clientDataCache.length === 0) { showToast('No hay clientes', 'error'); return; }
-    const blob = new Blob([JSON.stringify(clientDataCache, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clientes_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`✅ ${clientDataCache.length} exportados`, 'success');
-});
-
-document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
-    if (clientDataCache.length === 0) { showToast('No hay clientes', 'error'); return; }
-    const clean = clientDataCache.map(({ photo, ...rest }) => rest);
-    const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `clientes_sin_fotos_${new Date().toISOString().slice(0,10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`✅ ${clean.length} exportados`, 'success');
-});
-
-document.getElementById('importDataBtn').addEventListener('click', function() {
-    document.getElementById('importFileInput').click();
-});
-
-document.getElementById('importFileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-        try {
-            const data = JSON.parse(ev.target.result);
-            if (!Array.isArray(data)) throw new Error('El archivo no contiene un array de clientes.');
-            const overlay = document.getElementById('modalOverlay');
-            document.getElementById('modalTitle').textContent = 'Importar Datos';
-            document.getElementById('modalBody').innerHTML = `Se encontraron <strong>${data.length}</strong> clientes. ¿Qué deseas hacer?`;
-            const footer = document.getElementById('modalFooter');
-            footer.innerHTML = '';
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'btn btn-secondary';
-            cancelBtn.textContent = 'Cancelar';
-            footer.appendChild(cancelBtn);
-            const replaceBtn = document.createElement('button');
-            replaceBtn.className = 'btn btn-danger';
-            replaceBtn.textContent = 'Reemplazar';
-            footer.appendChild(replaceBtn);
-            const mergeBtn = document.createElement('button');
-            mergeBtn.className = 'btn btn-primary';
-            mergeBtn.textContent = 'Fusionar';
-            footer.appendChild(mergeBtn);
-
-            cancelBtn.addEventListener('click', function() { overlay.classList.remove('open'); e.target.value = ''; });
-            replaceBtn.addEventListener('click', function() {
-                overlay.classList.remove('open');
-                clientDataCache = data;
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
-                refreshUI();
-                showToast(`✅ ${data.length} importados`, 'success');
-                e.target.value = '';
-                for (const c of clientDataCache) { saveClientToFirestore(c); }
-            });
-            mergeBtn.addEventListener('click', function() {
-                overlay.classList.remove('open');
-                const existingNames = new Set(clientDataCache.map(c => (c.name + c.address).toLowerCase()));
-                let added = 0;
-                for (const c of data) {
-                    const key = (c.name || '') + (c.address || '');
-                    if (!existingNames.has(key.toLowerCase())) {
-                        if (!c.name) c.name = 'Sin nombre';
-                        if (!c.address) c.address = 'Sin dirección';
-                        if (!c.visits) c.visits = [];
-                        if (!c.createdAt) c.createdAt = Date.now();
-                        if (!c.updatedAt) c.updatedAt = Date.now();
-                        c.id = c.id || Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-                        clientDataCache.push(c);
-                        added++;
-                        existingNames.add(key.toLowerCase());
-                    }
-                }
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
-                refreshUI();
-                showToast(`✅ ${added} fusionados`, 'success');
-                e.target.value = '';
-                for (const c of clientDataCache.slice(-added)) { saveClientToFirestore(c); }
-            });
-            document.getElementById('modalClose').onclick = function() { overlay.classList.remove('open'); e.target.value = ''; };
-            overlay.classList.add('open');
-        } catch (err) {
-            console.error('Error en importación:', err);
-            showToast('Error al importar', 'error');
-            e.target.value = '';
-        }
-    };
-    reader.onerror = function() { showToast('Error al leer el archivo', 'error'); e.target.value = ''; };
-    reader.readAsText(file);
-});
-
-// ======================================================================
-// ZOOM Y TEMA
-// ======================================================================
-document.getElementById('zoomInBtn').addEventListener('click', function() {
-    const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
-    const newZoom = Math.min(currentZoom + 0.3, 3);
-    document.body.style.transform = `scale(${newZoom})`;
-    document.body.style.transformOrigin = 'top left';
-    document.body.style.width = `${100 / newZoom}%`;
-});
-document.getElementById('zoomOutBtn').addEventListener('click', function() {
-    const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
-    const newZoom = Math.max(currentZoom - 0.3, 0.8);
-    document.body.style.transform = `scale(${newZoom})`;
-    document.body.style.transformOrigin = 'top left';
-    document.body.style.width = `${100 / newZoom}%`;
-});
-document.getElementById('themeToggle').addEventListener('click', function() {
-    const html = document.documentElement;
-    const isDark = html.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-        html.removeAttribute('data-theme');
-        this.innerHTML = '<i class="fas fa-moon"></i>';
-        localStorage.setItem('theme', 'light');
-    } else {
-        html.setAttribute('data-theme', 'dark');
-        this.innerHTML = '<i class="fas fa-sun"></i>';
-        localStorage.setItem('theme', 'dark');
+        }, 2000);
     }
 });
-if (localStorage.getItem('theme') === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
-}
 
 // ======================================================================
-// INICIO
+// EVENTOS
 // ======================================================================
-function init() {
-    const localData = localStorage.getItem(STORAGE_KEY);
-    if (localData) {
-        try { 
-            clientDataCache = JSON.parse(localData); 
-            refreshUI(); 
-        } catch (e) { 
-            clientDataCache = []; 
-        }
-    } else { 
-        clientDataCache = []; 
-        refreshUI(); 
-    }
-    listenToFirestore();
-    setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
-    if (isOnline) { 
-        setTimeout(syncWithFirebase, 2000); 
-    }
-    console.log('✅ CRM con Firebase activo');
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-} else {
-    init();
-}
-
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        if (document.getElementById('modalOverlay').classList.contains('open')) document.getElementById('modalOverlay').classList.remove('open');
-        if (currentView === 'viewForm') { resetForm(); switchView('viewList'); }
-        if (currentView === 'viewDetail') { switchView('viewList'); refreshUI(); }
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') { 
-        if (currentView === 'viewList') { 
-            e.preventDefault(); 
-            document.getElementById('searchInput').focus(); 
-        } 
-    }
+document.getElementById('navList').addEventListener('click', function(){switchView('viewList');});
+document.getElementById('navAdd').addEventListener('click', function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap();},200);});
+document.getElementById('navStats').addEventListener('click', function(){switchView('viewStats');});
+document.getElementById('addQuickBtn').addEventListener('click', function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap();},200);});
+document.getElementById('searchInput').addEventListener('input', function(){refreshUI();});
+document.getElementById('formCancelBtn').addEventListener('click', function(){resetForm();switchView('viewList');});
+document.getElementById('detailBackBtn').addEventListener('click', function(){switchView('viewList');});
+document.getElementById('geoBtn').addEventListener('click', function(){geoSearch();});
+document.getElementById('updateMapCoords').addEventListener('click', function(){
+    const lat=document.getElementById('fLat').value.trim();
+    const lng=document.getElementById('fLng').value.trim();
+    if(lat&&lng){selectedLat=parseFloat(lat);selectedLng=parseFloat(lng);if(mapInstance){mapInstance.setView([selectedLat,selectedLng],16);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l);});L.marker([selectedLat,selectedLng]).addTo(mapInstance);updateMapLinks(selectedLat,selectedLng);}else{initFormMap();}}
+    else{showToast('Ingresa coordenadas o usa Buscar','warning');}
 });
+document.getElementById('fPhoto').addEventListener('change', handlePhotoSelect);
+document.getElementById('removePhotoBtn').addEventListener('click', removePhoto);
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('zoomInBtn').addEventListener('click', function(){changeZoom(1);});
+document.getElementById('zoomOutBtn').addEventListener('click', function(){changeZoom(-1);});
+document.getElementById('exportDataBtn').addEventListener('click', function(){exportData(true);});
+document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function(){exportData(false);});
+document.getElementById('importDataBtn').addEventListener('click', function(){document.getElementById('importFileInput').click();});
+document.getElementById('importFileInput').addEventListener('change', function(e){
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();reader.onload=function(ev){importData(ev.target.result);};reader.readAsText(file);e.target.value='';
+});
+document.getElementById('syncFirebaseBtn').addEventListener('click', function(){syncWithFirebase();});
+document.getElementById('printStatsBtn').addEventListener('click', function(){printStatsReport();});
+document.getElementById('printDirectoryBtn').addEventListener('click', function(){printClientDirectory();});
+document.getElementById('resetDataBtn').addEventListener('click', function(){
+    showModal('Eliminar todos','Se eliminaran TODOS los clientes.','Eliminar todo',function(){clearAllClients();showToast('Eliminados','info');});
+});
+
+// ======================================================================
+// INICIALIZACION
+// ======================================================================
+const localData = localStorage.getItem(STORAGE_KEY);
+if (localData) { try { clientDataCache = JSON.parse(localData); refreshUI(); } catch(e) { clientDataCache = []; } }
+
+// FIX: Iniciar listener de Firestore para sincronizacion en tiempo real
+if (isOnline) { listenToFirestore(); }
+
+const savedTheme = localStorage.getItem('crm_theme');
+if (savedTheme === 'dark') { document.documentElement.setAttribute('data-theme','dark'); const icon=document.querySelector('#themeToggle i'); if(icon) icon.className='fas fa-sun'; }
+
+const savedZoom = localStorage.getItem('crm_zoom');
+if (savedZoom) { document.documentElement.style.fontSize = savedZoom + 'px'; }
+
 </script>
 </body>
 </html>
