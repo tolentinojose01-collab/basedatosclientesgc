@@ -182,28 +182,10 @@
 <div class="modal-overlay" id="modalOverlay"><div class="modal"><div class="modal-header"><h3 id="modalTitle">Confirmar</h3><button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button></div><div id="modalBody" style="margin-bottom:14px;font-size:.95rem;line-height:1.5;"></div><div class="modal-footer" id="modalFooter"><button class="btn btn-secondary" id="modalCancel">Cancelar</button><button class="btn btn-danger" id="modalConfirm">Confirmar</button></div></div></div>
 
 <script>
-const firebaseConfig={apiKey:"AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",authDomain:"clientes-gaeto-comercios-visit.firebaseapp.com",projectId:"clientes-gaeto-comercios-visit",storageBucket:"clientes-gaeto-comercios-visit.firebasestorage.app",appId:"1:320415642943:web:ad683695655576348c8f8a"};
-firebase.initializeApp(firebaseConfig);const db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(function(e){console.warn(e)});
-const COL='clientes';const SK='clientes_crm_data';
-let isOnline=navigator.onLine,isSyncing=false,pendingChanges=[],firebaseInitialized=false,clientDataCache=[],listenerUnsubscribe=null,editingId=null,selectedLat=null,selectedLng=null,photoDataUrl=null,mapInstance=null;
-
-// FIX FOTO: compression con fondo blanco y fallback
-function compressPhoto(dataUrl,maxW,q){
-    maxW=maxW||600;q=q||0.6;
-    return new Promise(function(resolve){
-        try{var img=new Image();img.onload=function(){
-            var c=document.createElement('canvas'),w=img.width,h=img.height;
-            if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-            c.width=w;c.height=h;var ctx=c.getContext('2d');
-            ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,w,h);
-            ctx.drawImage(img,0,0,w,h);
-            var r=c.toDataURL('image/jpeg',q);
-            if(r.length>500000){r=c.toDataURL('image/jpeg',0.3);}
-            resolve(r);
-        };img.onerror=function(){resolve(dataUrl)};img.src=dataUrl;}
-        catch(e){resolve(dataUrl)}
-    });
-}
+var firebaseConfig={apiKey:"AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",authDomain:"clientes-gaeto-comercios-visit.firebaseapp.com",projectId:"clientes-gaeto-comercios-visit",storageBucket:"clientes-gaeto-comercios-visit.firebasestorage.app",appId:"1:320415642943:web:ad683695655576348c8f8a"};
+firebase.initializeApp(firebaseConfig);var db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(function(e){console.warn(e)});
+var COL='clientes';var SK='clientes_crm_data';
+var isOnline=navigator.onLine,isSyncing=false,pendingChanges=[],firebaseInitialized=false,clientDataCache=[],listenerUnsubscribe=null,editingId=null,selectedLat=null,selectedLng=null,photoDataUrl=null,mapInstance=null;
 
 function withTimeout(p,ms,msg){ms=ms||15000;msg=msg||'Timeout: guardado localmente';return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error(msg))},ms);p.then(function(v){clearTimeout(t);res(v)}).catch(function(e){clearTimeout(t);rej(e)})});}
 
@@ -213,7 +195,6 @@ window.addEventListener('online',function(){isOnline=true;updConn('online');if(l
 window.addEventListener('offline',function(){isOnline=false;updConn('offline')});updConn(isOnline?'online':'offline');
 
 function showToast(m,t,d){t=t||'info';d=d||2500;var c=document.getElementById('toastContainer');if(!c)return;var e=document.createElement('div');e.className='toast '+t;var ic={success:'fa-check-circle',error:'fa-exclamation-circle',warning:'fa-exclamation-triangle',info:'fa-info-circle'};e.innerHTML='<i class="fas '+((ic[t])||ic.info)+'"></i> '+m;c.appendChild(e);setTimeout(function(){e.style.opacity='0';e.style.transform='translateY(12px)';e.style.transition='0.3s';setTimeout(function(){e.remove()},300)},d)}
-
 function showModal(ti,bo,ct,oc){var o=document.getElementById('modalOverlay');if(!o)return;document.getElementById('modalTitle').textContent=ti;document.getElementById('modalBody').innerHTML=bo;var f=document.getElementById('modalFooter'),cb=f.querySelector('#modalConfirm'),nc=cb.cloneNode(true);cb.parentNode.replaceChild(nc,cb);nc.textContent=ct||'Confirmar';nc.className='btn btn-danger';f.querySelectorAll('.btn:not(#modalCancel):not(#modalConfirm)').forEach(function(b){b.remove()});o.classList.add('open');var cl=function(){o.classList.remove('open')};document.getElementById('modalClose').onclick=cl;f.querySelector('#modalCancel').onclick=cl;nc.onclick=function(){cl();if(oc)oc()}}
 function escHtml(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
@@ -221,41 +202,36 @@ function getAllClients(){return clientDataCache}
 function getClient(id){return clientDataCache.find(function(c){return c.id==id})||null}
 
 async function saveClient(client){
-    if(!client.id)client.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
-    var idx=clientDataCache.findIndex(function(c){return c.id==client.id});
-    if(idx!==-1)clientDataCache[idx]=Object.assign({},client);else clientDataCache.push(Object.assign({},client));
-    localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();
-    if(isOnline){try{var r=await withTimeout(saveClientToFirestore(client),15000,'Timeout: guardado localmente');if(!r)pendingChanges.push({type:'save',data:client})}catch(e){pendingChanges.push({type:'save',data:client});showToast(e.message,'warning',3000)}}
-    else pendingChanges.push({type:'save',data:client});
-    return true;
-}
+if(!client.id)client.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
+var idx=clientDataCache.findIndex(function(c){return c.id==client.id});
+if(idx!==-1)clientDataCache[idx]=Object.assign({},client);else clientDataCache.push(Object.assign({},client));
+localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();
+if(isOnline){try{var r=await withTimeout(saveClientToFirestore(client),15000,'Timeout: guardado localmente');if(!r)pendingChanges.push({type:'save',data:client})}catch(e){pendingChanges.push({type:'save',data:client});showToast(e.message,'warning',3000)}}
+else pendingChanges.push({type:'save',data:client});
+return true}
 
 async function saveClientToFirestore(client){
-    if(!isOnline){pendingChanges.push({type:'save',data:client});return false}
-    try{isSyncing=true;updConn('syncing');var cd=Object.assign({},client);var did=cd.id;delete cd.id;delete cd._synced;
-    if(cd.photo&&cd.photo.length>900000){cd.photo=null;cd._photoLocal=true}
-    if(cd.visits&&cd.visits.length>0)cd.visits=cd.visits.map(function(v){return Object.assign({},v)});
-    await db.collection(COL).doc(did).set(cd);isSyncing=false;updConn(isOnline?'online':'offline');return true}
-    catch(err){console.error(err);isSyncing=false;updConn(isOnline?'online':'offline');pendingChanges.push({type:'save',data:client});showToast('Error Firebase: '+err.message,'error',3000);return false}
-}
+if(!isOnline){pendingChanges.push({type:'save',data:client});return false}
+try{isSyncing=true;updConn('syncing');var cd=Object.assign({},client);var did=cd.id;delete cd.id;delete cd._synced;
+if(cd.photo&&cd.photo.length>900000){cd.photo=null;cd._photoLocal=true}
+if(cd.visits&&cd.visits.length>0)cd.visits=cd.visits.map(function(v){return Object.assign({},v)});
+await db.collection(COL).doc(did).set(cd);isSyncing=false;updConn(isOnline?'online':'offline');return true}
+catch(err){console.error(err);isSyncing=false;updConn(isOnline?'online':'offline');pendingChanges.push({type:'save',data:client});showToast('Error Firebase: '+err.message,'error',3000);return false}}
 
 async function deleteClient(id){var idx=clientDataCache.findIndex(function(c){return c.id==id});if(idx!==-1){clientDataCache.splice(idx,1);localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();if(isOnline){try{await withTimeout(deleteClientFromFirestore(id),10000,'Timeout')}catch(e){pendingChanges.push({type:'delete',id:id})}}else pendingChanges.push({type:'delete',id:id})}}
 async function deleteClientFromFirestore(cid){if(!isOnline){pendingChanges.push({type:'delete',id:cid});return false}try{isSyncing=true;updConn('syncing');await db.collection(COL).doc(cid).delete();isSyncing=false;updConn(isOnline?'online':'offline');return true}catch(e){console.error(e);isSyncing=false;updConn(isOnline?'online':'offline');pendingChanges.push({type:'delete',id:cid});return false}}
 function clearAllClients(){clientDataCache=[];localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();if(isOnline){db.collection(COL).get().then(function(s){var b=db.batch();s.forEach(function(d){b.delete(d.ref)});return b.commit()}).catch(function(e){console.error(e)})}}
 
-// FIX FOTO: onSnapshot conserva fotos locales
 function listenToFirestore(){
-    if(listenerUnsubscribe){listenerUnsubscribe();listenerUnsubscribe=null}
-    try{listenerUnsubscribe=db.collection(COL).onSnapshot(function(snapshot){
-        var clients=[];snapshot.forEach(function(doc){
-            var data=doc.data();var nc=Object.assign({},data,{id:doc.id});
-            // FIX: Si local tiene foto y Firebase no, conservar foto local
-            var lc=getClient(doc.id);if(lc&&lc.photo&&!nc.photo){nc.photo=lc.photo}
-            clients.push(nc)});
-        clientDataCache=clients;localStorage.setItem(SK,JSON.stringify(clients));refreshUI();firebaseInitialized=true;pendingChanges=[];updConn(isOnline?'online':'offline')
-    },function(err){console.error(err);setTimeout(function(){if(isOnline)listenToFirestore()},5000);updConn(isOnline?'online':'offline');var ld=localStorage.getItem(SK);if(ld){try{clientDataCache=JSON.parse(ld);refreshUI()}catch(e){}}})}
-    catch(err){console.error(err);var ld=localStorage.getItem(SK);if(ld){try{clientDataCache=JSON.parse(ld);refreshUI()}catch(e){}}}
-}
+if(listenerUnsubscribe){listenerUnsubscribe();listenerUnsubscribe=null}
+try{listenerUnsubscribe=db.collection(COL).onSnapshot(function(snapshot){
+var clients=[];snapshot.forEach(function(doc){
+var data=doc.data();var nc=Object.assign({},data,{id:doc.id});
+var lc=getClient(doc.id);if(lc&&lc.photo&&!nc.photo){nc.photo=lc.photo}
+clients.push(nc)});
+clientDataCache=clients;localStorage.setItem(SK,JSON.stringify(clients));refreshUI();firebaseInitialized=true;pendingChanges=[];updConn(isOnline?'online':'offline')
+},function(err){console.error(err);setTimeout(function(){if(isOnline)listenToFirestore()},5000);updConn(isOnline?'online':'offline');var ld=localStorage.getItem(SK);if(ld){try{clientDataCache=JSON.parse(ld);refreshUI()}catch(e){}}})}
+catch(err){console.error(err);var ld=localStorage.getItem(SK);if(ld){try{clientDataCache=JSON.parse(ld);refreshUI()}catch(e){}}}}
 
 async function syncPending(){if(!isOnline||isSyncing)return;var ch=pendingChanges.slice();pendingChanges=[];for(var i=0;i<ch.length;i++){var c=ch[i];if(c.type==='save'){try{await withTimeout(saveClientToFirestore(c.data),15000,'Timeout')}catch(e){pendingChanges.push(c)}}else if(c.type==='delete'){try{await withTimeout(deleteClientFromFirestore(c.id),10000,'Timeout')}catch(e){pendingChanges.push(c)}}}}
 async function syncWithFirebase(){if(!isOnline){showToast('Sin conexion','warning');return}if(isSyncing)return;showToast('Sincronizando...','info',1500);await syncPending();if(!listenerUnsubscribe)listenToFirestore();showToast('Sincronizado','success',1500)}
@@ -288,23 +264,34 @@ function initFormMap(){var mc=document.getElementById('map-container');if(!mc)re
 function updMapLinks(lat,lng){var g=document.getElementById('openGoogleMaps'),o=document.getElementById('openOsmLink');if(g){g.href='https://www.google.com/maps?q='+lat+','+lng;g.style.display=''}if(o){o.href='https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15';o.style.display=''}}
 async function geoSearch(){var a=document.getElementById('fAddress').value.trim();if(!a){showToast('Escribe una direccion','warning');return}showToast('Buscando...','info',1500);try{var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(a)+'&limit=5');var res=await r.json();if(!res.length){showToast('No encontrado','warning');return}var f=res[0];selectedLat=parseFloat(f.lat);selectedLng=parseFloat(f.lon);document.getElementById('fLat').value=selectedLat.toFixed(6);document.getElementById('fLng').value=selectedLng.toFixed(6);if(f.address&&(f.address.suburb||f.address.neighbourhood))document.getElementById('fColony').value=f.address.suburb||f.address.neighbourhood;if(mapInstance){mapInstance.setView([selectedLat,selectedLng],16);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l)});L.marker([selectedLat,selectedLng]).addTo(mapInstance)}else initFormMap();updMapLinks(selectedLat,selectedLng);showToast('Encontrado','success')}catch(e){showToast('Error en busqueda','error')}}
 
-// FIX FOTO: handlePhotoSelect con compresion mejorada
-async function handlePhotoSelect(e){var file=e.target.files[0];if(!file)return;showToast('Comprimiendo foto...','info',1500);var reader=new FileReader();reader.onload=async function(ev){try{var compressed=await compressPhoto(ev.target.result,600,0.6);photoDataUrl=compressed;document.getElementById('photoPreview').src=compressed;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden');showToast('Foto cargada ('+Math.round(compressed.length/1024)+' KB)','success',2000)}catch(err){photoDataUrl=ev.target.result;document.getElementById('photoPreview').src=ev.target.result;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden');showToast('Foto cargada (sin compresion)','warning',2000)}};reader.readAsDataURL(file)}
+// FIX FOTO: Sin compression - guardar foto directamente
+function handlePhotoSelect(e){
+var file=e.target.files[0];if(!file)return;
+var reader=new FileReader();
+reader.onload=function(ev){
+photoDataUrl=ev.target.result;
+document.getElementById('photoPreview').src=ev.target.result;
+document.getElementById('photoPreview').classList.remove('hidden');
+document.getElementById('photoPlaceholder').classList.add('hidden');
+var sizeKB=Math.round(ev.target.result.length/1024);
+if(sizeKB>900){showToast('Foto cargada ('+sizeKB+' KB) - solo se guardara localmente, no en Firebase','warning',3000)}
+else{showToast('Foto cargada ('+sizeKB+' KB)','success',2000)}};
+reader.readAsDataURL(file)}
+
 function removePhoto(){photoDataUrl=null;document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden');document.getElementById('fPhoto').value=''}
 function toggleTheme(){var cur=document.documentElement.getAttribute('data-theme');var next=cur==='dark'?'':'dark';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('crm_theme',next||'light');var icon=document.querySelector('#themeToggle i');if(icon)icon.className=next==='dark'?'fas fa-sun':'fas fa-moon'}
 function changeZoom(d){var cur=parseFloat(document.documentElement.style.fontSize)||16;cur=Math.max(12,Math.min(24,cur+d));document.documentElement.style.fontSize=cur+'px';localStorage.setItem('crm_zoom',cur)}
 
 // FIX BOTON: try/catch/finally
 document.getElementById('clientForm').addEventListener('submit',async function(e){
-    e.preventDefault();var btn=document.getElementById('formSubmitBtn');var name=document.getElementById('fName').value.trim();if(!name){showToast('Nombre obligatorio','error');return}
-    btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Guardando...';btn.style.background='';
-    var client={id:editingId||null,name:name,business:document.getElementById('fBusiness').value.trim(),address:document.getElementById('fAddress').value.trim(),lat:document.getElementById('fLat').value.trim(),lng:document.getElementById('fLng').value.trim(),colony:document.getElementById('fColony').value.trim(),phone:document.getElementById('fPhone').value.trim(),references:document.getElementById('fReferences').value.trim(),photo:photoDataUrl||null,visits:[]};
-    if(editingId){var ex=getClient(editingId);if(ex)client.visits=ex.visits||[]}
-    var vn=document.getElementById('fVisitNote').value.trim();if(vn)client.visits.push({date:Date.now(),notes:vn});
-    try{var result=await withTimeout(saveClient(client),15000,'Timeout: guardado localmente');if(result){btn.innerHTML='<i class="fas fa-check"></i> Guardado';btn.style.background='#22c55e';showToast('Cliente guardado','success');setTimeout(function(){resetForm();switchView('viewList')},1000)}else{throw new Error('No se pudo guardar')}}
-    catch(error){btn.innerHTML='<i class="fas fa-times"></i> Error - guardado local';btn.style.background='#f59e0b';showToast(error.message,'warning',3000);setTimeout(function(){resetForm();switchView('viewList')},2000)}
-    finally{btn.disabled=false;setTimeout(function(){btn.innerHTML='<i class="fas fa-save"></i> Guardar';btn.style.background=''},2000)}
-});
+e.preventDefault();var btn=document.getElementById('formSubmitBtn');var name=document.getElementById('fName').value.trim();if(!name){showToast('Nombre obligatorio','error');return}
+btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Guardando...';btn.style.background='';
+var client={id:editingId||null,name:name,business:document.getElementById('fBusiness').value.trim(),address:document.getElementById('fAddress').value.trim(),lat:document.getElementById('fLat').value.trim(),lng:document.getElementById('fLng').value.trim(),colony:document.getElementById('fColony').value.trim(),phone:document.getElementById('fPhone').value.trim(),references:document.getElementById('fReferences').value.trim(),photo:photoDataUrl||null,visits:[]};
+if(editingId){var ex=getClient(editingId);if(ex)client.visits=ex.visits||[]}
+var vn=document.getElementById('fVisitNote').value.trim();if(vn)client.visits.push({date:Date.now(),notes:vn});
+try{var result=await withTimeout(saveClient(client),15000,'Timeout: guardado localmente');if(result){btn.innerHTML='<i class="fas fa-check"></i> Guardado';btn.style.background='#22c55e';showToast('Cliente guardado','success');setTimeout(function(){resetForm();switchView('viewList')},1000)}else{throw new Error('No se pudo guardar')}}
+catch(error){btn.innerHTML='<i class="fas fa-times"></i> Error - guardado local';btn.style.background='#f59e0b';showToast(error.message,'warning',3000);setTimeout(function(){resetForm();switchView('viewList')},2000)}
+finally{btn.disabled=false;setTimeout(function(){btn.innerHTML='<i class="fas fa-save"></i> Guardar';btn.style.background=''},2000)}});
 
 document.getElementById('navList').addEventListener('click',function(){switchView('viewList')});
 document.getElementById('navAdd').addEventListener('click',function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap()},200)});
