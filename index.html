@@ -7,1245 +7,1342 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- FIREBASE SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <style>
-        /* === RESET === */
         * { margin:0; padding:0; box-sizing:border-box; }
-        html, body {
-            height: 100%;
-            overflow: visible !important;
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background: #f0f4ff;
-        }
-        :root {
-            --bg-app: #ffffff; --bg-main: #f8fafc; --bg-card: #ffffff;
-            --text: #0f172a; --text-secondary: #334155; --text-muted: #64748b;
-            --border: #e0e7ff; --primary: #1e3a8a; --primary-light: #3b82f6;
-            --primary-dark: #172554; --accent: #f59e0b; --accent-light: #fbbf24;
-            --header-bg: linear-gradient(135deg, #1e3a8a, #172554);
-            --shadow: 0 4px 20px rgba(0,0,0,0.06);
-            --nav-height: 60px;
-        }
-        [data-theme="dark"] {
-            --bg-app: #0f172a; --bg-main: #1e293b; --bg-card: #1e293b;
-            --text: #f1f5f9; --text-secondary: #cbd5e1; --text-muted: #94a3b8;
-            --border: #334155; --primary: #60a5fa; --primary-light: #93bbfc;
-            --primary-dark: #1e3a8a; --accent: #fbbf24; --accent-light: #fcd34d;
-            --header-bg: linear-gradient(135deg, #0f172a, #1e293b);
-            --shadow: 0 4px 20px rgba(0,0,0,0.3);
-        }
-
-        #app {
-            max-width: 480px;
-            margin: 0 auto;
-            min-height: 100vh;
-            background: var(--bg-app);
-            border-left: 1px solid var(--border);
-            border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            transition: background 0.3s;
-            overflow: visible !important;
-        }
-
-        .app-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px 16px;
-            background: var(--header-bg);
-            color: #fff;
-            flex-shrink: 0;
-            border-bottom: 2px solid var(--accent);
-            z-index: 100;
-            flex-wrap: wrap;
-        }
+        html, body { height:100%; font-family:'Segoe UI',system-ui,sans-serif; background:#f0f4ff; overflow:visible !important; }
+        :root { --bg-app:#fff; --bg-main:#f8fafc; --bg-card:#fff; --text:#0f172a; --text-secondary:#334155; --text-muted:#64748b; --border:#e0e7ff; --primary:#1e3a8a; --primary-light:#3b82f6; --primary-dark:#172554; --accent:#f59e0b; --accent-light:#fbbf24; --header-bg:linear-gradient(135deg,#1e3a8a,#172554); --shadow:0 4px 20px rgba(0,0,0,0.06); --nav-height:60px; }
+        [data-theme="dark"] { --bg-app:#0f172a; --bg-main:#1e293b; --bg-card:#1e293b; --text:#f1f5f9; --text-secondary:#cbd5e1; --text-muted:#94a3b8; --border:#334155; --primary:#60a5fa; --primary-light:#93bbfc; --primary-dark:#1e3a8a; --accent:#fbbf24; --accent-light:#fcd34d; --header-bg:linear-gradient(135deg,#0f172a,#1e293b); --shadow:0 4px 20px rgba(0,0,0,0.3); }
+        #app { max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg-app); border-left:1px solid var(--border); border-right:1px solid var(--border); display:flex; flex-direction:column; transition:background .3s; overflow:visible !important; }
+        .app-header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--header-bg); color:#fff; flex-shrink:0; border-bottom:2px solid var(--accent); z-index:100; flex-wrap:wrap; gap:6px; }
         .app-header .logo { display:flex; align-items:center; gap:8px; font-weight:700; font-size:1.1rem; }
         .app-header .logo i { font-size:1.4rem; color:var(--accent-light); }
         .header-actions { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-        .header-actions button {
-            width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.15);
-            color:#fff; border:none; cursor:pointer; font-size:1rem;
-            display:flex; align-items:center; justify-content:center;
-        }
-        .zoom-btn {
-            background: rgba(255,255,255,0.25);
-            color: #fff;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 6px;
-            padding: 2px 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 1.4;
-        }
-        .connection-status {
-            font-size:0.65rem; padding:2px 10px; border-radius:30px;
-            background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2);
-            display:flex; align-items:center; gap:4px;
-        }
-
-        .main-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom, 0px));
-            background: var(--bg-main);
-        }
-
-        /* BARRA INFERIOR */
-        .bottom-nav {
-            position: sticky;
-            bottom: 0;
-            width: 100%;
-            max-width: 480px;
-            margin: 0 auto;
-            background: var(--bg-card);
-            border-top: 2px solid var(--accent-light);
-            display: flex;
-            padding: 6px 0 env(safe-area-inset-bottom, 6px) 0;
-            z-index: 9999;
-            height: var(--nav-height);
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
-            flex-shrink: 0;
-        }
-        .nav-item {
-            flex: 1;
-            text-align: center;
-            padding: 4px 0;
-            color: var(--text-muted);
-            font-size: 0.7rem;
-            font-weight: 600;
-            border: none;
-            background: none;
-            cursor: pointer;
-        }
+        .header-actions button { width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.15); color:#fff; border:none; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:background 0.2s; }
+        .header-actions button:hover { background:rgba(255,255,255,0.25); }
+        .zoom-btn { background:rgba(255,255,255,0.25); color:#fff; border:1px solid rgba(255,255,255,0.3); border-radius:6px; padding:2px 10px; font-size:1.2rem; font-weight:700; cursor:pointer; line-height:1.4; }
+        .connection-status { font-size:.65rem; padding:2px 10px; border-radius:30px; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.2); display:flex; align-items:center; gap:4px; }
+        .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+        .status-dot.online { background:#22c55e; }
+        .status-dot.offline { background:#ef4444; }
+        .status-dot.syncing { background:#f59e0b; animation:pulse 1s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+        .main-content { flex:1; overflow-y:auto; padding:16px 16px calc(16px + var(--nav-height) + env(safe-area-inset-bottom,0)); background:var(--bg-main); }
+        .bottom-nav { position:sticky; bottom:0; width:100%; max-width:480px; margin:0 auto; background:var(--bg-card); border-top:2px solid var(--accent-light); display:flex; padding:6px 0 env(safe-area-inset-bottom,6px) 0; z-index:9999; height:var(--nav-height); box-shadow:0 -4px 12px rgba(0,0,0,0.05); flex-shrink:0; }
+        .nav-item { flex:1; text-align:center; padding:4px 0; color:var(--text-muted); font-size:.7rem; font-weight:600; border:none; background:none; cursor:pointer; }
         .nav-item i { display:block; font-size:1.4rem; margin-bottom:2px; }
-        .nav-item.active { color: var(--primary); }
-        .nav-item .badge {
-            background: var(--accent);
-            color: #fff;
-            font-size: 0.55rem;
-            border-radius: 30px;
-            padding: 0 6px;
-            margin-left: 4px;
-        }
-
-        /* VISTAS */
-        .view { display:none; animation:fadeIn 0.25s ease; }
+        .nav-item.active { color:var(--primary); }
+        .nav-item .badge { background:var(--accent); color:#fff; font-size:.55rem; border-radius:30px; padding:0 6px; margin-left:4px; }
+        .view { display:none; animation:fadeIn .25s ease; }
         .view.active { display:block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-        /* LISTA */
         .list-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
         .list-header h2 { font-size:1.2rem; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text); }
-        .list-header h2 span { font-size:0.75rem; background:var(--border); padding:0 10px; border-radius:30px; color:var(--text-muted); }
+        .list-header h2 span { font-size:.75rem; background:var(--border); padding:0 10px; border-radius:30px; color:var(--text-muted); }
         .search-box { display:flex; align-items:center; background:var(--bg-card); border:1.5px solid var(--border); border-radius:8px; padding:0 12px; margin-bottom:14px; }
-        .search-box input { border:none; outline:none; padding:10px 8px; font-size:0.95rem; background:transparent; width:100%; color:var(--text); }
+        .search-box input { border:none; outline:none; padding:10px 8px; font-size:.95rem; background:transparent; width:100%; color:var(--text); }
         .search-box i { color:var(--text-muted); }
-
-        .client-card {
-            background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
-            padding:12px 14px; margin-bottom:10px; display:flex; align-items:center; gap:12px;
-            cursor:pointer; box-shadow:var(--shadow); position:relative;
-        }
-        .client-card::before { content:''; position:absolute; left:0; top:0; height:100%; width:4px; background:linear-gradient(180deg, var(--primary), var(--accent)); }
-        .client-card .avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg, var(--primary), #0d9488); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; flex-shrink:0; overflow:hidden; }
+        .client-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 14px; margin-bottom:10px; display:flex; align-items:center; gap:12px; cursor:pointer; box-shadow:var(--shadow); position:relative; }
+        .client-card::before { content:''; position:absolute; left:0; top:0; height:100%; width:4px; background:linear-gradient(180deg,var(--primary),var(--accent)); border-radius:10px 0 0 10px; }
+        .client-card .avatar { width:40px; height:40px; border-radius:50%; background:linear-gradient(135deg,var(--primary),#0d9488); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.9rem; flex-shrink:0; overflow:hidden; }
         .client-card .avatar img { width:100%; height:100%; object-fit:cover; }
         .client-card .info { flex:1; min-width:0; }
-        .client-card .info .name { font-weight:600; font-size:0.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
-        .client-card .info .business { font-size:0.8rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .client-card .info .address { font-size:0.7rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .client-card .info .name { font-weight:600; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text); }
+        .client-card .info .business { font-size:.8rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .client-card .info .address { font-size:.7rem; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .client-card .meta { text-align:right; flex-shrink:0; }
-        .client-card .meta .visits { font-size:0.7rem; background:var(--border); padding:2px 10px; border-radius:30px; color:var(--text-muted); }
-        .client-card .meta .date { font-size:0.6rem; color:var(--text-muted); margin-top:4px; display:block; }
-
+        .client-card .meta .visits { font-size:.7rem; background:var(--border); padding:2px 10px; border-radius:30px; color:var(--text-muted); }
+        .client-card .meta .date { font-size:.6rem; color:var(--text-muted); margin-top:4px; display:block; }
+        .client-card .sync-badge { font-size:.5rem; padding:1px 6px; border-radius:30px; background:var(--border); color:var(--text-muted); margin-left:4px; }
+        .client-card .sync-badge.synced { background:#22c55e20; color:#22c55e; }
+        .client-card .sync-badge.pending { background:#f59e0b20; color:#f59e0b; }
         .empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
-
-        /* FORMULARIO */
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
         .form-card .form-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--text); }
         .form-group { margin-bottom:12px; }
-        .form-group label { display:block; font-size:0.7rem; font-weight:600; color:var(--text-secondary); margin-bottom:3px; text-transform:uppercase; letter-spacing:0.3px; }
+        .form-group label { display:block; font-size:.7rem; font-weight:600; color:var(--text-secondary); margin-bottom:3px; text-transform:uppercase; letter-spacing:.3px; }
         .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; }
         .form-group .input-wrap i { color:var(--text-muted); width:18px; text-align:center; }
-        .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:0.95rem; background:transparent; flex:1; min-width:80px; color:var(--text); }
+        .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:.95rem; background:transparent; flex:1; min-width:80px; color:var(--text); }
         .form-group .input-wrap textarea { min-height:50px; resize:vertical; }
         .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-
-        .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:0.9rem; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; flex:1; }
-        .btn-primary { background:linear-gradient(135deg, var(--primary), var(--primary-dark)); color:#fff; }
+        .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:.9rem; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; flex:1; }
+        .btn-primary { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; }
         .btn-secondary { background:var(--bg-main); color:var(--text-secondary); border:1.5px solid var(--border); }
         .btn-danger { background:#dc2626; color:#fff; }
-        .btn-accent { background:linear-gradient(135deg, var(--accent), #d97706); color:#1e293b; }
-        .btn-sm { padding:6px 12px; font-size:0.8rem; flex:0 0 auto; }
-        .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:0.8rem; border:none; cursor:pointer; }
+        .btn-accent { background:linear-gradient(135deg,var(--accent),#d97706); color:#1e293b; }
+        .btn-sm { padding:6px 12px; font-size:.8rem; flex:0 0 auto; }
+        .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:.8rem; border:none; cursor:pointer; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
-
-        /* MAPA LEAFLET */
-        #map-container {
-            width:100%; height:300px; border-radius:8px; overflow:hidden;
-            border:1.5px solid var(--border); margin-top:8px;
-            background:var(--bg-main); position:relative;
-        }
+        #map-container { width:100%; height:300px; border-radius:8px; overflow:hidden; border:1.5px solid var(--border); margin-top:8px; background:var(--bg-main); position:relative; }
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
         .map-actions .btn-sm { flex:1; min-width:80px; }
-
-        /* FOTO */
         .photo-preview { width:100%; height:200px; object-fit:cover; border-radius:8px; border:1.5px solid var(--border); margin-top:6px; background:var(--bg-main); }
         .photo-placeholder { width:100%; height:80px; border:2px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:4px; cursor:pointer; background:var(--bg-main); margin-top:6px; }
+        .photo-placeholder:hover { border-color:var(--primary); }
         .file-input-wrapper { position:relative; overflow:hidden; }
         .file-input-wrapper input[type=file] { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
-
         .detail-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
         .detail-header .back-btn { width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--primary); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; font-size:1rem; }
         .detail-header h2 { flex:1; font-size:1.2rem; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
-
         .detail-card { background:var(--bg-card); border-radius:12px; padding:14px 16px; border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:12px; position:relative; }
-        .detail-card::before { content:''; position:absolute; left:0; top:0; height:100%; width:3px; background:linear-gradient(180deg, var(--primary), var(--accent)); }
-        .detail-card .label { font-size:0.6rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; margin-bottom:2px; }
-        .detail-card .value { font-size:0.9rem; margin-bottom:6px; color:var(--text); word-break:break-word; }
-
+        .detail-card::before { content:''; position:absolute; left:0; top:0; height:100%; width:3px; background:linear-gradient(180deg,var(--primary),var(--accent)); }
+        .detail-card .label { font-size:.6rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; margin-bottom:2px; }
+        .detail-card .value { font-size:.9rem; margin-bottom:6px; color:var(--text); word-break:break-word; }
         .visit-item { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--border); }
         .visit-item:last-child { border-bottom:none; }
         .visit-item .dot { width:8px; height:8px; border-radius:50%; background:var(--accent); flex-shrink:0; }
         .visit-item .v-info { flex:1; }
-        .visit-item .v-info .v-date { font-weight:500; font-size:0.8rem; }
-        .visit-item .v-info .v-notes { font-size:0.75rem; color:var(--text-secondary); }
-        .visit-item .v-time { font-size:0.65rem; color:var(--text-muted); }
-
+        .visit-item .v-info .v-date { font-weight:500; font-size:.8rem; }
+        .visit-item .v-info .v-notes { font-size:.75rem; color:var(--text-secondary); }
+        .visit-item .v-time { font-size:.65rem; color:var(--text-muted); }
         .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
         .stat-card { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; box-shadow:var(--shadow); }
         .stat-card .stat-number { font-size:1.6rem; font-weight:800; color:var(--primary); }
-        .stat-card .stat-label { font-size:0.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.3px; }
+        .stat-card .stat-label { font-size:.6rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.3px; }
         .stat-card .stat-icon { font-size:1.2rem; color:var(--accent); margin-bottom:2px; }
-
         .chart-container { background:var(--bg-card); border-radius:10px; padding:14px; border:1px solid var(--border); box-shadow:var(--shadow); margin-bottom:12px; }
-        .chart-container h4 { font-size:0.8rem; font-weight:600; margin-bottom:10px; color:var(--text-secondary); }
+        .chart-container h4 { font-size:.8rem; font-weight:600; margin-bottom:10px; color:var(--text-secondary); }
         .bar-chart { display:flex; align-items:flex-end; gap:4px; height:90px; }
         .bar-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
-        .bar-item .bar { width:100%; max-width:24px; background:linear-gradient(180deg, var(--primary-light), var(--primary)); border-radius:4px 4px 0 0; min-height:4px; transition:height 0.4s; }
-        .bar-item .bar-label { font-size:0.5rem; color:var(--text-muted); font-weight:600; }
-
-        .toast-container {
-            position:fixed; bottom:calc(var(--nav-height) + 16px); left:50%; transform:translateX(-50%);
-            max-width:calc(480px - 32px); width:100%; z-index:9999; pointer-events:none;
-        }
-        .toast {
-            background:var(--bg-card); color:var(--text); padding:10px 16px; border-radius:10px;
-            border:1px solid var(--border); box-shadow:0 8px 30px rgba(0,0,0,0.12);
-            display:flex; align-items:center; gap:8px; font-size:0.9rem; font-weight:500;
-            pointer-events:auto; animation:slideUp 0.3s ease; margin-bottom:6px;
-        }
+        .bar-item .bar { width:100%; max-width:24px; background:linear-gradient(180deg,var(--primary-light),var(--primary)); border-radius:4px 4px 0 0; min-height:4px; transition:height .4s; }
+        .bar-item .bar-label { font-size:.5rem; color:var(--text-muted); font-weight:600; }
+        .toast-container { position:fixed; bottom:calc(var(--nav-height) + 16px); left:50%; transform:translateX(-50%); max-width:calc(480px - 32px); width:100%; z-index:9999; pointer-events:none; }
+        .toast { background:var(--bg-card); color:var(--text); padding:10px 16px; border-radius:10px; border:1px solid var(--border); box-shadow:0 8px 30px rgba(0,0,0,0.12); display:flex; align-items:center; gap:8px; font-size:.9rem; font-weight:500; pointer-events:auto; animation:slideUp .3s ease; margin-bottom:6px; }
         .toast.success i { color:#22c55e; }
         .toast.error i { color:#ef4444; }
+        .toast.warning i { color:#f59e0b; }
         @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-
-        .modal-overlay {
-            position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px);
-            z-index:10000; display:none; align-items:flex-end; justify-content:center;
-        }
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); backdrop-filter:blur(4px); z-index:10000; display:none; align-items:flex-end; justify-content:center; }
         .modal-overlay.open { display:flex; }
-        .modal-overlay .modal {
-            background:var(--bg-card); border-radius:16px 16px 0 0; max-width:480px; width:100%;
-            max-height:85vh; padding:20px; overflow-y:auto; border-top:1px solid var(--border);
-            animation:slideUpModal 0.3s ease;
-        }
+        .modal-overlay .modal { background:var(--bg-card); border-radius:16px 16px 0 0; max-width:480px; width:100%; max-height:85vh; padding:20px; overflow-y:auto; border-top:1px solid var(--border); animation:slideUpModal .3s ease; }
         @keyframes slideUpModal { from { transform:translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
         .modal .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid var(--border); }
         .modal .modal-header h3 { font-size:1.1rem; font-weight:700; color:var(--text); }
         .modal .modal-close { width:30px; height:30px; border-radius:50%; background:var(--bg-main); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; color:var(--text-muted); font-size:1rem; }
-        .modal .modal-footer { display:flex; gap:8px; margin-top:16px; }
-
+        .modal .modal-footer { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+        .modal .modal-footer .btn { flex:1; }
         .hidden { display:none !important; }
-
-        /* Estilos para las ventanas de impresión (móvil) */
-        @media print {
-            body { background: white; }
-            .no-print { display: none !important; }
-        }
-
-        @media (min-width:640px) {
-            #app { border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); }
-            .toast-container { max-width:480px; }
-        }
-        @media (min-width:1024px) {
-            #app { margin-top:24px; min-height:calc(100dvh - 48px); }
-            .modal-overlay .modal { border-radius:16px; max-height:80vh; margin-bottom:20px; }
-            .modal-overlay { align-items:center; }
-        }
+        .photo-actions { display:flex; gap:8px; margin-top:6px; }
+        .photo-actions .btn { flex:0 0 auto; padding:4px 12px; font-size:.7rem; }
+        @media print { body{background:#fff;} .no-print{display:none!important;} }
+        @media(min-width:640px){ #app{border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); } .toast-container{max-width:480px;} }
+        @media(min-width:1024px){ #app{margin-top:24px; min-height:calc(100dvh - 48px); } .modal-overlay .modal{border-radius:16px; max-height:80vh; margin-bottom:20px;} .modal-overlay{align-items:center;} }
     </style>
 </head>
 <body>
 
-    <div id="app">
+<div id="app">
 
-        <header class="app-header">
-            <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas</div>
-            <div class="header-actions">
-                <button class="zoom-btn" id="zoomInBtn" title="Acercar">+</button>
-                <button class="zoom-btn" id="zoomOutBtn" title="Alejar">−</button>
-                <span class="connection-status"><i class="fas fa-circle"></i> local</span>
-                <button id="themeToggle"><i class="fas fa-moon"></i></button>
+    <header class="app-header">
+        <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas</div>
+        <div class="header-actions">
+            <button class="zoom-btn" id="zoomInBtn" title="Acercar">+</button>
+            <button class="zoom-btn" id="zoomOutBtn" title="Alejar">−</button>
+            <span class="connection-status" id="connectionStatus">
+                <span class="status-dot online" id="statusDot"></span>
+                <span id="statusText">online</span>
+            </span>
+            <button id="themeToggle"><i class="fas fa-moon"></i></button>
+        </div>
+    </header>
+
+    <div class="main-content" id="mainContent">
+
+        <!-- VISTA LISTA -->
+        <div class="view active" id="viewList">
+            <div class="list-header">
+                <h2><i class="fas fa-users" style="color:var(--primary);"></i> Clientes <span id="clientCount">0</span></h2>
+                <button class="btn btn-primary btn-sm" id="addQuickBtn"><i class="fas fa-plus"></i> Nuevo</button>
             </div>
-        </header>
-
-        <div class="main-content" id="mainContent">
-
-            <div class="view active" id="viewList">
-                <div class="list-header">
-                    <h2><i class="fas fa-users" style="color:var(--primary);"></i> Clientes <span id="clientCount">0</span></h2>
-                    <button class="btn btn-primary btn-sm" id="addQuickBtn"><i class="fas fa-plus"></i> Nuevo</button>
-                </div>
-                <div class="search-box">
-                    <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="Buscar..." />
-                </div>
-                <div id="clientListContainer">
-                    <div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div>
-                </div>
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="Buscar..." />
             </div>
-
-            <div class="view" id="viewForm">
-                <div class="form-card">
-                    <div class="form-title"><i class="fas fa-pen" style="color:var(--primary);"></i> <span id="formTitle">Nuevo Cliente</span></div>
-                    <form id="clientForm">
-                        <input type="hidden" id="clientId" />
-                        <div class="form-group">
-                            <label>Nombre *</label>
-                            <div class="input-wrap"><i class="fas fa-user"></i><input type="text" id="fName" required /></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Negocio</label>
-                            <div class="input-wrap"><i class="fas fa-building"></i><input type="text" id="fBusiness" /></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Dirección *</label>
-                            <div class="input-wrap" style="flex-wrap:wrap;">
-                                <i class="fas fa-map-pin"></i>
-                                <input type="text" id="fAddress" required style="flex:1; min-width:100px;" />
-                                <button type="button" class="btn-geo" id="geoBtn"><i class="fas fa-search-location"></i> Buscar</button>
-                            </div>
-                            <div id="map-container"></div>
-                            <div class="map-actions">
-                                <button type="button" class="btn btn-accent btn-sm" id="updateMapCoords"><i class="fas fa-location-dot"></i> Ver en mapa</button>
-                                <a href="#" id="openGoogleMaps" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fab fa-google"></i> Google Maps</a>
-                                <a href="#" id="openOsmLink" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fas fa-map"></i> OpenStreetMap</a>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group"><label>Latitud</label><div class="input-wrap"><i class="fas fa-arrow-up"></i><input type="text" id="fLat" /></div></div>
-                            <div class="form-group"><label>Longitud</label><div class="input-wrap"><i class="fas fa-arrow-right"></i><input type="text" id="fLng" /></div></div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group"><label>Colonia</label><div class="input-wrap"><i class="fas fa-location-dot"></i><input type="text" id="fColony" /></div></div>
-                            <div class="form-group"><label>Teléfono</label><div class="input-wrap"><i class="fas fa-phone"></i><input type="tel" id="fPhone" /></div></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Referencias</label>
-                            <div class="input-wrap"><i class="fas fa-flag"></i><textarea id="fReferences"></textarea></div>
-                        </div>
-                        <div class="form-group">
-                            <label>Foto</label>
-                            <div class="file-input-wrapper">
-                                <div class="photo-placeholder" id="photoPlaceholder"><i class="fas fa-camera"></i><span>Toca para seleccionar</span></div>
-                                <input type="file" id="fPhoto" accept="image/*" />
-                            </div>
-                            <img id="photoPreview" class="photo-preview hidden" alt="Vista previa" />
-                        </div>
-                        <div class="form-group">
-                            <label>Nueva visita (opcional)</label>
-                            <div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="fVisitNote"></textarea></div>
-                            <div style="font-size:0.7rem; color:var(--text-muted);">Solo se guardará si escribes algo.</div>
-                        </div>
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="formCancelBtn"><i class="fas fa-times"></i> Cancelar</button>
-                            <button type="submit" class="btn btn-primary" id="formSubmitBtn"><i class="fas fa-save"></i> Guardar</button>
-                        </div>
-                    </form>
-                </div>
+            <div id="clientListContainer">
+                <div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div>
             </div>
-
-            <div class="view" id="viewDetail">
-                <div class="detail-header">
-                    <button class="back-btn" id="detailBackBtn"><i class="fas fa-arrow-left"></i></button>
-                    <h2 id="detailName">Cliente</h2>
-                    <div><button class="btn btn-primary btn-sm" id="detailEditBtn"><i class="fas fa-edit"></i></button>
-                    <button class="btn btn-danger btn-sm" id="detailDeleteBtn"><i class="fas fa-trash"></i></button></div>
-                </div>
-                <div id="detailContent"></div>
-            </div>
-
-            <div class="view" id="viewStats">
-                <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--text);">
-                    <i class="fas fa-chart-simple" style="color:var(--primary);"></i> Estadísticas
-                </h2>
-                <div class="stats-grid">
-                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Clientes</div></div>
-                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-number" id="statVisits">0</div><div class="stat-label">Visitas Totales</div></div>
-                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-number" id="statToday">0</div><div class="stat-label">Visitas Hoy</div></div>
-                    <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">—</div><div class="stat-label">Más Visitado</div></div>
-                </div>
-                <div class="chart-container">
-                    <h4><i class="fas fa-calendar-week"></i> Visitas por día (últimos 7 días)</h4>
-                    <div class="bar-chart" id="weeklyChart"></div>
-                </div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
-                    <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;"><i class="fas fa-download"></i> Exportar JSON</button>
-                    <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;"><i class="fas fa-file-code"></i> JSON sin fotos</button>
-                    <button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;"><i class="fas fa-upload"></i> Importar JSON</button>
-                    <input type="file" id="importFileInput" accept=".json" style="display:none;" />
-                    <button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;"><i class="fas fa-print"></i> Reporte</button>
-                    <button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;"><i class="fas fa-address-book"></i> Directorio</button>
-                </div>
-                <div style="margin-top:8px;">
-                    <button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;"><i class="fas fa-trash-can"></i> Eliminar todos</button>
-                </div>
-            </div>
-
         </div>
 
-        <nav class="bottom-nav">
-            <button class="nav-item active" data-view="viewList" id="navList"><i class="fas fa-list-ul"></i>Clientes</button>
-            <button class="nav-item" data-view="viewForm" id="navAdd"><i class="fas fa-plus-circle"></i>Agregar</button>
-            <button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadísticas <span class="badge" id="statsBadge" style="display:none;">0</span></button>
-        </nav>
-    </div>
-
-    <div class="toast-container" id="toastContainer"></div>
-
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <div class="modal-header"><h3 id="modalTitle">Confirmar</h3><button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button></div>
-            <div id="modalBody" style="margin-bottom:14px; font-size:0.95rem; line-height:1.5;"></div>
-            <div class="modal-footer"><button class="btn btn-secondary" id="modalCancel">Cancelar</button><button class="btn btn-danger" id="modalConfirm">Confirmar</button></div>
+        <!-- VISTA FORMULARIO -->
+        <div class="view" id="viewForm">
+            <div class="form-card">
+                <div class="form-title"><i class="fas fa-pen" style="color:var(--primary);"></i> <span id="formTitle">Nuevo Cliente</span></div>
+                <form id="clientForm">
+                    <input type="hidden" id="clientId" />
+                    <div class="form-group">
+                        <label>Nombre *</label>
+                        <div class="input-wrap"><i class="fas fa-user"></i><input type="text" id="fName" required /></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Negocio</label>
+                        <div class="input-wrap"><i class="fas fa-building"></i><input type="text" id="fBusiness" /></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección *</label>
+                        <div class="input-wrap" style="flex-wrap:wrap;">
+                            <i class="fas fa-map-pin"></i>
+                            <input type="text" id="fAddress" required style="flex:1; min-width:100px;" />
+                            <button type="button" class="btn-geo" id="geoBtn"><i class="fas fa-search-location"></i> Buscar</button>
+                        </div>
+                        <div id="map-container"></div>
+                        <div class="map-actions">
+                            <button type="button" class="btn btn-accent btn-sm" id="updateMapCoords"><i class="fas fa-location-dot"></i> Ver en mapa</button>
+                            <a href="#" id="openGoogleMaps" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fab fa-google"></i> Google Maps</a>
+                            <a href="#" id="openOsmLink" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:none;"><i class="fas fa-map"></i> OpenStreetMap</a>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Latitud</label><div class="input-wrap"><i class="fas fa-arrow-up"></i><input type="text" id="fLat" /></div></div>
+                        <div class="form-group"><label>Longitud</label><div class="input-wrap"><i class="fas fa-arrow-right"></i><input type="text" id="fLng" /></div></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Colonia</label><div class="input-wrap"><i class="fas fa-location-dot"></i><input type="text" id="fColony" /></div></div>
+                        <div class="form-group"><label>Teléfono</label><div class="input-wrap"><i class="fas fa-phone"></i><input type="tel" id="fPhone" /></div></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Referencias</label>
+                        <div class="input-wrap"><i class="fas fa-flag"></i><textarea id="fReferences"></textarea></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Foto</label>
+                        <div class="file-input-wrapper">
+                            <div class="photo-placeholder" id="photoPlaceholder"><i class="fas fa-camera"></i><span>Toca para seleccionar</span></div>
+                            <input type="file" id="fPhoto" accept="image/*" />
+                        </div>
+                        <img id="photoPreview" class="photo-preview hidden" alt="Vista previa" />
+                        <div class="photo-actions">
+                            <button type="button" class="btn btn-danger btn-sm" id="removePhotoBtn"><i class="fas fa-times"></i> Quitar foto</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Nueva visita (opcional)</label>
+                        <div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="fVisitNote"></textarea></div>
+                        <div style="font-size:.7rem; color:var(--text-muted);">Solo se guardará si escribes algo.</div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="formCancelBtn"><i class="fas fa-times"></i> Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="formSubmitBtn"><i class="fas fa-save"></i> Guardar</button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <script>
-        // ======================================================================
-        // ALMACENAMIENTO
-        // ======================================================================
-        const STORAGE_KEY = 'clientes_crm_data';
-        let clientDataCache = [];
-        let editingId = null;
-        let selectedLat = null, selectedLng = null;
-        let photoDataUrl = null;
-        let currentView = 'viewList';
-        let mapInstance = null;
+        <!-- VISTA DETALLE -->
+        <div class="view" id="viewDetail">
+            <div class="detail-header">
+                <button class="back-btn" id="detailBackBtn"><i class="fas fa-arrow-left"></i></button>
+                <h2 id="detailName">Cliente</h2>
+                <div>
+                    <button class="btn btn-primary btn-sm" id="detailEditBtn"><i class="fas fa-edit"></i></button>
+                    <button class="btn btn-danger btn-sm" id="detailDeleteBtn"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+            <div id="detailContent"></div>
+        </div>
 
-        // ======================================================================
-        // ZOOM CON BOTONES (alternativa)
-        // ======================================================================
-        document.getElementById('zoomInBtn').addEventListener('click', function() {
-            const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
-            const newZoom = Math.min(currentZoom + 0.3, 3);
-            document.body.style.transform = `scale(${newZoom})`;
-            document.body.style.transformOrigin = 'top left';
-            document.body.style.width = `${100 / newZoom}%`;
-        });
-        document.getElementById('zoomOutBtn').addEventListener('click', function() {
-            const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
-            const newZoom = Math.max(currentZoom - 0.3, 0.8);
-            document.body.style.transform = `scale(${newZoom})`;
-            document.body.style.transformOrigin = 'top left';
-            document.body.style.width = `${100 / newZoom}%`;
-        });
-
-        // ======================================================================
-        // TEMA OSCURO
-        // ======================================================================
-        document.getElementById('themeToggle').addEventListener('click', function() {
-            const html = document.documentElement;
-            const isDark = html.getAttribute('data-theme') === 'dark';
-            if (isDark) {
-                html.removeAttribute('data-theme');
-                this.innerHTML = '<i class="fas fa-moon"></i>';
-                localStorage.setItem('theme', 'light');
-            } else {
-                html.setAttribute('data-theme', 'dark');
-                this.innerHTML = '<i class="fas fa-sun"></i>';
-                localStorage.setItem('theme', 'dark');
-            }
-        });
-        if (localStorage.getItem('theme') === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-            document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
-        }
-
-        // ======================================================================
-        // CRUD
-        // ======================================================================
-        function getAllClients() {
-            try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { return []; }
-        }
-        function saveAllClients(clients) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-        }
-        function getClient(id) {
-            return getAllClients().find(c => c.id == id) || null;
-        }
-        function saveClient(client) {
-            let all = getAllClients();
-            if (client.id) {
-                const idx = all.findIndex(c => c.id == client.id);
-                if (idx !== -1) all[idx] = client;
-                else all.push(client);
-            } else {
-                client.id = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-                all.push(client);
-            }
-            saveAllClients(all);
-            return client.id;
-        }
-        function deleteClient(id) {
-            saveAllClients(getAllClients().filter(c => c.id != id));
-        }
-        function clearAllClients() { saveAllClients([]); }
-
-        // ======================================================================
-        // TOAST
-        // ======================================================================
-        function showToast(msg, type = 'info', dur = 2800) {
-            const c = document.getElementById('toastContainer');
-            const el = document.createElement('div');
-            el.className = `toast ${type}`;
-            const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', info: 'fa-info-circle' };
-            el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
-            c.appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(12px)'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, dur);
-        }
-
-        // ======================================================================
-        // MODAL
-        // ======================================================================
-        function showModal(title, body, confirmText, onConfirm) {
-            const overlay = document.getElementById('modalOverlay');
-            document.getElementById('modalTitle').textContent = title;
-            document.getElementById('modalBody').innerHTML = body;
-            document.getElementById('modalConfirm').textContent = confirmText || 'Confirmar';
-            overlay.classList.add('open');
-            const close = () => overlay.classList.remove('open');
-            document.getElementById('modalClose').onclick = close;
-            document.getElementById('modalCancel').onclick = close;
-            document.getElementById('modalConfirm').onclick = () => { close(); if (onConfirm) onConfirm(); };
-        }
-
-        // ======================================================================
-        // RENDER LISTA
-        // ======================================================================
-        function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-
-        function renderClientList(clients) {
-            const container = document.getElementById('clientListContainer');
-            const countEl = document.getElementById('clientCount');
-            if (!clients || clients.length === 0) {
-                container.innerHTML = `<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes registrados</h3><p>Toca "Nuevo" para agregar.</p></div>`;
-                countEl.textContent = '0';
-                return;
-            }
-            countEl.textContent = clients.length;
-            let html = '';
-            for (const c of clients) {
-                const initial = (c.name || '?')[0].toUpperCase();
-                const visitCount = (c.visits || []).length;
-                const lastVisit = c.visits && c.visits.length > 0 ? new Date(c.visits[c.visits.length - 1].date).toLocaleDateString('es') : 'Sin visitas';
-                const avatarHtml = c.photo ? `<img src="${c.photo}" alt="foto" />` : initial;
-                html += `<div class="client-card" data-id="${c.id}">
-                    <div class="avatar">${avatarHtml}</div>
-                    <div class="info">
-                        <div class="name">${escHtml(c.name || 'Sin nombre')}</div>
-                        <div class="business">${escHtml(c.business || 'Sin negocio')}</div>
-                        <div class="address">${escHtml(c.address || 'Sin dirección')}</div>
-                    </div>
-                    <div class="meta">
-                        <span class="visits"><i class="fas fa-calendar-check"></i> ${visitCount}</span>
-                        <span class="date">${lastVisit}</span>
-                    </div>
-                </div>`;
-            }
-            container.innerHTML = html;
-            container.querySelectorAll('.client-card').forEach(el => {
-                el.addEventListener('click', () => showClientDetail(el.dataset.id));
-            });
-        }
-
-        // ======================================================================
-        // IMPRESIONES mejoradas para móvil
-        // ======================================================================
-        function printClientDirectory() {
-            const clients = getAllClients();
-            if (!clients || clients.length === 0) { showToast('No hay clientes', 'error'); return; }
-            const sorted = [...clients].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-            let rows = '';
-            sorted.forEach((c, i) => {
-                rows += `<tr><td>${i+1}</td><td><strong>${escHtml(c.name||'—')}</strong></td><td>${escHtml(c.business||'—')}</td><td>${escHtml(c.address||'—')}</td><td>${escHtml(c.colony||'—')}</td><td>${escHtml(c.phone||'—')}</td><td>${escHtml(c.references||'—')}</td><td>${c.lat&&c.lng?c.lat+', '+c.lng:'—'}</td><td style="text-align:center">${(c.visits||[]).length}</td></tr>`;
-            });
-            const win = window.open('', '_blank', 'width=800,height=700');
-            win.document.write(`<!DOCTYPE html><html><head><title>Directorio</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-            <style>
-                body { font-family: Arial, sans-serif; padding: 10px; max-width: 1100px; margin: auto; color: #0f172a; font-size: 14px; }
-                h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; font-size: 20px; }
-                table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                th { background: #f1f5f9; padding: 6px; border-bottom: 2px solid #e2e8f0; text-align: left; }
-                td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
-                .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-                @media (max-width: 600px) { table { font-size: 10px; } th, td { padding: 4px; } }
-                button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-                .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }
-            </style></head><body>
-            <h1>📇 Directorio de Clientes</h1>
-            <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
-            <table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead><tbody>${rows}</tbody></table>
-            <div class="footer">Generado desde CRM Visitas</div>
-            <button onclick="window.print()">🖨️ Imprimir</button>
-            <button class="close-btn" onclick="window.close()">Cerrar</button>
-            </body></html>`);
-            win.document.close();
-        }
-
-        function printClientVisits(client) {
-            if (!client || !client.visits || client.visits.length === 0) { showToast('No hay visitas', 'error'); return; }
-            const sorted = [...client.visits].sort((a, b) => b.date - a.date);
-            let visitsHtml = '';
-            sorted.forEach((v, i) => {
-                const d = new Date(v.date);
-                visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span></div>`;
-            });
-            const info = `<div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}<div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}`;
-            const win = window.open('', '_blank', 'width=800,height=600');
-            win.document.write(`<!DOCTYPE html><html><head><title>Visitas de ${escHtml(client.name)}</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-            <style>
-                body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; }
-                h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; }
-                .info { background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin: 14px 0; border-left: 4px solid #1e3a8a; }
-                .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; }
-                .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-                button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-                .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }
-            </style></head><body>
-            <h1>📋 Historial de visitas</h1>
-            <div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div>
-            <div>${visitsHtml}</div>
-            <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-            <button onclick="window.print()">🖨️ Imprimir</button>
-            <button class="close-btn" onclick="window.close()">Cerrar</button>
-            </body></html>`);
-            win.document.close();
-        }
-
-        function printStatsReport() {
-            const clients = getAllClients();
-            if (!clients || clients.length === 0) { showToast('No hay datos', 'error'); return; }
-            const totalVisits = clients.reduce((acc, c) => acc + (c.visits ? c.visits.length : 0), 0);
-            const today = new Date().toDateString();
-            const todayVisits = clients.reduce((acc, c) => { if (c.visits) return acc + c.visits.filter(v => new Date(v.date).toDateString() === today).length; return acc; }, 0);
-            let topClient = null, topCount = 0;
-            for (const c of clients) { if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; } }
-            const days = [];
-            for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
-            const dayCounts = {};
-            const dayNames = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-            days.forEach(d => dayCounts[d.toDateString()] = 0);
-            for (const c of clients) { if (c.visits) { for (const v of c.visits) { const key = new Date(v.date).toDateString(); if (dayCounts[key] !== undefined) dayCounts[key]++; } } }
-            let chartHtml = '';
-            days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:12px;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:11px;color:#64748b;">${count}</div></div>`; });
-            const win = window.open('', '_blank', 'width=800,height=600');
-            win.document.write(`<!DOCTYPE html><html><head><title>Reporte de visitas</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
-            <style>
-                body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; }
-                h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; }
-                .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; }
-                .stat-card { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border-left: 4px solid #1e3a8a; }
-                .stat-number { font-size: 24px; font-weight: 800; color: #1e3a8a; }
-                .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; }
-                .chart { display: flex; justify-content: space-around; align-items: flex-end; height: 100px; margin: 14px 0; padding: 0 10px; }
-                table { width: 100%; border-collapse: collapse; font-size: 12px; }
-                th { background: #f1f5f9; padding: 6px; text-align: left; border-bottom: 2px solid #e2e8f0; }
-                td { padding: 6px; border-bottom: 1px solid #e2e8f0; }
-                .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; }
-                button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-                .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }
-            </style></head><body>
-            <h1>📊 Reporte de visitas</h1>
+        <!-- VISTA ESTADÍSTICAS -->
+        <div class="view" id="viewStats">
+            <h2 style="font-size:1.2rem; font-weight:700; margin-bottom:12px; display:flex; align-items:center; gap:8px; color:var(--text);">
+                <i class="fas fa-chart-simple" style="color:var(--primary);"></i> Estadísticas
+            </h2>
             <div class="stats-grid">
-                <div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div>
-                <div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div>
-                <div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div>
-                <div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Clientes</div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-number" id="statVisits">0</div><div class="stat-label">Visitas Totales</div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-number" id="statToday">0</div><div class="stat-label">Visitas Hoy</div></div>
+                <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">—</div><div class="stat-label">Más Visitado</div></div>
             </div>
-            <h2 style="font-size:16px;margin-top:14px;">Visitas por día (últimos 7 días)</h2>
-            <div class="chart">${chartHtml}</div>
-            <h2 style="font-size:16px;margin-top:14px;">Lista de clientes</h2>
-            <table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody></table>
-            <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
-            <button onclick="window.print()">🖨️ Imprimir</button>
-            <button class="close-btn" onclick="window.close()">Cerrar</button>
-            </body></html>`);
-            win.document.close();
+            <div class="chart-container">
+                <h4><i class="fas fa-calendar-week"></i> Visitas por día (últimos 7 días)</h4>
+                <div class="bar-chart" id="weeklyChart"></div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+                <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;"><i class="fas fa-download"></i> Exportar JSON</button>
+                <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;"><i class="fas fa-file-code"></i> JSON sin fotos</button>
+                <button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;"><i class="fas fa-upload"></i> Importar JSON</button>
+                <input type="file" id="importFileInput" accept=".json" style="display:none;" />
+                <button class="btn btn-secondary btn-sm" id="syncFirebaseBtn" style="flex:1;"><i class="fas fa-cloud-upload-alt"></i> Sincronizar</button>
+                <button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;"><i class="fas fa-print"></i> Reporte</button>
+                <button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;"><i class="fas fa-address-book"></i> Directorio</button>
+            </div>
+            <div style="margin-top:8px;">
+                <button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;"><i class="fas fa-trash-can"></i> Eliminar todos</button>
+            </div>
+        </div>
+
+    </div>
+
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-view="viewList" id="navList"><i class="fas fa-list-ul"></i>Clientes</button>
+        <button class="nav-item" data-view="viewForm" id="navAdd"><i class="fas fa-plus-circle"></i>Agregar</button>
+        <button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadísticas <span class="badge" id="statsBadge" style="display:none;">0</span></button>
+    </nav>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header"><h3 id="modalTitle">Confirmar</h3><button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button></div>
+        <div id="modalBody" style="margin-bottom:14px; font-size:.95rem; line-height:1.5;"></div>
+        <div class="modal-footer" id="modalFooter">
+            <button class="btn btn-secondary" id="modalCancel">Cancelar</button>
+            <button class="btn btn-danger" id="modalConfirm">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ======================================================================
+// CONFIGURACIÓN DE FIREBASE
+// ======================================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",
+    authDomain: "clientes-gaeto-comercios-visit.firebaseapp.com",
+    projectId: "clientes-gaeto-comercios-visit",
+    storageBucket: "clientes-gaeto-comercios-visit.firebasestorage.app",
+    appId: "1:320415642943:web:ad683695655576348c8f8a"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+db.enablePersistence({ synchronizeTabs: true })
+    .catch((err) => { console.warn('⚠️ Persistencia offline no disponible:', err); });
+
+const CLIENTS_COLLECTION = 'clientes';
+const STORAGE_KEY = 'clientes_crm_data';
+
+// ======================================================================
+// ESTADO
+// ======================================================================
+let isOnline = navigator.onLine;
+let isSyncing = false;
+let pendingChanges = [];
+let firebaseInitialized = false;
+let clientDataCache = [];
+let listenerUnsubscribe = null;
+let editingId = null;
+let selectedLat = null, selectedLng = null;
+let photoDataUrl = null;
+let mapInstance = null;
+let currentView = 'viewList';
+let isSaving = false;
+
+// ======================================================================
+// UI DE CONEXIÓN
+// ======================================================================
+const statusDot = document.getElementById('statusDot');
+const statusText = document.getElementById('statusText');
+
+function updateConnectionStatus(status) {
+    statusDot.className = 'status-dot';
+    if (status === 'online') { statusDot.classList.add('online'); statusText.textContent = 'online'; }
+    else if (status === 'offline') { statusDot.classList.add('offline'); statusText.textContent = 'offline'; }
+    else if (status === 'syncing') { statusDot.classList.add('syncing'); statusText.textContent = 'sincronizando...'; }
+}
+
+window.addEventListener('online', () => { isOnline = true; updateConnectionStatus('online'); showToast('🌐 Conexión restablecida', 'success'); syncWithFirebase(); });
+window.addEventListener('offline', () => { isOnline = false; updateConnectionStatus('offline'); showToast('📡 Sin conexión - modo offline', 'warning'); });
+updateConnectionStatus(isOnline ? 'online' : 'offline');
+
+// ======================================================================
+// TOAST Y MODAL
+// ======================================================================
+function showToast(msg, type = 'info', dur = 2800) {
+    const c = document.getElementById('toastContainer');
+    if (!c) return;
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    const icons = { success: 'fa-check-circle', error: 'fa-exclamation-circle', warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+    el.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i> ${msg}`;
+    c.appendChild(el);
+    setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateY(12px)'; el.style.transition = '0.3s'; setTimeout(() => el.remove(), 300); }, dur);
+}
+
+function showModal(title, body, confirmText, onConfirm) {
+    const overlay = document.getElementById('modalOverlay');
+    if (!overlay) return;
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = body;
+    const footer = document.getElementById('modalFooter');
+    const cancelBtn = footer.querySelector('#modalCancel');
+    const confirmBtn = footer.querySelector('#modalConfirm');
+    const extraBtns = footer.querySelectorAll('.btn:not(#modalCancel):not(#modalConfirm)');
+    extraBtns.forEach(b => b.remove());
+    confirmBtn.textContent = confirmText || 'Confirmar';
+    confirmBtn.className = 'btn btn-danger';
+    confirmBtn.style.display = '';
+    const newConfirm = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+    overlay.classList.add('open');
+    const close = () => overlay.classList.remove('open');
+    document.getElementById('modalClose').onclick = close;
+    footer.querySelector('#modalCancel').onclick = close;
+    newConfirm.onclick = () => { close(); if (onConfirm) onConfirm(); };
+}
+
+function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+// ======================================================================
+// CRUD - FUNCIÓN saveClient CORREGIDA (SIN AWAIT)
+// ======================================================================
+function getAllClients() { return clientDataCache; }
+function getClient(id) { return clientDataCache.find(c => c.id == id) || null; }
+
+function saveClient(client) {
+    if (isSaving) { return; }
+    isSaving = true;
+    try {
+        if (client.id) {
+            const idx = clientDataCache.findIndex(c => c.id == client.id);
+            if (idx !== -1) clientDataCache[idx] = client;
+            else { client.id = client.id || Date.now() + '_' + Math.random().toString(36).substr(2, 6); clientDataCache.push(client); }
+        } else {
+            client.id = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            clientDataCache.push(client);
         }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+        refreshUI();
+        // Guardar en Firebase en segundo plano (sin esperar)
+        saveClientToFirestore(client);
+        return client.id;
+    } finally {
+        isSaving = false;
+    }
+}
 
-        // ======================================================================
-        // DETALLE
-        // ======================================================================
-        function showClientDetail(id) {
-            const client = getClient(id);
-            if (!client) { showToast('Cliente no encontrado', 'error'); return; }
-            const container = document.getElementById('detailContent');
-            document.getElementById('detailName').textContent = client.name || 'Cliente';
-            const visits = client.visits || [];
-            const visitHtml = visits.length === 0 ? '<p class="text-muted text-sm">No hay visitas.</p>' : visits.map(v => `<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">${new Date(v.date).toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</div>${v.notes ? `<div class="v-notes">${escHtml(v.notes)}</div>` : ''}</div><div class="v-time">${new Date(v.date).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })}</div></div>`).join('');
-            const lat = client.lat || '', lng = client.lng || '';
-            const photoHtml = client.photo ? `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` : '<p class="text-muted text-sm">Sin foto</p>';
+async function deleteClient(id) {
+    const idx = clientDataCache.findIndex(c => c.id == id);
+    if (idx !== -1) {
+        clientDataCache.splice(idx, 1);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+        refreshUI();
+        await deleteClientFromFirestore(id);
+    }
+}
 
-            container.innerHTML = `
-                <div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>${escHtml(client.name || '—')}</strong></div>${client.business ? `<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">${escHtml(client.business)}</div>` : ''}</div>
-                <div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Dirección</div><div class="value">${escHtml(client.address || 'Sin dirección')}</div>${client.colony ? `<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">${escHtml(client.colony)}</div>` : ''}${client.references ? `<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">${escHtml(client.references)}</div>` : ''}${client.phone ? `<div class="label"><i class="fas fa-phone"></i> Teléfono</div><div class="value"><a href="tel:${escHtml(client.phone)}" style="color:var(--primary);text-decoration:none;">${escHtml(client.phone)}</a></div>` : ''}${lat && lng ? `<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">${lat}, ${lng}</div>` : ''}</div>
-                <div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">${photoHtml}</div></div>
-                <div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicación</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fab fa-google"></i> Google Maps</a><a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>
-                <div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div><div class="visit-timeline">${visitHtml}</div><div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>
-            `;
+function clearAllClients() {
+    clientDataCache = [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+    refreshUI();
+    if (isOnline) {
+        db.collection(CLIENTS_COLLECTION).get()
+            .then((snapshot) => { const batch = db.batch(); snapshot.forEach((doc) => { batch.delete(doc.ref); }); return batch.commit(); })
+            .then(() => { showToast('🗑️ Todos los clientes eliminados de la nube', 'info'); })
+            .catch((err) => { console.error('Error eliminando todos de Firestore:', err); showToast('⚠️ Algunos datos pueden quedar en la nube', 'warning'); });
+    }
+}
 
-            // Mapa Leaflet en detalle
-            if (lat && lng) {
-                setTimeout(() => {
-                    const mapContainer = document.getElementById('detail-map');
-                    if (mapContainer && !mapContainer._leaflet_id) {
-                        const map = L.map(mapContainer).setView([parseFloat(lat), parseFloat(lng)], 15);
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-                        L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map);
-                        setTimeout(() => map.invalidateSize(), 100);
-                    }
-                }, 200);
-            } else {
-                const mapContainer = document.getElementById('detail-map');
-                if (mapContainer) mapContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>';
-            }
+// ======================================================================
+// FIRESTORE OPERACIONES
+// ======================================================================
+async function saveClientToFirestore(client) {
+    if (!isOnline) { pendingChanges.push({ type: 'save', data: client }); return false; }
+    try {
+        isSyncing = true; updateConnectionStatus('syncing');
+        const clientData = { ...client };
+        if (!clientData.id) { clientData.id = db.collection(CLIENTS_COLLECTION).doc().id; }
+        if (clientData.visits) { clientData.visits = clientData.visits.map(v => ({ ...v, date: v.date })); }
+        await db.collection(CLIENTS_COLLECTION).doc(clientData.id).set(clientData);
+        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
+        return true;
+    } catch (err) {
+        console.error('Error guardando en Firestore:', err);
+        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
+        showToast('❌ Error al guardar en la nube', 'error');
+        pendingChanges.push({ type: 'save', data: client });
+        return false;
+    }
+}
 
-            document.getElementById('addVisitBtn').addEventListener('click', () => {
-                showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', async () => {
-                    const note = document.getElementById('visitNoteInput')?.value || '';
-                    if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
-                    await addVisitToClient(id, note);
-                    showToast('Visita registrada ✅', 'success');
-                    showClientDetail(id);
-                });
+async function deleteClientFromFirestore(clientId) {
+    if (!isOnline) { pendingChanges.push({ type: 'delete', id: clientId }); return false; }
+    try {
+        isSyncing = true; updateConnectionStatus('syncing');
+        await db.collection(CLIENTS_COLLECTION).doc(clientId).delete();
+        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
+        return true;
+    } catch (err) {
+        console.error('Error eliminando de Firestore:', err);
+        isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
+        showToast('❌ Error al eliminar de la nube', 'error');
+        pendingChanges.push({ type: 'delete', id: clientId });
+        return false;
+    }
+}
+
+function listenToFirestore() {
+    if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
+    try {
+        listenerUnsubscribe = db.collection(CLIENTS_COLLECTION)
+            .onSnapshot((snapshot) => {
+                const clients = [];
+                snapshot.forEach((doc) => { const data = doc.data(); clients.push({ ...data, id: doc.id }); });
+                clientDataCache = clients;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
+                refreshUI();
+                if (firebaseInitialized) { showToast(`📥 ${clients.length} clientes sincronizados`, 'success', 1500); }
+                firebaseInitialized = true;
+                if (pendingChanges.length > 0 && isOnline) { pendingChanges = []; }
+                updateConnectionStatus(isOnline ? 'online' : 'offline');
+            }, (err) => {
+                console.error('Error en listener de Firestore:', err);
+                updateConnectionStatus(isOnline ? 'online' : 'offline');
+                const localData = localStorage.getItem(STORAGE_KEY);
+                if (localData) { try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) {} }
             });
+    } catch (err) {
+        console.error('Error configurando listener:', err);
+        const localData = localStorage.getItem(STORAGE_KEY);
+        if (localData) { try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) {} }
+    }
+}
 
-            // Botón Compartir mejorado
-            document.getElementById('shareVisitBtn').addEventListener('click', () => {
-                if (!visits || visits.length === 0) { showToast('No hay visitas', 'error'); return; }
-                let msg = `📋 CLIENTE: ${client.name}\n`;
-                if (client.business) msg += `🏢 Negocio: ${client.business}\n`;
-                if (client.address) msg += `📍 Dirección: ${client.address}\n`;
-                if (client.colony) msg += `🏘️ Colonia: ${client.colony}\n`;
-                if (client.phone) msg += `📞 Teléfono: ${client.phone}\n`;
-                msg += `📅 Visitas:\n\n`;
-                const sorted = [...visits].sort((a, b) => b.date - a.date);
-                sorted.forEach((v, i) => {
-                    const date = new Date(v.date);
-                    msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
-                });
-                // Usar Web Share API si está disponible
-                if (navigator.share) {
-                    navigator.share({
-                        title: 'Visitas de ' + client.name,
-                        text: msg
-                    }).catch(() => {});
-                } else {
-                    // Fallback: copiar al portapapeles
-                    navigator.clipboard.writeText(msg).then(() => {
-                        showToast('Visitas copiadas al portapapeles 📋', 'success');
-                    }).catch(() => {
-                        // Si clipboard no funciona, mostrar en un modal o alert
-                        showModal('Visitas', `<pre style="white-space:pre-wrap;font-size:0.8rem;">${escHtml(msg)}</pre>`, 'Cerrar');
-                    });
+async function syncWithFirebase() {
+    if (!isOnline) { showToast('📡 Sin conexión - no se puede sincronizar', 'warning'); return; }
+    if (isSyncing) { showToast('⏳ Ya está sincronizando...', 'info'); return; }
+    showToast('🔄 Sincronizando...', 'info', 2000);
+    const changes = [...pendingChanges];
+    pendingChanges = [];
+    for (const change of changes) {
+        if (change.type === 'save') { await saveClientToFirestore(change.data); }
+        else if (change.type === 'delete') { await deleteClientFromFirestore(change.id); }
+    }
+    if (changes.length === 0) {
+        if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
+        listenToFirestore();
+        showToast('✅ Datos sincronizados', 'success');
+    } else {
+        showToast(`✅ ${changes.length} cambios sincronizados`, 'success');
+    }
+}
+
+// ======================================================================
+// RENDER LISTA
+// ======================================================================
+function renderClientList(clients) {
+    const container = document.getElementById('clientListContainer');
+    const countEl = document.getElementById('clientCount');
+    if (!container) return;
+    if (!clients || clients.length === 0) {
+        container.innerHTML = `<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes registrados</h3><p>Toca "Nuevo" para agregar.</p></div>`;
+        if (countEl) countEl.textContent = '0';
+        return;
+    }
+    if (countEl) countEl.textContent = clients.length;
+    let html = '';
+    for (const c of clients) {
+        const initial = (c.name || '?')[0].toUpperCase();
+        const visitCount = (c.visits || []).length;
+        const lastVisit = c.visits && c.visits.length > 0 ? new Date(c.visits[c.visits.length - 1].date).toLocaleDateString('es') : 'Sin visitas';
+        const avatarHtml = c.photo ? `<img src="${c.photo}" alt="foto" />` : initial;
+        const syncStatus = c._synced ? 'synced' : 'pending';
+        const syncLabel = c._synced ? '✅' : '⏳';
+        html += `<div class="client-card" data-id="${c.id}">
+            <div class="avatar">${avatarHtml}</div>
+            <div class="info">
+                <div class="name">${escHtml(c.name || 'Sin nombre')}</div>
+                <div class="business">${escHtml(c.business || 'Sin negocio')}</div>
+                <div class="address">${escHtml(c.address || 'Sin dirección')}</div>
+            </div>
+            <div class="meta">
+                <span class="visits"><i class="fas fa-calendar-check"></i> ${visitCount}</span>
+                <span class="date">${lastVisit}</span>
+                <span class="sync-badge ${syncStatus}">${syncLabel}</span>
+            </div>
+        </div>`;
+    }
+    container.innerHTML = html;
+    container.querySelectorAll('.client-card').forEach(el => {
+        el.addEventListener('click', () => showClientDetail(el.dataset.id));
+    });
+}
+
+function refreshUI() {
+    renderClientList(clientDataCache);
+    updateStatsBadge(clientDataCache);
+    if (document.getElementById('viewStats').classList.contains('active')) renderStats();
+}
+
+// ======================================================================
+// DETALLE
+// ======================================================================
+function showClientDetail(id) {
+    const client = getClient(id);
+    if (!client) { showToast('Cliente no encontrado', 'error'); return; }
+    const container = document.getElementById('detailContent');
+    if (!container) return;
+    document.getElementById('detailName').textContent = client.name || 'Cliente';
+    const visits = client.visits || [];
+    const visitHtml = visits.length === 0 ? '<p class="text-muted text-sm">No hay visitas.</p>' : visits.map(v =>
+        `<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">${new Date(v.date).toLocaleDateString('es', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}</div>${v.notes ? `<div class="v-notes">${escHtml(v.notes)}</div>` : ''}</div><div class="v-time">${new Date(v.date).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })}</div></div>`
+    ).join('');
+    const lat = client.lat || '', lng = client.lng || '';
+    const photoHtml = client.photo ? `<img src="${client.photo}" class="photo-preview" alt="Foto" style="height:200px; object-fit:cover; width:100%; border-radius:8px;">` : '<p class="text-muted text-sm">Sin foto</p>';
+
+    container.innerHTML = `
+        <div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>${escHtml(client.name || '—')}</strong></div>${client.business ? `<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">${escHtml(client.business)}</div>` : ''}</div>
+        <div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Dirección</div><div class="value">${escHtml(client.address || 'Sin dirección')}</div>${client.colony ? `<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">${escHtml(client.colony)}</div>` : ''}${client.references ? `<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">${escHtml(client.references)}</div>` : ''}${client.phone ? `<div class="label"><i class="fas fa-phone"></i> Teléfono</div><div class="value"><a href="tel:${escHtml(client.phone)}" style="color:var(--primary);text-decoration:none;">${escHtml(client.phone)}</a></div>` : ''}${lat && lng ? `<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">${lat}, ${lng}</div>` : ''}</div>
+        <div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">${photoHtml}</div></div>
+        <div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicación</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="${lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fab fa-google"></i> Google Maps</a><a href="${lat && lng ? `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}&zoom=15` : `https://www.openstreetmap.org/search?query=${encodeURIComponent(client.address || '')}`}" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:4px;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div>
+        <div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas (${visits.length})</div><div class="visit-timeline">${visitHtml}</div><div style="display:flex; gap:6px; margin-top:10px; flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button><button class="btn btn-secondary btn-sm" id="printVisitBtn" style="flex:1;"><i class="fas fa-print"></i> Imprimir</button></div></div>
+    `;
+
+    if (lat && lng && typeof L !== 'undefined') {
+        setTimeout(() => {
+            const mapContainer = document.getElementById('detail-map');
+            if (mapContainer && !mapContainer._leaflet_id) {
+                const map = L.map(mapContainer).setView([parseFloat(lat), parseFloat(lng)], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+                L.marker([parseFloat(lat), parseFloat(lng)]).addTo(map);
+                setTimeout(() => map.invalidateSize(), 100);
+            }
+        }, 200);
+    } else {
+        const mapContainer = document.getElementById('detail-map');
+        if (mapContainer) mapContainer.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>';
+    }
+
+    document.getElementById('addVisitBtn').addEventListener('click', () => {
+        showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', () => {
+            const note = document.getElementById('visitNoteInput')?.value || '';
+            if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
+            addVisitToClient(id, note);
+            showToast('Visita registrada ✅', 'success');
+            showClientDetail(id);
+        });
+    });
+
+    document.getElementById('shareVisitBtn').addEventListener('click', () => {
+        if (!visits || visits.length === 0) { showToast('No hay visitas', 'error'); return; }
+        let msg = `📋 CLIENTE: ${client.name}\n`;
+        if (client.business) msg += `🏢 Negocio: ${client.business}\n`;
+        if (client.address) msg += `📍 Dirección: ${client.address}\n`;
+        if (client.colony) msg += `🏘️ Colonia: ${client.colony}\n`;
+        if (client.phone) msg += `📞 Teléfono: ${client.phone}\n`;
+        msg += `📅 Visitas:\n\n`;
+        const sorted = [...visits].sort((a, b) => b.date - a.date);
+        sorted.forEach((v, i) => {
+            const date = new Date(v.date);
+            msg += `${i+1}. ${date.toLocaleDateString('es')} ${date.toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' })} → ${v.notes || 'Sin nota'}\n`;
+        });
+        if (navigator.share) {
+            navigator.share({ title: 'Visitas de ' + client.name, text: msg }).catch(() => {});
+        } else {
+            navigator.clipboard.writeText(msg).then(() => {
+                showToast('Visitas copiadas al portapapeles 📋', 'success');
+            }).catch(() => {
+                showModal('Visitas', `<pre style="white-space:pre-wrap;font-size:0.8rem;">${escHtml(msg)}</pre>`, 'Cerrar');
+            });
+        }
+    });
+
+    document.getElementById('printVisitBtn').addEventListener('click', () => printClientVisits(client));
+    document.getElementById('detailEditBtn').onclick = () => editClient(id);
+    document.getElementById('detailDeleteBtn').onclick = () => {
+        showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', async () => {
+            await deleteClient(id);
+            showToast('Cliente eliminado', 'info');
+            switchView('viewList');
+            refreshUI();
+        });
+    };
+    switchView('viewDetail');
+}
+
+function addVisitToClient(clientId, notes = '') {
+    const client = getClient(clientId);
+    if (!client) return;
+    const visits = client.visits || [];
+    visits.push({ date: Date.now(), notes: notes });
+    client.visits = visits;
+    client._synced = false;
+    saveClient(client);
+    refreshUI();
+}
+
+// ======================================================================
+// IMPRESIONES
+// ======================================================================
+function printClientDirectory() {
+    const clients = getAllClients();
+    if (!clients || clients.length === 0) { showToast('No hay clientes', 'error'); return; }
+    const sorted = [...clients].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    let rows = '';
+    sorted.forEach((c, i) => {
+        rows += `<tr><td>${i+1}</td><td><strong>${escHtml(c.name||'—')}</strong></td><td>${escHtml(c.business||'—')}</td><td>${escHtml(c.address||'—')}</td><td>${escHtml(c.colony||'—')}</td><td>${escHtml(c.phone||'—')}</td><td>${escHtml(c.references||'—')}</td><td>${c.lat&&c.lng?c.lat+', '+c.lng:'—'}</td><td style="text-align:center">${(c.visits||[]).length}</td></tr>`;
+    });
+    const win = window.open('', '_blank', 'width=800,height=700');
+    if (!win) { showToast('Permite ventanas emergentes', 'error'); return; }
+    win.document.write(`<!DOCTYPE html><html><head><title>Directorio</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+        <style>body { font-family: Arial, sans-serif; padding: 10px; max-width: 1100px; margin: auto; color: #0f172a; font-size: 14px; } h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 8px; font-size: 20px; } table { width: 100%; border-collapse: collapse; font-size: 12px; } th { background: #f1f5f9; padding: 6px; border-bottom: 2px solid #e2e8f0; text-align: left; } td { padding: 6px; border-bottom: 1px solid #e2e8f0; } .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; } @media (max-width: 600px) { table { font-size: 10px; } th, td { padding: 4px; } } button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; } .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }</style></head><body>
+        <h1>📇 Directorio de Clientes</h1>
+        <p>Total: <strong>${sorted.length}</strong> clientes · ${new Date().toLocaleDateString('es')}</p>
+        <table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Dirección</th><th>Colonia</th><th>Teléfono</th><th>Referencias</th><th>Coordenadas</th><th>Visitas</th></tr></thead><tbody>${rows}</tbody></table>
+        <div class="footer">Generado desde CRM Visitas</div>
+        <button onclick="window.print()">🖨️ Imprimir</button>
+        <button class="close-btn" onclick="window.close()">Cerrar</button>
+        </body></html>`);
+    win.document.close();
+}
+
+function printClientVisits(client) {
+    if (!client || !client.visits || client.visits.length === 0) { showToast('No hay visitas', 'error'); return; }
+    const sorted = [...client.visits].sort((a, b) => b.date - a.date);
+    let visitsHtml = '';
+    sorted.forEach((v, i) => {
+        const d = new Date(v.date);
+        visitsHtml += `<div style="padding:4px 0;border-bottom:1px solid #e2e8f0;"><strong>${i+1}.</strong> ${d.toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long',year:'numeric'})} a las ${d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})}<br><span style="color:#475569">${escHtml(v.notes||'Sin nota')}</span></div>`;
+    });
+    const info = `<div><strong>Nombre:</strong> ${escHtml(client.name||'—')}</div>${client.business?`<div><strong>Negocio:</strong> ${escHtml(client.business)}</div>`:''}<div><strong>Dirección:</strong> ${escHtml(client.address||'—')}</div>${client.colony?`<div><strong>Colonia:</strong> ${escHtml(client.colony)}</div>`:''}${client.phone?`<div><strong>Teléfono:</strong> ${escHtml(client.phone)}</div>`:''}${client.references?`<div><strong>Referencias:</strong> ${escHtml(client.references)}</div>`:''}${client.lat&&client.lng?`<div><strong>Coordenadas:</strong> ${client.lat}, ${client.lng}</div>`:''}`;
+    const win = window.open('', '_blank', 'width=800,height=600');
+    if (!win) { showToast('Permite ventanas emergentes', 'error'); return; }
+    win.document.write(`<!DOCTYPE html><html><head><title>Visitas de ${escHtml(client.name)}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+        <style>body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; } h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; } .info { background: #f8fafc; padding: 10px 14px; border-radius: 8px; margin: 14px 0; border-left: 4px solid #1e3a8a; } .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 12px; } .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; } button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; } .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }</style></head><body>
+        <h1>📋 Historial de visitas</h1>
+        <div class="info"><div class="info-grid">${info}</div><div style="margin-top:6px;border-top:1px dashed #e2e8f0;padding-top:6px"><strong>Total visitas:</strong> ${sorted.length}</div></div>
+        <div>${visitsHtml}</div>
+        <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
+        <button onclick="window.print()">🖨️ Imprimir</button>
+        <button class="close-btn" onclick="window.close()">Cerrar</button>
+        </body></html>`);
+    win.document.close();
+}
+
+function printStatsReport() {
+    const clients = getAllClients();
+    if (!clients || clients.length === 0) { showToast('No hay datos', 'error'); return; }
+    const totalVisits = clients.reduce((acc, c) => acc + (c.visits ? c.visits.length : 0), 0);
+    const today = new Date().toDateString();
+    const todayVisits = clients.reduce((acc, c) => { if (c.visits) return acc + c.visits.filter(v => new Date(v.date).toDateString() === today).length; return acc; }, 0);
+    let topClient = null, topCount = 0;
+    for (const c of clients) { if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; } }
+    const days = [];
+    for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); days.push(d); }
+    const dayCounts = {};
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    days.forEach(d => dayCounts[d.toDateString()] = 0);
+    for (const c of clients) { if (c.visits) { for (const v of c.visits) { const key = new Date(v.date).toDateString(); if (dayCounts[key] !== undefined) dayCounts[key]++; } } }
+    let chartHtml = '';
+    days.forEach(d => { const count = dayCounts[d.toDateString()] || 0; chartHtml += `<div style="display:inline-block;width:12%;text-align:center;margin:0 4px;"><div style="background:#3b82f6;height:${Math.max(4, count * 10)}px;width:100%;border-radius:4px 4px 0 0;min-height:4px;"></div><div style="font-size:12px;margin-top:2px;">${dayNames[d.getDay()]}</div><div style="font-size:11px;color:#64748b;">${count}</div></div>`; });
+    const win = window.open('', '_blank', 'width=800,height=600');
+    if (!win) { showToast('Permite ventanas emergentes', 'error'); return; }
+    win.document.write(`<!DOCTYPE html><html><head><title>Reporte de visitas</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
+        <style>body { font-family: Arial, sans-serif; padding: 10px; max-width: 700px; margin: auto; color: #0f172a; font-size: 14px; } h1 { color: #1e3a8a; border-bottom: 2px solid #f59e0b; padding-bottom: 10px; font-size: 20px; } .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 14px 0; } .stat-card { background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border-left: 4px solid #1e3a8a; } .stat-number { font-size: 24px; font-weight: 800; color: #1e3a8a; } .stat-label { font-size: 12px; color: #64748b; text-transform: uppercase; } .chart { display: flex; justify-content: space-around; align-items: flex-end; height: 100px; margin: 14px 0; padding: 0 10px; } table { width: 100%; border-collapse: collapse; font-size: 12px; } th { background: #f1f5f9; padding: 6px; text-align: left; border-bottom: 2px solid #e2e8f0; } td { padding: 6px; border-bottom: 1px solid #e2e8f0; } .footer { margin-top: 20px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 12px; } button { margin-top: 20px; padding: 8px 16px; background: #1e3a8a; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; } .close-btn { background: #e2e8f0; color: #0f172a; margin-left: 8px; }</style></head><body>
+        <h1>📊 Reporte de visitas</h1>
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-number">${clients.length}</div><div class="stat-label">Total Clientes</div></div>
+            <div class="stat-card"><div class="stat-number">${totalVisits}</div><div class="stat-label">Visitas Totales</div></div>
+            <div class="stat-card"><div class="stat-number">${todayVisits}</div><div class="stat-label">Visitas Hoy</div></div>
+            <div class="stat-card"><div class="stat-number">${topClient ? topClient.name : '—'}</div><div class="stat-label">Más Visitado (${topCount})</div></div>
+        </div>
+        <h2 style="font-size:16px;margin-top:14px;">Visitas por día (últimos 7 días)</h2>
+        <div class="chart">${chartHtml}</div>
+        <h2 style="font-size:16px;margin-top:14px;">Lista de clientes</h2>
+        <table><thead><tr><th>Cliente</th><th>Negocio</th><th>Visitas</th></tr></thead><tbody>${clients.map(c => `<tr><td>${escHtml(c.name||'Sin nombre')}</td><td>${escHtml(c.business||'—')}</td><td>${(c.visits||[]).length}</td></tr>`).join('')}</tbody></table>
+        <div class="footer">Generado desde CRM Visitas · ${new Date().toLocaleDateString('es')}</div>
+        <button onclick="window.print()">🖨️ Imprimir</button>
+        <button class="close-btn" onclick="window.close()">Cerrar</button>
+        </body></html>`);
+    win.document.close();
+}
+
+// ======================================================================
+// FORMULARIO
+// ======================================================================
+function editClient(id) {
+    editingId = id;
+    document.getElementById('formTitle').textContent = 'Editar Cliente';
+    document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Actualizar';
+    const c = getClient(id);
+    if (!c) { showToast('No encontrado', 'error'); return; }
+    document.getElementById('clientId').value = c.id;
+    document.getElementById('fName').value = c.name || '';
+    document.getElementById('fBusiness').value = c.business || '';
+    document.getElementById('fAddress').value = c.address || '';
+    document.getElementById('fColony').value = c.colony || '';
+    document.getElementById('fPhone').value = c.phone || '';
+    document.getElementById('fReferences').value = c.references || '';
+    document.getElementById('fVisitNote').value = '';
+    document.getElementById('fLat').value = c.lat || '';
+    document.getElementById('fLng').value = c.lng || '';
+    selectedLat = c.lat || null;
+    selectedLng = c.lng || null;
+    switchView('viewForm');
+    setTimeout(() => {
+        if (selectedLat && selectedLng) updateMap(selectedLat, selectedLng);
+        else resetMapPlaceholder();
+    }, 200);
+    updateLinks();
+    if (c.photo) {
+        photoDataUrl = c.photo;
+        document.getElementById('photoPreview').src = c.photo;
+        document.getElementById('photoPreview').classList.remove('hidden');
+        document.getElementById('photoPlaceholder').style.display = 'none';
+    } else {
+        photoDataUrl = null;
+        document.getElementById('photoPreview').classList.add('hidden');
+        document.getElementById('photoPlaceholder').style.display = 'flex';
+    }
+}
+
+function resetForm() {
+    document.getElementById('clientForm').reset();
+    document.getElementById('clientId').value = '';
+    editingId = null;
+    document.getElementById('formTitle').textContent = 'Nuevo Cliente';
+    document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
+    selectedLat = null; selectedLng = null;
+    document.getElementById('fLat').value = '';
+    document.getElementById('fLng').value = '';
+    resetMapPlaceholder();
+    document.getElementById('fVisitNote').value = '';
+    photoDataUrl = null;
+    document.getElementById('photoPreview').classList.add('hidden');
+    document.getElementById('photoPreview').src = '';
+    document.getElementById('photoPlaceholder').style.display = 'flex';
+    document.getElementById('fPhoto').value = '';
+    updateLinks();
+}
+
+// ======================================================================
+// MAPA
+// ======================================================================
+function resetMapPlaceholder() {
+    const container = document.getElementById('map-container');
+    if (!container) return;
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:6px;"><i class="fas fa-map-marked-alt"></i><span>Escribe una dirección y presiona "Buscar"</span></div>';
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+    updateLinks();
+}
+
+function updateMap(lat, lng) {
+    const container = document.getElementById('map-container');
+    if (!container) return;
+    if (!lat || !lng) { resetMapPlaceholder(); return; }
+    const latNum = parseFloat(lat), lngNum = parseFloat(lng);
+    if (isNaN(latNum) || isNaN(lngNum)) { resetMapPlaceholder(); return; }
+    if (mapInstance) { mapInstance.remove(); mapInstance = null; }
+    container.innerHTML = '';
+    const map = L.map(container).setView([latNum, lngNum], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
+    L.marker([latNum, lngNum]).addTo(map);
+    mapInstance = map;
+    setTimeout(() => map.invalidateSize(), 200);
+    updateLinks();
+}
+
+function updateLinks() {
+    const lat = document.getElementById('fLat').value.trim();
+    const lng = document.getElementById('fLng').value.trim();
+    const address = document.getElementById('fAddress').value.trim();
+    const googleLink = document.getElementById('openGoogleMaps');
+    const osmLink = document.getElementById('openOsmLink');
+    if (!googleLink || !osmLink) return;
+    if (lat && lng) {
+        const latNum = parseFloat(lat), lngNum = parseFloat(lng);
+        if (!isNaN(latNum) && !isNaN(lngNum)) {
+            googleLink.href = `https://www.google.com/maps?q=${latNum},${lngNum}`;
+            googleLink.style.display = 'inline-flex';
+            osmLink.href = `https://www.openstreetmap.org/?mlat=${latNum}&mlon=${lngNum}&zoom=15`;
+            osmLink.style.display = 'inline-flex';
+            return;
+        }
+    } else if (address) {
+        googleLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+        googleLink.style.display = 'inline-flex';
+        osmLink.href = `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`;
+        osmLink.style.display = 'inline-flex';
+        return;
+    }
+    googleLink.href = '#'; googleLink.style.display = 'none';
+    osmLink.href = '#'; osmLink.style.display = 'none';
+}
+
+async function geocodeManual() {
+    const address = document.getElementById('fAddress').value.trim();
+    if (!address) { showToast('Escribe una dirección', 'error'); return; }
+    const container = document.getElementById('map-container');
+    if (!container) return;
+    container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
+    try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
+        const response = await fetch(url, { headers: { 'User-Agent': 'CRM-Client/1.0' } });
+        const data = await response.json();
+        if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lng = parseFloat(data[0].lon);
+            selectedLat = lat; selectedLng = lng;
+            document.getElementById('fLat').value = lat;
+            document.getElementById('fLng').value = lng;
+            updateMap(lat, lng);
+            const parts = data[0].display_name.split(',');
+            if (parts.length > 2) {
+                const colony = parts[parts.length - 3]?.trim() || '';
+                if (colony && !document.getElementById('fColony').value) {
+                    document.getElementById('fColony').value = colony;
                 }
-            });
-
-            document.getElementById('printVisitBtn').addEventListener('click', () => printClientVisits(client));
-            document.getElementById('detailEditBtn').onclick = () => editClient(id);
-            document.getElementById('detailDeleteBtn').onclick = () => {
-                showModal('Eliminar Cliente', `¿Eliminar a <strong>${escHtml(client.name)}</strong>?`, 'Eliminar', () => { deleteClient(id); showToast('Eliminado', 'info'); switchView('viewList'); refreshList(); });
-            };
-            switchView('viewDetail');
-        }
-
-        async function addVisitToClient(clientId, notes = '') {
-            const client = getClient(clientId);
-            if (!client) return;
-            const visits = client.visits || [];
-            visits.push({ date: Date.now(), notes: notes });
-            client.visits = visits;
-            saveClient(client);
-            refreshList();
-        }
-
-        // ======================================================================
-        // FORM - EDITAR
-        // ======================================================================
-        function editClient(id) {
-            editingId = id;
-            document.getElementById('formTitle').textContent = 'Editar Cliente';
-            document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Actualizar';
-            const c = getClient(id);
-            if (!c) { showToast('No encontrado', 'error'); return; }
-            document.getElementById('clientId').value = c.id;
-            document.getElementById('fName').value = c.name || '';
-            document.getElementById('fBusiness').value = c.business || '';
-            document.getElementById('fAddress').value = c.address || '';
-            document.getElementById('fColony').value = c.colony || '';
-            document.getElementById('fPhone').value = c.phone || '';
-            document.getElementById('fReferences').value = c.references || '';
-            document.getElementById('fVisitNote').value = '';
-            document.getElementById('fLat').value = c.lat || '';
-            document.getElementById('fLng').value = c.lng || '';
-            selectedLat = c.lat || null;
-            selectedLng = c.lng || null;
-            switchView('viewForm');
-            setTimeout(() => {
-                if (selectedLat && selectedLng) updateMap(selectedLat, selectedLng);
-                else resetMapPlaceholder();
-            }, 200);
-            updateLinks();
-            if (c.photo) {
-                photoDataUrl = c.photo;
-                document.getElementById('photoPreview').src = c.photo;
-                document.getElementById('photoPreview').classList.remove('hidden');
-                document.getElementById('photoPlaceholder').style.display = 'none';
-            } else {
-                photoDataUrl = null;
-                document.getElementById('photoPreview').classList.add('hidden');
-                document.getElementById('photoPlaceholder').style.display = 'flex';
             }
-        }
-
-        function resetForm() {
-            document.getElementById('clientForm').reset();
-            document.getElementById('clientId').value = '';
-            editingId = null;
-            document.getElementById('formTitle').textContent = 'Nuevo Cliente';
-            document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
-            selectedLat = null; selectedLng = null;
-            document.getElementById('fLat').value = '';
-            document.getElementById('fLng').value = '';
+            showToast('Ubicación encontrada 📍', 'success');
+        } else {
             resetMapPlaceholder();
-            document.getElementById('fVisitNote').value = '';
-            photoDataUrl = null;
-            document.getElementById('photoPreview').classList.add('hidden');
-            document.getElementById('photoPreview').src = '';
-            document.getElementById('photoPlaceholder').style.display = 'flex';
-            document.getElementById('fPhoto').value = '';
+            showToast('No se encontró la ubicación.', 'error');
             updateLinks();
         }
+    } catch (err) {
+        resetMapPlaceholder();
+        showToast('Error al geocodificar.', 'error');
+        updateLinks();
+    }
+}
 
-        // ======================================================================
-        // MAPA CON LEAFLET
-        // ======================================================================
-        function resetMapPlaceholder() {
-            const container = document.getElementById('map-container');
-            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);flex-direction:column;gap:6px;"><i class="fas fa-map-marked-alt"></i><span>Escribe una dirección y presiona "Buscar"</span></div>';
-            if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-            updateLinks();
+function updateMapFromCoords() {
+    const lat = document.getElementById('fLat').value.trim();
+    const lng = document.getElementById('fLng').value.trim();
+    if (lat && lng) {
+        const latNum = parseFloat(lat), lngNum = parseFloat(lng);
+        if (!isNaN(latNum) && !isNaN(lngNum)) {
+            selectedLat = latNum; selectedLng = lngNum;
+            updateMap(latNum, lngNum);
+            showToast('Mapa actualizado 📍', 'success');
+        } else { showToast('Coordenadas inválidas', 'error'); }
+    } else { showToast('Ingresa latitud y longitud', 'error'); }
+}
+
+// ======================================================================
+// FOTO - CON OPCIÓN QUITAR
+// ======================================================================
+document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
+document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
+
+document.getElementById('fPhoto').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (file.size > 1024 * 1024) { showToast('Máx 1MB', 'error'); this.value = ''; return; }
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        photoDataUrl = ev.target.result;
+        const preview = document.getElementById('photoPreview');
+        preview.src = photoDataUrl;
+        preview.classList.remove('hidden');
+        document.getElementById('photoPlaceholder').style.display = 'none';
+        showToast('Foto cargada ✅', 'success');
+    };
+    reader.onerror = function() { showToast('Error al leer', 'error'); };
+    reader.readAsDataURL(file);
+});
+
+document.getElementById('removePhotoBtn').addEventListener('click', function() {
+    photoDataUrl = null;
+    document.getElementById('photoPreview').classList.add('hidden');
+    document.getElementById('photoPreview').src = '';
+    document.getElementById('photoPlaceholder').style.display = 'flex';
+    document.getElementById('fPhoto').value = '';
+    showToast('Foto eliminada', 'info');
+});
+
+// ======================================================================
+// GUARDAR - CORREGIDO
+// ======================================================================
+document.getElementById('clientForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Si ya está guardando, no hacer nada
+    if (isSaving) {
+        showToast('⏳ Ya se está guardando...', 'warning');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('formSubmitBtn');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+    submitBtn.disabled = true;
+    
+    try {
+        const name = document.getElementById('fName').value.trim();
+        const business = document.getElementById('fBusiness').value.trim();
+        const address = document.getElementById('fAddress').value.trim();
+        const colony = document.getElementById('fColony').value.trim();
+        const phone = document.getElementById('fPhone').value.trim();
+        const references = document.getElementById('fReferences').value.trim();
+        const visitNote = document.getElementById('fVisitNote').value.trim();
+        const lat = document.getElementById('fLat').value.trim();
+        const lng = document.getElementById('fLng').value.trim();
+        
+        // Validaciones
+        if (!name) {
+            showToast('Nombre obligatorio', 'error');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            return;
         }
-
-        function updateMap(lat, lng) {
-            const container = document.getElementById('map-container');
-            if (!lat || !lng) { resetMapPlaceholder(); return; }
-            const latNum = parseFloat(lat), lngNum = parseFloat(lng);
-            if (isNaN(latNum) || isNaN(lngNum)) { resetMapPlaceholder(); return; }
-            if (mapInstance) { mapInstance.remove(); mapInstance = null; }
-            container.innerHTML = '';
-            const map = L.map(container).setView([latNum, lngNum], 15);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-            L.marker([latNum, lngNum]).addTo(map);
-            mapInstance = map;
-            setTimeout(() => map.invalidateSize(), 200);
-            updateLinks();
+        if (!address) {
+            showToast('Dirección obligatoria', 'error');
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+            return;
         }
+        
+        const id = document.getElementById('clientId').value;
+        const clientData = { 
+            name: name, 
+            business: business || '', 
+            address: address, 
+            colony: colony || '', 
+            phone: phone || '', 
+            references: references || '', 
+            lat: lat || null, 
+            lng: lng || null, 
+            photo: photoDataUrl || null, 
+            updatedAt: Date.now(), 
+            _synced: false 
+        };
 
-        function updateLinks() {
-            const lat = document.getElementById('fLat').value.trim();
-            const lng = document.getElementById('fLng').value.trim();
-            const address = document.getElementById('fAddress').value.trim();
-            const googleLink = document.getElementById('openGoogleMaps');
-            const osmLink = document.getElementById('openOsmLink');
-            if (lat && lng) {
-                const latNum = parseFloat(lat), lngNum = parseFloat(lng);
-                if (!isNaN(latNum) && !isNaN(lngNum)) {
-                    googleLink.href = `https://www.google.com/maps?q=${latNum},${lngNum}`;
-                    googleLink.style.display = 'inline-flex';
-                    osmLink.href = `https://www.openstreetmap.org/?mlat=${latNum}&mlon=${lngNum}&zoom=15`;
-                    osmLink.style.display = 'inline-flex';
-                    return;
-                }
-            } else if (address) {
-                googleLink.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-                googleLink.style.display = 'inline-flex';
-                osmLink.href = `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`;
-                osmLink.style.display = 'inline-flex';
-                return;
+        if (id) {
+            const existing = getClient(id);
+            if (!existing) {
+                throw new Error('No existe el cliente');
             }
-            googleLink.href = '#';
-            googleLink.style.display = 'none';
-            osmLink.href = '#';
-            osmLink.style.display = 'none';
+            let visits = existing.visits || [];
+            if (visitNote !== '') { 
+                visits.push({ date: Date.now(), notes: visitNote }); 
+                showToast('✅ Nueva visita registrada', 'success'); 
+            }
+            clientData.visits = visits;
+            clientData.createdAt = existing.createdAt || Date.now();
+            clientData.id = id;
+        } else {
+            clientData.visits = visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [];
+            clientData.createdAt = Date.now();
         }
+        
+        // GUARDAR (sin await para que no se bloquee)
+        saveClient(clientData);
+        showToast(id ? '✅ Cliente actualizado' : '✅ Cliente registrado', 'success');
+        
+        if (lat && lng) updateMap(parseFloat(lat), parseFloat(lng));
+        else resetMapPlaceholder();
+        
+        resetForm();
+        switchView('viewList');
+        refreshUI();
+        
+    } catch (err) { 
+        console.error('Error al guardar:', err);
+        showToast('Error: ' + err.message, 'error'); 
+    } finally { 
+        submitBtn.innerHTML = originalText; 
+        submitBtn.disabled = false;
+    }
+});
 
-        // ======================================================================
-        // GEOCODIFICACIÓN mejorada
-        // ======================================================================
-        async function geocodeManual() {
-            const address = document.getElementById('fAddress').value.trim();
-            if (!address) { showToast('Escribe una dirección', 'error'); return; }
-            const container = document.getElementById('map-container');
-            container.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
-            try {
-                // Intentar con Nominatim
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=mx`;
-                const response = await fetch(url, { headers: { 'User-Agent': 'CRM-Client/1.0' } });
-                const data = await response.json();
-                if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lng = parseFloat(data[0].lon);
-                    selectedLat = lat; selectedLng = lng;
-                    document.getElementById('fLat').value = lat;
-                    document.getElementById('fLng').value = lng;
-                    updateMap(lat, lng);
-                    const parts = data[0].display_name.split(',');
-                    if (parts.length > 2) {
-                        const colony = parts[parts.length - 3]?.trim() || '';
-                        if (colony && !document.getElementById('fColony').value) {
-                            document.getElementById('fColony').value = colony;
-                        }
-                    }
-                    showToast('Ubicación encontrada 📍', 'success');
-                } else {
-                    // Si no encuentra, ofrecer abrir en Google Maps con la dirección
-                    resetMapPlaceholder();
-                    showToast('No se encontró la ubicación. Usa el botón "Google Maps" para abrir la dirección.', 'error');
-                    // Activar enlaces de mapa con la dirección
-                    updateLinks();
-                }
-            } catch (err) {
-                resetMapPlaceholder();
-                showToast('Error al geocodificar. Intenta abrir en Google Maps.', 'error');
-                updateLinks();
+document.getElementById('formCancelBtn').addEventListener('click', () => { resetForm(); switchView('viewList'); });
+
+// ======================================================================
+// ESTADÍSTICAS
+// ======================================================================
+function renderStats() {
+    const clients = getAllClients();
+    if (!clients || clients.length === 0) {
+        document.getElementById('statTotal').textContent = '0';
+        document.getElementById('statVisits').textContent = '0';
+        document.getElementById('statToday').textContent = '0';
+        document.getElementById('statTop').textContent = '—';
+        document.getElementById('weeklyChart').innerHTML = '<div class="text-muted text-sm" style="padding:20px 0;text-align:center;">Sin datos</div>';
+        return;
+    }
+    const today = new Date();
+    const days = [];
+    for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); days.push(d); }
+    const dayCounts = {};
+    const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    days.forEach(d => dayCounts[d.toDateString()] = 0);
+    let totalVisits = 0, todayVisits = 0;
+    const todayStr = new Date().toDateString();
+    for (const c of clients) {
+        if (c.visits) {
+            totalVisits += c.visits.length;
+            for (const v of c.visits) {
+                const visitDate = new Date(v.date).toDateString();
+                if (visitDate === todayStr) todayVisits++;
+                if (dayCounts[visitDate] !== undefined) dayCounts[visitDate]++;
             }
         }
+    }
+    document.getElementById('statTotal').textContent = clients.length;
+    document.getElementById('statVisits').textContent = totalVisits;
+    document.getElementById('statToday').textContent = todayVisits;
+    let topClient = null, topCount = 0;
+    for (const c of clients) {
+        if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; }
+    }
+    document.getElementById('statTop').textContent = topClient ? topClient.name : '—';
+    const chart = document.getElementById('weeklyChart');
+    const maxVal = Math.max(1, ...Object.values(dayCounts));
+    let chartHtml = '';
+    days.forEach((d) => {
+        const count = dayCounts[d.toDateString()] || 0;
+        const pct = maxVal > 0 ? (count / maxVal) * 100 : 0;
+        const label = dayNames[d.getDay()];
+        chartHtml += `<div class="bar-item"><div class="bar" style="height:${Math.max(4, pct)}%;background:${count > 0 ? 'var(--primary-light)' : 'var(--border)'};"></div><div class="bar-label">${label}</div></div>`;
+    });
+    chart.innerHTML = chartHtml;
+}
 
-        function updateMapFromCoords() {
-            const lat = document.getElementById('fLat').value.trim();
-            const lng = document.getElementById('fLng').value.trim();
-            if (lat && lng) {
-                const latNum = parseFloat(lat), lngNum = parseFloat(lng);
-                if (!isNaN(latNum) && !isNaN(lngNum)) {
-                    selectedLat = latNum; selectedLng = lngNum;
-                    updateMap(latNum, lngNum);
-                    showToast('Mapa actualizado 📍', 'success');
-                } else { showToast('Coordenadas inválidas', 'error'); }
-            } else { showToast('Ingresa latitud y longitud', 'error'); }
+function updateStatsBadge(clients) {
+    const badge = document.getElementById('statsBadge');
+    if (!badge) return;
+    if (!clients || clients.length === 0) { badge.style.display = 'none'; return; }
+    const today = new Date().toDateString();
+    let todayVisits = 0;
+    for (const c of clients) {
+        if (c.visits) {
+            for (const v of c.visits) {
+                if (new Date(v.date).toDateString() === today) todayVisits++;
+            }
         }
+    }
+    if (todayVisits > 0) { badge.textContent = todayVisits; badge.style.display = 'inline'; } else { badge.style.display = 'none'; }
+}
 
-        // ======================================================================
-        // FOTO
-        // ======================================================================
-        document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
-        document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
-        document.getElementById('fPhoto').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (file.size > 1024 * 1024) { showToast('Máx 1MB', 'error'); this.value = ''; return; }
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                photoDataUrl = ev.target.result;
-                const preview = document.getElementById('photoPreview');
-                preview.src = photoDataUrl;
-                preview.classList.remove('hidden');
-                document.getElementById('photoPlaceholder').style.display = 'none';
-                showToast('Foto cargada ✅', 'success');
-            };
-            reader.onerror = function() { showToast('Error al leer', 'error'); };
-            reader.readAsDataURL(file);
-        });
+// ======================================================================
+// NAVEGACIÓN
+// ======================================================================
+function switchView(viewId) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    const target = document.getElementById(viewId);
+    if (target) target.classList.add('active');
+    currentView = viewId;
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    const navMap = { 'viewList': 'viewList', 'viewForm': 'viewForm', 'viewStats': 'viewStats', 'viewDetail': 'viewList' };
+    const navId = navMap[viewId] || 'viewList';
+    const navItem = document.querySelector(`.nav-item[data-view="${navId}"]`);
+    if (navItem) navItem.classList.add('active');
+    document.getElementById('mainContent').scrollTop = 0;
+    if (viewId === 'viewStats') renderStats();
+}
 
-        // ======================================================================
-        // GUARDAR
-        // ======================================================================
-        document.getElementById('clientForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('formSubmitBtn');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-            submitBtn.disabled = true;
-            try {
-                const name = document.getElementById('fName').value.trim();
-                const business = document.getElementById('fBusiness').value.trim();
-                const address = document.getElementById('fAddress').value.trim();
-                const colony = document.getElementById('fColony').value.trim();
-                const phone = document.getElementById('fPhone').value.trim();
-                const references = document.getElementById('fReferences').value.trim();
-                const visitNote = document.getElementById('fVisitNote').value.trim();
-                const lat = document.getElementById('fLat').value.trim();
-                const lng = document.getElementById('fLng').value.trim();
-                if (!name) { showToast('Nombre obligatorio', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
-                if (!address) { showToast('Dirección obligatoria', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
-                const id = document.getElementById('clientId').value;
-                const clientData = { name, business: business || '', address, colony: colony || '', phone: phone || '', references: references || '', lat: lat || null, lng: lng || null, photo: photoDataUrl || null, updatedAt: Date.now() };
-                if (id) {
-                    const existing = getClient(id);
-                    if (!existing) throw new Error('No existe');
-                    let visits = existing.visits || [];
-                    if (visitNote !== '') { visits.push({ date: Date.now(), notes: visitNote }); showToast('✅ Nueva visita registrada', 'success'); }
-                    clientData.visits = visits;
-                    clientData.createdAt = existing.createdAt || Date.now();
-                    clientData.id = id;
-                    saveClient(clientData);
-                    showToast('Cliente actualizado ✅', 'success');
-                } else {
-                    const newClient = { ...clientData, visits: visitNote !== '' ? [{ date: Date.now(), notes: visitNote }] : [], createdAt: Date.now() };
-                    saveClient(newClient);
-                    showToast('Cliente registrado ✅', 'success');
-                }
-                if (lat && lng) updateMap(parseFloat(lat), parseFloat(lng));
-                else resetMapPlaceholder();
-                resetForm();
-                switchView('viewList');
-                refreshList();
-            } catch (err) { showToast('Error: ' + err.message, 'error'); } finally { submitBtn.innerHTML = originalText; submitBtn.disabled = false; }
-        });
-
-        document.getElementById('formCancelBtn').addEventListener('click', () => { resetForm(); switchView('viewList'); });
-
-        // ======================================================================
-        // EXPORT / IMPORT
-        // ======================================================================
-        document.getElementById('exportDataBtn').addEventListener('click', function() {
-            const clients = getAllClients();
-            if (clients.length === 0) { showToast('No hay clientes', 'error'); return; }
-            const blob = new Blob([JSON.stringify(clients, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `clientes_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast(`Exportados ${clients.length} clientes ✅`, 'success');
-        });
-
-        document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
-            const clients = getAllClients();
-            if (clients.length === 0) { showToast('No hay clientes', 'error'); return; }
-            const clean = clients.map(({ photo, ...rest }) => rest);
-            const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `clientes_sin_fotos_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-            showToast(`Exportados ${clean.length} clientes (sin fotos) ✅`, 'success');
-        });
-
-        document.getElementById('importDataBtn').addEventListener('click', function() { document.getElementById('importFileInput').click(); });
-        document.getElementById('importFileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (!Array.isArray(data)) throw new Error('Formato inválido');
-                    showModal('Importar Datos', `Se encontraron <strong>${data.length}</strong> clientes. ¿Reemplazar o fusionar?`, 'Reemplazar', function() {
-                        saveAllClients(data);
-                        showToast(`Importados ${data.length} clientes ✅`, 'success');
-                        refreshList();
-                        e.target.value = '';
-                    });
-                    const footer = document.querySelector('.modal-footer');
-                    const mergeBtn = document.createElement('button');
-                    mergeBtn.className = 'btn btn-primary';
-                    mergeBtn.innerHTML = '<i class="fas fa-plus"></i> Fusionar';
-                    mergeBtn.onclick = function() {
-                        document.getElementById('modalOverlay').classList.remove('open');
-                        const existing = getAllClients();
-                        const existingNames = new Set(existing.map(c => (c.name + c.address).toLowerCase()));
-                        let added = 0;
-                        for (const c of data) {
-                            const key = (c.name || '') + (c.address || '');
-                            if (!existingNames.has(key.toLowerCase())) {
-                                if (!c.name) c.name = 'Sin nombre';
-                                if (!c.address) c.address = 'Sin dirección';
-                                if (!c.visits) c.visits = [];
-                                if (!c.createdAt) c.createdAt = Date.now();
-                                if (!c.updatedAt) c.updatedAt = Date.now();
-                                existing.push(c);
-                                added++;
-                                existingNames.add(key.toLowerCase());
-                            }
-                        }
-                        saveAllClients(existing);
-                        showToast(`Fusionados ${added} nuevos clientes ✅`, 'success');
-                        refreshList();
-                        e.target.value = '';
-                    };
-                    footer.appendChild(mergeBtn);
-                } catch (err) { showToast('Error al importar: ' + err.message, 'error'); e.target.value = ''; }
-            };
-            reader.readAsText(file);
-        });
-
-        // ======================================================================
-        // REFRESH
-        // ======================================================================
-        function refreshList() {
-            const clients = getAllClients();
-            clientDataCache = clients;
-            renderClientList(clients);
-            updateStatsBadge(clients);
-            if (document.getElementById('viewStats').classList.contains('active')) renderStats();
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function() {
+        const view = this.dataset.view;
+        if (view === 'viewForm') {
+            resetForm();
+            if (!editingId) {
+                document.getElementById('formTitle').textContent = 'Nuevo Cliente';
+                document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
+            }
         }
+        switchView(view);
+        if (view === 'viewStats') renderStats();
+    });
+});
 
-        function renderStats() {
-            const clients = getAllClients();
-            if (!clients || clients.length === 0) {
-                document.getElementById('statTotal').textContent = '0';
-                document.getElementById('statVisits').textContent = '0';
-                document.getElementById('statToday').textContent = '0';
-                document.getElementById('statTop').textContent = '—';
-                document.getElementById('weeklyChart').innerHTML = '<div class="text-muted text-sm" style="padding:20px 0;text-align:center;">Sin datos</div>';
-                return;
-            }
-            const today = new Date();
-            const days = [];
-            for (let i = 6; i >= 0; i--) { const d = new Date(today); d.setDate(d.getDate() - i); days.push(d); }
-            const dayCounts = {};
-            const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-            days.forEach(d => dayCounts[d.toDateString()] = 0);
-            let totalVisits = 0, todayVisits = 0;
-            const todayStr = new Date().toDateString();
-            for (const c of clients) {
-                if (c.visits) {
-                    totalVisits += c.visits.length;
-                    for (const v of c.visits) {
-                        const visitDate = new Date(v.date).toDateString();
-                        if (visitDate === todayStr) todayVisits++;
-                        if (dayCounts[visitDate] !== undefined) dayCounts[visitDate]++;
-                    }
-                }
-            }
-            document.getElementById('statTotal').textContent = clients.length;
-            document.getElementById('statVisits').textContent = totalVisits;
-            document.getElementById('statToday').textContent = todayVisits;
-            let topClient = null, topCount = 0;
-            for (const c of clients) {
-                if (c.visits && c.visits.length > topCount) { topCount = c.visits.length; topClient = c; }
-            }
-            document.getElementById('statTop').textContent = topClient ? topClient.name : '—';
-            const chart = document.getElementById('weeklyChart');
-            const maxVal = Math.max(1, ...Object.values(dayCounts));
-            let chartHtml = '';
-            days.forEach((d) => {
-                const count = dayCounts[d.toDateString()] || 0;
-                const pct = maxVal > 0 ? (count / maxVal) * 100 : 0;
-                const label = dayNames[d.getDay()];
-                chartHtml += `<div class="bar-item"><div class="bar" style="height:${Math.max(4, pct)}%;background:${count > 0 ? 'var(--primary-light)' : 'var(--border)'};"></div><div class="bar-label">${label}</div></div>`;
+document.getElementById('addQuickBtn').addEventListener('click', () => { resetForm(); switchView('viewForm'); document.getElementById('fName').focus(); });
+document.getElementById('detailBackBtn').addEventListener('click', () => { switchView('viewList'); refreshUI(); });
+
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const q = e.target.value.toLowerCase().trim();
+    if (!q) { renderClientList(clientDataCache); return; }
+    const filtered = clientDataCache.filter(c => (c.name || '').toLowerCase().includes(q) || (c.business || '').toLowerCase().includes(q) || (c.address || '').toLowerCase().includes(q) || (c.colony || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
+    renderClientList(filtered);
+});
+
+document.getElementById('geoBtn').addEventListener('click', geocodeManual);
+document.getElementById('fAddress').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); geocodeManual(); } });
+document.getElementById('updateMapCoords').addEventListener('click', updateMapFromCoords);
+document.getElementById('fLat').addEventListener('input', updateLinks);
+document.getElementById('fLng').addEventListener('input', updateLinks);
+document.getElementById('fAddress').addEventListener('input', updateLinks);
+
+document.getElementById('resetDataBtn').addEventListener('click', function() {
+    showModal('Eliminar Todos', '¿Eliminar TODOS los clientes? Esta acción no se puede deshacer.', 'Eliminar', function() {
+        clearAllClients();
+        showToast('Todos los clientes eliminados', 'info');
+        refreshUI();
+    });
+});
+
+document.getElementById('syncFirebaseBtn').addEventListener('click', syncWithFirebase);
+document.getElementById('printStatsBtn').addEventListener('click', printStatsReport);
+document.getElementById('printDirectoryBtn').addEventListener('click', printClientDirectory);
+
+// ======================================================================
+// EXPORT / IMPORT
+// ======================================================================
+document.getElementById('exportDataBtn').addEventListener('click', function() {
+    if (clientDataCache.length === 0) { showToast('No hay clientes', 'error'); return; }
+    const blob = new Blob([JSON.stringify(clientDataCache, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clientes_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exportados ${clientDataCache.length} clientes ✅`, 'success');
+});
+
+document.getElementById('exportDataNoPhotoBtn').addEventListener('click', function() {
+    if (clientDataCache.length === 0) { showToast('No hay clientes', 'error'); return; }
+    const clean = clientDataCache.map(({ photo, ...rest }) => rest);
+    const blob = new Blob([JSON.stringify(clean, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clientes_sin_fotos_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exportados ${clean.length} clientes (sin fotos) ✅`, 'success');
+});
+
+document.getElementById('importDataBtn').addEventListener('click', function() {
+    document.getElementById('importFileInput').click();
+});
+
+document.getElementById('importFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if (!Array.isArray(data)) throw new Error('El archivo no contiene un array de clientes.');
+            const overlay = document.getElementById('modalOverlay');
+            document.getElementById('modalTitle').textContent = 'Importar Datos';
+            document.getElementById('modalBody').innerHTML = `Se encontraron <strong>${data.length}</strong> clientes. ¿Qué deseas hacer?`;
+            const footer = document.getElementById('modalFooter');
+            footer.innerHTML = '';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'btn btn-secondary';
+            cancelBtn.textContent = 'Cancelar';
+            footer.appendChild(cancelBtn);
+            const replaceBtn = document.createElement('button');
+            replaceBtn.className = 'btn btn-danger';
+            replaceBtn.textContent = 'Reemplazar';
+            footer.appendChild(replaceBtn);
+            const mergeBtn = document.createElement('button');
+            mergeBtn.className = 'btn btn-primary';
+            mergeBtn.textContent = 'Fusionar';
+            footer.appendChild(mergeBtn);
+
+            cancelBtn.addEventListener('click', function() { overlay.classList.remove('open'); e.target.value = ''; });
+            replaceBtn.addEventListener('click', function() {
+                overlay.classList.remove('open');
+                clientDataCache = data;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+                refreshUI();
+                showToast(`Importados ${data.length} clientes (reemplazo) ✅`, 'success');
+                e.target.value = '';
+                for (const c of clientDataCache) { saveClientToFirestore(c); }
             });
-            chart.innerHTML = chartHtml;
-        }
-
-        function updateStatsBadge(clients) {
-            const badge = document.getElementById('statsBadge');
-            if (!clients || clients.length === 0) { badge.style.display = 'none'; return; }
-            const today = new Date().toDateString();
-            let todayVisits = 0;
-            for (const c of clients) {
-                if (c.visits) {
-                    for (const v of c.visits) {
-                        if (new Date(v.date).toDateString() === today) todayVisits++;
+            mergeBtn.addEventListener('click', function() {
+                overlay.classList.remove('open');
+                const existingNames = new Set(clientDataCache.map(c => (c.name + c.address).toLowerCase()));
+                let added = 0;
+                for (const c of data) {
+                    const key = (c.name || '') + (c.address || '');
+                    if (!existingNames.has(key.toLowerCase())) {
+                        if (!c.name) c.name = 'Sin nombre';
+                        if (!c.address) c.address = 'Sin dirección';
+                        if (!c.visits) c.visits = [];
+                        if (!c.createdAt) c.createdAt = Date.now();
+                        if (!c.updatedAt) c.updatedAt = Date.now();
+                        c.id = c.id || Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                        clientDataCache.push(c);
+                        added++;
+                        existingNames.add(key.toLowerCase());
                     }
                 }
-            }
-            if (todayVisits > 0) { badge.textContent = todayVisits; badge.style.display = 'inline'; } else { badge.style.display = 'none'; }
-        }
-
-        // ======================================================================
-        // NAVEGACIÓN
-        // ======================================================================
-        function switchView(viewId) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            const target = document.getElementById(viewId);
-            if (target) target.classList.add('active');
-            currentView = viewId;
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const navMap = { 'viewList': 'viewList', 'viewForm': 'viewForm', 'viewStats': 'viewStats', 'viewDetail': 'viewList' };
-            const navId = navMap[viewId] || 'viewList';
-            const navItem = document.querySelector(`.nav-item[data-view="${navId}"]`);
-            if (navItem) navItem.classList.add('active');
-            document.getElementById('mainContent').scrollTop = 0;
-            if (viewId === 'viewStats') renderStats();
-        }
-
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.addEventListener('click', function() {
-                const view = this.dataset.view;
-                if (view === 'viewForm') {
-                    resetForm();
-                    if (!editingId) {
-                        document.getElementById('formTitle').textContent = 'Nuevo Cliente';
-                        document.getElementById('formSubmitBtn').innerHTML = '<i class="fas fa-save"></i> Guardar';
-                    }
-                }
-                switchView(view);
-                if (view === 'viewStats') renderStats();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
+                refreshUI();
+                showToast(`Fusionados ${added} nuevos clientes ✅`, 'success');
+                e.target.value = '';
+                for (const c of clientDataCache.slice(-added)) { saveClientToFirestore(c); }
             });
-        });
-
-        document.getElementById('addQuickBtn').addEventListener('click', () => { resetForm(); switchView('viewForm'); document.getElementById('fName').focus(); });
-        document.getElementById('detailBackBtn').addEventListener('click', () => { switchView('viewList'); refreshList(); });
-        document.getElementById('searchInput').addEventListener('input', function(e) {
-            const q = e.target.value.toLowerCase().trim();
-            if (!q) { renderClientList(clientDataCache); return; }
-            const filtered = clientDataCache.filter(c => (c.name || '').toLowerCase().includes(q) || (c.business || '').toLowerCase().includes(q) || (c.address || '').toLowerCase().includes(q) || (c.colony || '').toLowerCase().includes(q) || (c.phone || '').includes(q));
-            renderClientList(filtered);
-        });
-
-        document.getElementById('geoBtn').addEventListener('click', geocodeManual);
-        document.getElementById('fAddress').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); geocodeManual(); } });
-        document.getElementById('updateMapCoords').addEventListener('click', updateMapFromCoords);
-        document.getElementById('fLat').addEventListener('input', updateLinks);
-        document.getElementById('fLng').addEventListener('input', updateLinks);
-        document.getElementById('fAddress').addEventListener('input', updateLinks);
-
-        document.getElementById('resetDataBtn').addEventListener('click', function() {
-            showModal('Eliminar Todos', '¿Eliminar TODOS los clientes?', 'Eliminar', function() { clearAllClients(); showToast('Todos eliminados', 'info'); refreshList(); });
-        });
-
-        document.getElementById('printStatsBtn').addEventListener('click', printStatsReport);
-        document.getElementById('printDirectoryBtn').addEventListener('click', printClientDirectory);
-
-        // ======================================================================
-        // INICIO
-        // ======================================================================
-        function init() {
-            refreshList();
-            updateLinks();
-            setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
-            console.log('✅ CRM con Leaflet y mejoras de impresión/compartir');
-            showToast('🔍 Busca direcciones o usa el botón Google Maps', 'info', 3000);
+            document.getElementById('modalClose').onclick = function() { overlay.classList.remove('open'); e.target.value = ''; };
+            overlay.classList.add('open');
+        } catch (err) {
+            console.error('Error en importación:', err);
+            showToast('Error al importar: ' + err.message, 'error');
+            e.target.value = '';
         }
+    };
+    reader.onerror = function() { showToast('Error al leer el archivo', 'error'); e.target.value = ''; };
+    reader.readAsText(file);
+});
 
-        if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') {
-                if (document.getElementById('modalOverlay').classList.contains('open')) document.getElementById('modalOverlay').classList.remove('open');
-                if (currentView === 'viewForm') { resetForm(); switchView('viewList'); }
-                if (currentView === 'viewDetail') { switchView('viewList'); refreshList(); }
-            }
-            if ((e.ctrlKey || e.metaKey) && e.key === 'f') { if (currentView === 'viewList') { e.preventDefault(); document.getElementById('searchInput').focus(); } }
-        });
-    </script>
+// ======================================================================
+// ZOOM Y TEMA
+// ======================================================================
+document.getElementById('zoomInBtn').addEventListener('click', function() {
+    const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
+    const newZoom = Math.min(currentZoom + 0.3, 3);
+    document.body.style.transform = `scale(${newZoom})`;
+    document.body.style.transformOrigin = 'top left';
+    document.body.style.width = `${100 / newZoom}%`;
+});
+document.getElementById('zoomOutBtn').addEventListener('click', function() {
+    const currentZoom = window.visualViewport ? window.visualViewport.scale : 1;
+    const newZoom = Math.max(currentZoom - 0.3, 0.8);
+    document.body.style.transform = `scale(${newZoom})`;
+    document.body.style.transformOrigin = 'top left';
+    document.body.style.width = `${100 / newZoom}%`;
+});
+document.getElementById('themeToggle').addEventListener('click', function() {
+    const html = document.documentElement;
+    const isDark = html.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+        html.removeAttribute('data-theme');
+        this.innerHTML = '<i class="fas fa-moon"></i>';
+        localStorage.setItem('theme', 'light');
+    } else {
+        html.setAttribute('data-theme', 'dark');
+        this.innerHTML = '<i class="fas fa-sun"></i>';
+        localStorage.setItem('theme', 'dark');
+    }
+});
+if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.getElementById('themeToggle').innerHTML = '<i class="fas fa-sun"></i>';
+}
+
+// ======================================================================
+// INICIO
+// ======================================================================
+function init() {
+    const localData = localStorage.getItem(STORAGE_KEY);
+    if (localData) {
+        try { clientDataCache = JSON.parse(localData); refreshUI(); } catch (e) { clientDataCache = []; }
+    } else { clientDataCache = []; refreshUI(); }
+    listenToFirestore();
+    setTimeout(() => { updateMap(19.4326, -99.1332); }, 300);
+    if (isOnline) { setTimeout(syncWithFirebase, 2000); }
+    console.log('✅ CRM con Firebase activo');
+    showToast('🔥 CRM conectado a Firebase', 'success', 2500);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (document.getElementById('modalOverlay').classList.contains('open')) document.getElementById('modalOverlay').classList.remove('open');
+        if (currentView === 'viewForm') { resetForm(); switchView('viewList'); }
+        if (currentView === 'viewDetail') { switchView('viewList'); refreshUI(); }
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') { if (currentView === 'viewList') { e.preventDefault(); document.getElementById('searchInput').focus(); } }
+});
+</script>
 </body>
 </html>
