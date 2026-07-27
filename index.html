@@ -299,7 +299,7 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN DE FIREBASE
+// CONFIGURACIÓN DE FIREBASE - TUS DATOS
 // ======================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",
@@ -309,9 +309,11 @@ const firebaseConfig = {
     appId: "1:320415642943:web:ad683695655576348c8f8a"
 };
 
+// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Habilitar persistencia offline
 db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => { console.warn('⚠️ Persistencia offline no disponible:', err); });
 
@@ -390,11 +392,12 @@ function showModal(title, body, confirmText, onConfirm) {
 function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 // ======================================================================
-// CRUD - FUNCIÓN saveClient CORREGIDA (SIN AWAIT)
+// CRUD - FUNCIONES CORREGIDAS
 // ======================================================================
 function getAllClients() { return clientDataCache; }
 function getClient(id) { return clientDataCache.find(c => c.id == id) || null; }
 
+// GUARDAR - SIN AWAIT (NO SE BLOQUEA)
 function saveClient(client) {
     if (isSaving) { return; }
     isSaving = true;
@@ -409,7 +412,7 @@ function saveClient(client) {
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
         refreshUI();
-        // Guardar en Firebase en segundo plano (sin esperar)
+        // Enviar a Firebase en segundo plano (sin esperar)
         saveClientToFirestore(client);
         return client.id;
     } finally {
@@ -417,6 +420,7 @@ function saveClient(client) {
     }
 }
 
+// ELIMINAR - CON AWAIT (es rápido)
 async function deleteClient(id) {
     const idx = clientDataCache.findIndex(c => c.id == id);
     if (idx !== -1) {
@@ -450,6 +454,8 @@ async function saveClientToFirestore(client) {
         if (!clientData.id) { clientData.id = db.collection(CLIENTS_COLLECTION).doc().id; }
         if (clientData.visits) { clientData.visits = clientData.visits.map(v => ({ ...v, date: v.date })); }
         await db.collection(CLIENTS_COLLECTION).doc(clientData.id).set(clientData);
+        // Marcar como sincronizado
+        client._synced = true;
         isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
         return true;
     } catch (err) {
@@ -571,7 +577,7 @@ function refreshUI() {
 }
 
 // ======================================================================
-// DETALLE
+// DETALLE - FUNCIONES COMPLETAS
 // ======================================================================
 function showClientDetail(id) {
     const client = getClient(id);
@@ -668,7 +674,7 @@ function addVisitToClient(clientId, notes = '') {
 }
 
 // ======================================================================
-// IMPRESIONES
+// IMPRESIONES - FUNCIONES COMPLETAS
 // ======================================================================
 function printClientDirectory() {
     const clients = getAllClients();
@@ -951,7 +957,7 @@ document.getElementById('removePhotoBtn').addEventListener('click', function() {
 });
 
 // ======================================================================
-// GUARDAR - CORREGIDO
+// GUARDAR - CORREGIDO (GUARDA RÁPIDO Y ENVÍA A FIREBASE EN SEGUNDO PLANO)
 // ======================================================================
 document.getElementById('clientForm').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -1025,7 +1031,7 @@ document.getElementById('clientForm').addEventListener('submit', function(e) {
             clientData.createdAt = Date.now();
         }
         
-        // GUARDAR (sin await para que no se bloquee)
+        // GUARDAR EN LOCALSTORAGE (RÁPIDO)
         saveClient(clientData);
         showToast(id ? '✅ Cliente actualizado' : '✅ Cliente registrado', 'success');
         
