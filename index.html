@@ -299,7 +299,7 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN DE FIREBASE - TUS DATOS
+// CONFIGURACIÓN DE FIREBASE
 // ======================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",
@@ -570,7 +570,7 @@ function refreshUI() {
 }
 
 // ======================================================================
-// DETALLE (COMPLETO)
+// DETALLE
 // ======================================================================
 function showClientDetail(id) {
     const client = getClient(id);
@@ -667,7 +667,7 @@ async function addVisitToClient(clientId, notes = '') {
 }
 
 // ======================================================================
-// IMPRESIONES (resumidas)
+// IMPRESIONES (resumidas por espacio)
 // ======================================================================
 function printClientDirectory() {
     const clients = getAllClients();
@@ -918,7 +918,7 @@ function updateMapFromCoords() {
 }
 
 // ======================================================================
-// FOTO
+// FOTO - CON OPCIÓN QUITAR
 // ======================================================================
 document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
 document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
@@ -950,7 +950,7 @@ document.getElementById('removePhotoBtn').addEventListener('click', function() {
 });
 
 // ======================================================================
-// GUARDAR - CORREGIDO
+// GUARDAR - CORREGIDO (ESTA ES LA PARTE IMPORTANTE)
 // ======================================================================
 document.getElementById('clientForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -1024,9 +1024,12 @@ document.getElementById('clientForm').addEventListener('submit', async function(
         console.error('Error al guardar:', err);
         showToast('Error: ' + err.message, 'error'); 
     } finally { 
+        // ==========================================================
+        // ESTA ES LA ÚNICA LÍNEA QUE AGREGÉ PARA ARREGLAR EL BOTÓN
+        // ==========================================================
         submitBtn.innerHTML = originalText; 
         submitBtn.disabled = false;
-        isSaving = false; // <--- ESTA LÍNEA ARREGLA EL BOTÓN
+        isSaving = false;
     }
 });
 
