@@ -309,11 +309,9 @@ const firebaseConfig = {
     appId: "1:320415642943:web:ad683695655576348c8f8a"
 };
 
-// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Habilitar persistencia offline
 db.enablePersistence({ synchronizeTabs: true })
     .catch((err) => { console.warn('⚠️ Persistencia offline no disponible:', err); });
 
@@ -392,13 +390,12 @@ function showModal(title, body, confirmText, onConfirm) {
 function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 // ======================================================================
-// CRUD - FUNCIONES CORREGIDAS
+// CRUD
 // ======================================================================
 function getAllClients() { return clientDataCache; }
 function getClient(id) { return clientDataCache.find(c => c.id == id) || null; }
 
-// GUARDAR - SIN AWAIT (NO SE BLOQUEA)
-function saveClient(client) {
+async function saveClient(client) {
     if (isSaving) { return; }
     isSaving = true;
     try {
@@ -412,15 +409,13 @@ function saveClient(client) {
         }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
         refreshUI();
-        // Enviar a Firebase en segundo plano (sin esperar)
-        saveClientToFirestore(client);
+        await saveClientToFirestore(client);
         return client.id;
     } finally {
         isSaving = false;
     }
 }
 
-// ELIMINAR - CON AWAIT (es rápido)
 async function deleteClient(id) {
     const idx = clientDataCache.findIndex(c => c.id == id);
     if (idx !== -1) {
@@ -454,8 +449,6 @@ async function saveClientToFirestore(client) {
         if (!clientData.id) { clientData.id = db.collection(CLIENTS_COLLECTION).doc().id; }
         if (clientData.visits) { clientData.visits = clientData.visits.map(v => ({ ...v, date: v.date })); }
         await db.collection(CLIENTS_COLLECTION).doc(clientData.id).set(clientData);
-        // Marcar como sincronizado
-        client._synced = true;
         isSyncing = false; updateConnectionStatus(isOnline ? 'online' : 'offline');
         return true;
     } catch (err) {
@@ -577,7 +570,7 @@ function refreshUI() {
 }
 
 // ======================================================================
-// DETALLE - FUNCIONES COMPLETAS
+// DETALLE (COMPLETO)
 // ======================================================================
 function showClientDetail(id) {
     const client = getClient(id);
@@ -616,10 +609,10 @@ function showClientDetail(id) {
     }
 
     document.getElementById('addVisitBtn').addEventListener('click', () => {
-        showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', () => {
+        showModal('Registrar Visita', `<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>`, 'Registrar', async () => {
             const note = document.getElementById('visitNoteInput')?.value || '';
             if (note.trim() === '') { showToast('Escribe una nota', 'error'); return; }
-            addVisitToClient(id, note);
+            await addVisitToClient(id, note);
             showToast('Visita registrada ✅', 'success');
             showClientDetail(id);
         });
@@ -662,19 +655,19 @@ function showClientDetail(id) {
     switchView('viewDetail');
 }
 
-function addVisitToClient(clientId, notes = '') {
+async function addVisitToClient(clientId, notes = '') {
     const client = getClient(clientId);
     if (!client) return;
     const visits = client.visits || [];
     visits.push({ date: Date.now(), notes: notes });
     client.visits = visits;
     client._synced = false;
-    saveClient(client);
+    await saveClient(client);
     refreshUI();
 }
 
 // ======================================================================
-// IMPRESIONES - FUNCIONES COMPLETAS
+// IMPRESIONES (resumidas)
 // ======================================================================
 function printClientDirectory() {
     const clients = getAllClients();
@@ -925,7 +918,7 @@ function updateMapFromCoords() {
 }
 
 // ======================================================================
-// FOTO - CON OPCIÓN QUITAR
+// FOTO
 // ======================================================================
 document.getElementById('photoPlaceholder').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
 document.getElementById('photoPreview').addEventListener('click', function() { document.getElementById('fPhoto').click(); });
@@ -957,12 +950,11 @@ document.getElementById('removePhotoBtn').addEventListener('click', function() {
 });
 
 // ======================================================================
-// GUARDAR - CORREGIDO (GUARDA RÁPIDO Y ENVÍA A FIREBASE EN SEGUNDO PLANO)
+// GUARDAR - CORREGIDO
 // ======================================================================
-document.getElementById('clientForm').addEventListener('submit', function(e) {
+document.getElementById('clientForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
-    // Si ya está guardando, no hacer nada
     if (isSaving) {
         showToast('⏳ Ya se está guardando...', 'warning');
         return;
@@ -984,19 +976,8 @@ document.getElementById('clientForm').addEventListener('submit', function(e) {
         const lat = document.getElementById('fLat').value.trim();
         const lng = document.getElementById('fLng').value.trim();
         
-        // Validaciones
-        if (!name) {
-            showToast('Nombre obligatorio', 'error');
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            return;
-        }
-        if (!address) {
-            showToast('Dirección obligatoria', 'error');
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
-            return;
-        }
+        if (!name) { showToast('Nombre obligatorio', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
+        if (!address) { showToast('Dirección obligatoria', 'error'); submitBtn.innerHTML = originalText; submitBtn.disabled = false; return; }
         
         const id = document.getElementById('clientId').value;
         const clientData = { 
@@ -1015,9 +996,7 @@ document.getElementById('clientForm').addEventListener('submit', function(e) {
 
         if (id) {
             const existing = getClient(id);
-            if (!existing) {
-                throw new Error('No existe el cliente');
-            }
+            if (!existing) { throw new Error('No existe el cliente'); }
             let visits = existing.visits || [];
             if (visitNote !== '') { 
                 visits.push({ date: Date.now(), notes: visitNote }); 
@@ -1031,8 +1010,7 @@ document.getElementById('clientForm').addEventListener('submit', function(e) {
             clientData.createdAt = Date.now();
         }
         
-        // GUARDAR EN LOCALSTORAGE (RÁPIDO)
-        saveClient(clientData);
+        await saveClient(clientData);
         showToast(id ? '✅ Cliente actualizado' : '✅ Cliente registrado', 'success');
         
         if (lat && lng) updateMap(parseFloat(lat), parseFloat(lng));
@@ -1048,6 +1026,7 @@ document.getElementById('clientForm').addEventListener('submit', function(e) {
     } finally { 
         submitBtn.innerHTML = originalText; 
         submitBtn.disabled = false;
+        isSaving = false; // <--- ESTA LÍNEA ARREGLA EL BOTÓN
     }
 });
 
