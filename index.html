@@ -54,9 +54,6 @@
         .client-card .meta { text-align:right; flex-shrink:0; }
         .client-card .meta .visits { font-size:.7rem; background:var(--border); padding:2px 10px; border-radius:30px; color:var(--text-muted); }
         .client-card .meta .date { font-size:.6rem; color:var(--text-muted); margin-top:4px; display:block; }
-        .client-card .sync-badge { font-size:.5rem; padding:1px 6px; border-radius:30px; background:var(--border); color:var(--text-muted); margin-left:4px; }
-        .client-card .sync-badge.synced { background:#22c55e20; color:#22c55e; }
-        .client-card .sync-badge.pending { background:#f59e0b20; color:#f59e0b; }
         .empty-state { text-align:center; padding:50px 20px; color:var(--text-muted); }
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
@@ -73,7 +70,6 @@
         .btn-secondary { background:var(--bg-main); color:var(--text-secondary); border:1.5px solid var(--border); }
         .btn-danger { background:#dc2626; color:#fff; }
         .btn-accent { background:linear-gradient(135deg,var(--accent),#d97706); color:#1e293b; }
-        .btn-success { background:#22c55e; color:#fff; }
         .btn-sm { padding:6px 12px; font-size:.8rem; flex:0 0 auto; }
         .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:.8rem; border:none; cursor:pointer; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
@@ -128,47 +124,28 @@
         .hidden { display:none !important; }
         .photo-actions { display:flex; gap:8px; margin-top:6px; }
         .photo-actions .btn { flex:0 0 auto; padding:4px 12px; font-size:.7rem; }
-        .json-viewer { background:#0f172a; color:#e2e8f0; border-radius:8px; padding:14px; font-family:'Courier New',monospace; font-size:.75rem; line-height:1.5; overflow-x:auto; max-height:400px; overflow-y:auto; white-space:pre-wrap; word-break:break-all; }
-        .json-viewer .json-key { color:#60a5fa; }
-        .json-viewer .json-string { color:#fbbf24; }
-        .json-viewer .json-number { color:#22c55e; }
-        .json-viewer .json-null { color:#94a3b8; }
-        .json-viewer .json-bool { color:#f472b6; }
-        .json-info { background:var(--bg-main); border-radius:8px; padding:12px; margin-bottom:12px; border:1px solid var(--border); }
-        .json-info .info-row { display:flex; justify-content:space-between; padding:4px 0; font-size:.8rem; }
-        .json-info .info-row .info-label { color:var(--text-muted); font-weight:600; }
-        .json-info .info-row .info-value { color:var(--text); font-weight:700; }
         @media print { body{background:#fff;} .no-print{display:none!important;} }
         @media(min-width:640px){ #app{border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); } .toast-container{max-width:480px;} }
         @media(min-width:1024px){ #app{margin-top:24px; min-height:calc(100dvh - 48px); } .modal-overlay .modal{border-radius:16px; max-height:80vh; margin-bottom:20px;} .modal-overlay{align-items:center;} }
     </style>
 </head>
 <body>
-
 <div id="app">
     <header class="app-header">
         <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas</div>
         <div class="header-actions">
             <button class="zoom-btn" id="zoomInBtn">+</button>
             <button class="zoom-btn" id="zoomOutBtn">-</button>
-            <span class="connection-status" id="connectionStatus">
-                <span class="status-dot online" id="statusDot"></span>
-                <span id="statusText">online</span>
-            </span>
+            <span class="connection-status" id="connectionStatus"><span class="status-dot online" id="statusDot"></span><span id="statusText">online</span></span>
             <button id="themeToggle"><i class="fas fa-moon"></i></button>
         </div>
     </header>
-
     <div class="main-content" id="mainContent">
         <div class="view active" id="viewList">
-            <div class="list-header">
-                <h2><i class="fas fa-users" style="color:var(--primary);"></i> Clientes <span id="clientCount">0</span></h2>
-                <button class="btn btn-primary btn-sm" id="addQuickBtn"><i class="fas fa-plus"></i> Nuevo</button>
-            </div>
+            <div class="list-header"><h2><i class="fas fa-users" style="color:var(--primary);"></i> Clientes <span id="clientCount">0</span></h2><button class="btn btn-primary btn-sm" id="addQuickBtn"><i class="fas fa-plus"></i> Nuevo</button></div>
             <div class="search-box"><i class="fas fa-search"></i><input type="text" id="searchInput" placeholder="Buscar..." /></div>
             <div id="clientListContainer"><div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div></div>
         </div>
-
         <div class="view" id="viewForm">
             <div class="form-card">
                 <div class="form-title"><i class="fas fa-pen" style="color:var(--primary);"></i> <span id="formTitle">Nuevo Cliente</span></div>
@@ -186,547 +163,176 @@
                 </form>
             </div>
         </div>
-
         <div class="view" id="viewDetail">
             <div class="detail-header"><button class="back-btn" id="detailBackBtn"><i class="fas fa-arrow-left"></i></button><h2 id="detailName">Cliente</h2><div><button class="btn btn-primary btn-sm" id="detailEditBtn"><i class="fas fa-edit"></i></button><button class="btn btn-danger btn-sm" id="detailDeleteBtn"><i class="fas fa-trash"></i></button></div></div>
             <div id="detailContent"></div>
         </div>
-
         <div class="view" id="viewStats">
             <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px;color:var(--text);"><i class="fas fa-chart-simple" style="color:var(--primary);"></i> Estadisticas</h2>
-            <div class="stats-grid">
-                <div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Clientes</div></div>
-                <div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-number" id="statVisits">0</div><div class="stat-label">Visitas Totales</div></div>
-                <div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-number" id="statToday">0</div><div class="stat-label">Visitas Hoy</div></div>
-                <div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">-</div><div class="stat-label">Mas Visitado</div></div>
-            </div>
+            <div class="stats-grid"><div class="stat-card"><div class="stat-icon"><i class="fas fa-users"></i></div><div class="stat-number" id="statTotal">0</div><div class="stat-label">Total Clientes</div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-calendar-check"></i></div><div class="stat-number" id="statVisits">0</div><div class="stat-label">Visitas Totales</div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-number" id="statToday">0</div><div class="stat-label">Visitas Hoy</div></div><div class="stat-card"><div class="stat-icon"><i class="fas fa-star"></i></div><div class="stat-number" id="statTop">-</div><div class="stat-label">Mas Visitado</div></div></div>
             <div class="chart-container"><h4><i class="fas fa-calendar-week"></i> Visitas por dia</h4><div class="bar-chart" id="weeklyChart"></div></div>
-
-            <!-- BOTON VER DATOS FIREBASE -->
-            <button class="btn btn-success" id="viewFirebaseBtn" style="width:100%;margin-bottom:12px;"><i class="fas fa-database"></i> Ver datos Firebase (JSON)</button>
-
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-                <button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;"><i class="fas fa-download"></i> Exportar JSON</button>
-                <button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;"><i class="fas fa-file-code"></i> Sin fotos</button>
-                <button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;"><i class="fas fa-upload"></i> Importar JSON</button>
-                <input type="file" id="importFileInput" accept=".json" style="display:none;" />
-                <button class="btn btn-secondary btn-sm" id="syncFirebaseBtn" style="flex:1;"><i class="fas fa-cloud-upload-alt"></i> Sincronizar</button>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-                <button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;"><i class="fas fa-print"></i> Reporte</button>
-                <button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;"><i class="fas fa-address-book"></i> Directorio</button>
-            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"><button class="btn btn-accent btn-sm" id="exportDataBtn" style="flex:1;"><i class="fas fa-download"></i> Exportar JSON</button><button class="btn btn-secondary btn-sm" id="exportDataNoPhotoBtn" style="flex:1;"><i class="fas fa-file-code"></i> Sin fotos</button><button class="btn btn-secondary btn-sm" id="importDataBtn" style="flex:1;"><i class="fas fa-upload"></i> Importar JSON</button><input type="file" id="importFileInput" accept=".json" style="display:none;" /><button class="btn btn-secondary btn-sm" id="syncFirebaseBtn" style="flex:1;"><i class="fas fa-cloud-upload-alt"></i> Sincronizar</button></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"><button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;"><i class="fas fa-print"></i> Reporte</button><button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;"><i class="fas fa-address-book"></i> Directorio</button></div>
             <div style="margin-top:8px;"><button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;"><i class="fas fa-trash-can"></i> Eliminar todos</button></div>
         </div>
     </div>
-
-    <nav class="bottom-nav">
-        <button class="nav-item active" data-view="viewList" id="navList"><i class="fas fa-list-ul"></i>Clientes</button>
-        <button class="nav-item" data-view="viewForm" id="navAdd"><i class="fas fa-plus-circle"></i>Agregar</button>
-        <button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadisticas <span class="badge" id="statsBadge" style="display:none;">0</span></button>
-    </nav>
+    <nav class="bottom-nav"><button class="nav-item active" data-view="viewList" id="navList"><i class="fas fa-list-ul"></i>Clientes</button><button class="nav-item" data-view="viewForm" id="navAdd"><i class="fas fa-plus-circle"></i>Agregar</button><button class="nav-item" data-view="viewStats" id="navStats"><i class="fas fa-chart-pie"></i>Estadisticas <span class="badge" id="statsBadge" style="display:none;">0</span></button></nav>
 </div>
-
 <div class="toast-container" id="toastContainer"></div>
-
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-        <div class="modal-header"><h3 id="modalTitle">Confirmar</h3><button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button></div>
-        <div id="modalBody" style="margin-bottom:14px;font-size:.95rem;line-height:1.5;"></div>
-        <div class="modal-footer" id="modalFooter"><button class="btn btn-secondary" id="modalCancel">Cancelar</button><button class="btn btn-danger" id="modalConfirm">Confirmar</button></div>
-    </div>
-</div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal"><div class="modal-header"><h3 id="modalTitle">Confirmar</h3><button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button></div><div id="modalBody" style="margin-bottom:14px;font-size:.95rem;line-height:1.5;"></div><div class="modal-footer" id="modalFooter"><button class="btn btn-secondary" id="modalCancel">Cancelar</button><button class="btn btn-danger" id="modalConfirm">Confirmar</button></div></div></div>
 
 <script>
-// ======================================================================
-// FIREBASE CONFIG
-// ======================================================================
-const firebaseConfig = {
-    apiKey: "AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",
-    authDomain: "clientes-gaeto-comercios-visit.firebaseapp.com",
-    projectId: "clientes-gaeto-comercios-visit",
-    storageBucket: "clientes-gaeto-comercios-visit.firebasestorage.app",
-    appId: "1:320415642943:web:ad683695655576348c8f8a"
-};
+const firebaseConfig={apiKey:"AIzaSyB2rl575ebmV8u4By_vcHev3dFD2TYeI0Y",authDomain:"clientes-gaeto-comercios-visit.firebaseapp.com",projectId:"clientes-gaeto-comercios-visit",storageBucket:"clientes-gaeto-comercios-visit.firebasestorage.app",appId:"1:320415642943:web:ad683695655576348c8f8a"};
+firebase.initializeApp(firebaseConfig);const db=firebase.firestore();db.enablePersistence({synchronizeTabs:true}).catch(function(e){console.warn(e)});
+const COL='clientes';const SK='clientes_crm_data';
+let isOnline=navigator.onLine,isSyncing=false,pendingChanges=[],firebaseInitialized=false,clientDataCache=[],listenerUnsubscribe=null,editingId=null,selectedLat=null,selectedLng=null,photoDataUrl=null,mapInstance=null;
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-db.enablePersistence({ synchronizeTabs: true }).catch(function(err) { console.warn('Persistencia:', err); });
-
-const CLIENTS_COLLECTION = 'clientes';
-const STORAGE_KEY = 'clientes_crm_data';
-
-// ======================================================================
-// ESTADO
-// ======================================================================
-let isOnline = navigator.onLine;
-let isSyncing = false;
-let pendingChanges = [];
-let firebaseInitialized = false;
-let clientDataCache = [];
-let listenerUnsubscribe = null;
-let editingId = null;
-let selectedLat = null;
-let selectedLng = null;
-let photoDataUrl = null;
-let mapInstance = null;
-
-// ======================================================================
-// COMPRESION DE FOTOS
-// ======================================================================
-function compressPhoto(dataUrl, maxWidth, quality) {
-    maxWidth = maxWidth || 400;
-    quality = quality || 0.5;
-    return new Promise(function(resolve) {
-        try {
-            const img = new Image();
-            img.onload = function() {
-                const canvas = document.createElement('canvas');
-                let w = img.width, h = img.height;
-                if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-                canvas.width = w; canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                resolve(canvas.toDataURL('image/jpeg', quality));
-            };
-            img.onerror = function() { resolve(dataUrl); };
-            img.src = dataUrl;
-        } catch (e) { resolve(dataUrl); }
+// FIX FOTO: compression con fondo blanco y fallback
+function compressPhoto(dataUrl,maxW,q){
+    maxW=maxW||600;q=q||0.6;
+    return new Promise(function(resolve){
+        try{var img=new Image();img.onload=function(){
+            var c=document.createElement('canvas'),w=img.width,h=img.height;
+            if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
+            c.width=w;c.height=h;var ctx=c.getContext('2d');
+            ctx.fillStyle='#FFFFFF';ctx.fillRect(0,0,w,h);
+            ctx.drawImage(img,0,0,w,h);
+            var r=c.toDataURL('image/jpeg',q);
+            if(r.length>500000){r=c.toDataURL('image/jpeg',0.3);}
+            resolve(r);
+        };img.onerror=function(){resolve(dataUrl)};img.src=dataUrl;}
+        catch(e){resolve(dataUrl)}
     });
 }
 
-// ======================================================================
-// TIMEOUT
-// ======================================================================
-function withTimeout(promiseMs, timeoutMs, errorMsg) {
-    timeoutMs = timeoutMs || 15000;
-    errorMsg = errorMsg || 'Timeout: se guardo localmente.';
-    return new Promise(function(resolve, reject) {
-        const timer = setTimeout(function() { reject(new Error(errorMsg)); }, timeoutMs);
-        promiseMs.then(function(val) { clearTimeout(timer); resolve(val); }).catch(function(err) { clearTimeout(timer); reject(err); });
-    });
-}
+function withTimeout(p,ms,msg){ms=ms||15000;msg=msg||'Timeout: guardado localmente';return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error(msg))},ms);p.then(function(v){clearTimeout(t);res(v)}).catch(function(e){clearTimeout(t);rej(e)})});}
 
-// ======================================================================
-// CONEXION
-// ======================================================================
-const statusDot = document.getElementById('statusDot');
-const statusText = document.getElementById('statusText');
+var sDot=document.getElementById('statusDot'),sTxt=document.getElementById('statusText');
+function updConn(s){sDot.className='status-dot';if(s==='online'){sDot.classList.add('online');sTxt.textContent='online'}else if(s==='offline'){sDot.classList.add('offline');sTxt.textContent='offline'}else if(s==='syncing'){sDot.classList.add('syncing');sTxt.textContent='sincronizando...'}}
+window.addEventListener('online',function(){isOnline=true;updConn('online');if(listenerUnsubscribe){listenerUnsubscribe();listenerUnsubscribe=null}listenToFirestore();syncPending()});
+window.addEventListener('offline',function(){isOnline=false;updConn('offline')});updConn(isOnline?'online':'offline');
 
-function updateConnectionStatus(status) {
-    statusDot.className = 'status-dot';
-    if (status === 'online') { statusDot.classList.add('online'); statusText.textContent = 'online'; }
-    else if (status === 'offline') { statusDot.classList.add('offline'); statusText.textContent = 'offline'; }
-    else if (status === 'syncing') { statusDot.classList.add('syncing'); statusText.textContent = 'sincronizando...'; }
-}
+function showToast(m,t,d){t=t||'info';d=d||2500;var c=document.getElementById('toastContainer');if(!c)return;var e=document.createElement('div');e.className='toast '+t;var ic={success:'fa-check-circle',error:'fa-exclamation-circle',warning:'fa-exclamation-triangle',info:'fa-info-circle'};e.innerHTML='<i class="fas '+((ic[t])||ic.info)+'"></i> '+m;c.appendChild(e);setTimeout(function(){e.style.opacity='0';e.style.transform='translateY(12px)';e.style.transition='0.3s';setTimeout(function(){e.remove()},300)},d)}
 
-window.addEventListener('online', function() { isOnline = true; updateConnectionStatus('online'); if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; } listenToFirestore(); syncPendingChanges(); });
-window.addEventListener('offline', function() { isOnline = false; updateConnectionStatus('offline'); });
-updateConnectionStatus(isOnline ? 'online' : 'offline');
+function showModal(ti,bo,ct,oc){var o=document.getElementById('modalOverlay');if(!o)return;document.getElementById('modalTitle').textContent=ti;document.getElementById('modalBody').innerHTML=bo;var f=document.getElementById('modalFooter'),cb=f.querySelector('#modalConfirm'),nc=cb.cloneNode(true);cb.parentNode.replaceChild(nc,cb);nc.textContent=ct||'Confirmar';nc.className='btn btn-danger';f.querySelectorAll('.btn:not(#modalCancel):not(#modalConfirm)').forEach(function(b){b.remove()});o.classList.add('open');var cl=function(){o.classList.remove('open')};document.getElementById('modalClose').onclick=cl;f.querySelector('#modalCancel').onclick=cl;nc.onclick=function(){cl();if(oc)oc()}}
+function escHtml(s){if(!s)return'';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
 
-// ======================================================================
-// TOAST Y MODAL
-// ======================================================================
-function showToast(msg, type, dur) {
-    type = type || 'info'; dur = dur || 2500;
-    const c = document.getElementById('toastContainer'); if (!c) return;
-    const el = document.createElement('div'); el.className = 'toast ' + type;
-    const icons = { success:'fa-check-circle', error:'fa-exclamation-circle', warning:'fa-exclamation-triangle', info:'fa-info-circle' };
-    el.innerHTML = '<i class="fas ' + (icons[type]||icons.info) + '"></i> ' + msg;
-    c.appendChild(el);
-    setTimeout(function() { el.style.opacity='0'; el.style.transform='translateY(12px)'; el.style.transition='0.3s'; setTimeout(function(){el.remove();},300); }, dur);
-}
+function getAllClients(){return clientDataCache}
+function getClient(id){return clientDataCache.find(function(c){return c.id==id})||null}
 
-function showModal(title, body, confirmText, onConfirm) {
-    const overlay = document.getElementById('modalOverlay'); if (!overlay) return;
-    document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').innerHTML = body;
-    const footer = document.getElementById('modalFooter');
-    const confirmBtn = footer.querySelector('#modalConfirm');
-    const newConfirm = confirmBtn.cloneNode(true); confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
-    newConfirm.textContent = confirmText || 'Confirmar'; newConfirm.className = 'btn btn-danger'; newConfirm.style.display = '';
-    footer.querySelectorAll('.btn:not(#modalCancel):not(#modalConfirm)').forEach(function(b){b.remove();});
-    overlay.classList.add('open');
-    const close = function() { overlay.classList.remove('open'); };
-    document.getElementById('modalClose').onclick = close;
-    footer.querySelector('#modalCancel').onclick = close;
-    newConfirm.onclick = function() { close(); if (onConfirm) onConfirm(); };
-}
-
-function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
-
-// ======================================================================
-// JSON VIEWER - Colorear JSON para mostrarlo bonito
-// ======================================================================
-function colorizeJson(jsonStr) {
-    return jsonStr.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function(match) {
-        let cls = 'json-number';
-        if (/^"/.test(match)) {
-            if (/:$/.test(match)) { cls = 'json-key'; }
-            else { cls = 'json-string'; }
-        } else if (/true|false/.test(match)) { cls = 'json-bool'; }
-        else if (/null/.test(match)) { cls = 'json-null'; }
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
-}
-
-// ======================================================================
-// VER DATOS FIREBASE - NUEVA FUNCION
-// ======================================================================
-async function viewFirebaseData() {
-    if (!isOnline) { showToast('Sin conexion a internet', 'error'); return; }
-
-    showToast('Cargando datos de Firebase...', 'info', 1500);
-
-    try {
-        const snapshot = await withTimeout(
-            db.collection(CLIENTS_COLLECTION).get(),
-            10000,
-            'No se pudo conectar a Firebase en 10 segundos'
-        );
-
-        const docs = [];
-        let totalPhotoSize = 0;
-        let docsWithPhoto = 0;
-        let docsNoPhoto = 0;
-
-        snapshot.forEach(function(doc) {
-            const data = doc.data();
-            const photoSize = data.photo ? data.photo.length : 0;
-            totalPhotoSize += photoSize;
-            if (data.photo) docsWithPhoto++;
-            else docsNoPhoto++;
-
-            // Para el JSON viewer, truncar fotos muy largas para que se pueda leer
-            const displayData = Object.assign({}, data);
-            if (displayData.photo && displayData.photo.length > 200) {
-                displayData.photo = displayData.photo.substring(0, 100) + '... [TRUNCADO, total: ' + photoSize + ' caracteres]';
-            }
-
-            docs.push({ id: doc.id, data: displayData });
-        });
-
-        const totalSize = JSON.stringify(docs).length;
-
-        const infoHtml =
-            '<div class="json-info">' +
-                '<div class="info-row"><span class="info-label">Documentos en Firebase:</span><span class="info-value" style="color:#22c55e;">' + docs.length + '</span></div>' +
-                '<div class="info-row"><span class="info-label">Con foto:</span><span class="info-value">' + docsWithPhoto + '</span></div>' +
-                '<div class="info-row"><span class="info-label">Sin foto:</span><span class="info-value">' + docsNoPhoto + '</span></div>' +
-                '<div class="info-row"><span class="info-label">Tamaño total fotos:</span><span class="info-value">' + (totalPhotoSize > 1000000 ? (totalPhotoSize/1000000).toFixed(1) + ' MB' : (totalPhotoSize/1000).toFixed(1) + ' KB') + '</span></div>' +
-                '<div class="info-row"><span class="info-label">Local (cache):</span><span class="info-value">' + clientDataCache.length + ' clientes</span></div>' +
-                '<div class="info-row"><span class="info-label">Pendientes sync:</span><span class="info-value" style="color:' + (pendingChanges.length > 0 ? '#f59e0b' : '#22c55e') + ';">' + pendingChanges.length + '</span></div>' +
-            '</div>';
-
-        const jsonStr = JSON.stringify(docs, null, 2);
-        const coloredJson = colorizeJson(jsonStr);
-
-        showModal(
-            'Datos en Firebase',
-            infoHtml + '<div class="json-viewer">' + coloredJson + '</div>',
-            'Cerrar',
-            null
-        );
-
-        if (docs.length === 0) {
-            showToast('Firebase esta VACIO - no hay datos', 'warning', 3000);
-        } else {
-            showToast('Firebase tiene ' + docs.length + ' documentos', 'success', 2000);
-        }
-
-    } catch (err) {
-        showToast('Error: ' + err.message, 'error', 4000);
-        showModal('Error Firebase', '<p style="color:var(--danger);">' + escHtml(err.message) + '</p><p style="color:var(--text-muted);font-size:.8rem;margin-top:8px;">Verifica que las reglas de Firestore permiten lectura.</p>', 'Cerrar', null);
-    }
-}
-
-// ======================================================================
-// CRUD
-// ======================================================================
-function getAllClients() { return clientDataCache; }
-function getClient(id) { return clientDataCache.find(function(c){return c.id==id;}) || null; }
-
-async function saveClient(client) {
-    if (!client.id) client.id = 'client_' + Date.now() + '_' + Math.random().toString(36).substr(2,9);
-    const idx = clientDataCache.findIndex(function(c){return c.id==client.id;});
-    if (idx !== -1) clientDataCache[idx] = Object.assign({},client);
-    else clientDataCache.push(Object.assign({},client));
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(clientDataCache));
-    refreshUI();
-    if (isOnline) {
-        try {
-            const result = await withTimeout(saveClientToFirestore(client), 15000, 'Timeout: guardado localmente. Sincroniza despues.');
-            if (!result) pendingChanges.push({type:'save',data:client});
-        } catch (e) { pendingChanges.push({type:'save',data:client}); showToast(e.message,'warning',3000); }
-    } else { pendingChanges.push({type:'save',data:client}); }
+async function saveClient(client){
+    if(!client.id)client.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);
+    var idx=clientDataCache.findIndex(function(c){return c.id==client.id});
+    if(idx!==-1)clientDataCache[idx]=Object.assign({},client);else clientDataCache.push(Object.assign({},client));
+    localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();
+    if(isOnline){try{var r=await withTimeout(saveClientToFirestore(client),15000,'Timeout: guardado localmente');if(!r)pendingChanges.push({type:'save',data:client})}catch(e){pendingChanges.push({type:'save',data:client});showToast(e.message,'warning',3000)}}
+    else pendingChanges.push({type:'save',data:client});
     return true;
 }
 
-async function saveClientToFirestore(client) {
-    if (!isOnline) { pendingChanges.push({type:'save',data:client}); return false; }
-    try {
-        isSyncing = true; updateConnectionStatus('syncing');
-        const clientData = Object.assign({},client);
-        const docId = clientData.id;
-        delete clientData.id;
-        delete clientData._synced;
-        if (clientData.photo && clientData.photo.length > 900000) {
-            clientData.photo = null;
-            clientData._photoLocal = true;
-        }
-        if (clientData.visits && clientData.visits.length > 0) clientData.visits = clientData.visits.map(function(v){return Object.assign({},v);});
-        await db.collection(CLIENTS_COLLECTION).doc(docId).set(clientData);
-        isSyncing = false; updateConnectionStatus(isOnline?'online':'offline'); return true;
-    } catch (err) {
-        console.error('Error Firestore:',err); isSyncing=false; updateConnectionStatus(isOnline?'online':'offline');
-        pendingChanges.push({type:'save',data:client}); showToast('Error Firebase: '+err.message,'error',3000); return false;
-    }
+async function saveClientToFirestore(client){
+    if(!isOnline){pendingChanges.push({type:'save',data:client});return false}
+    try{isSyncing=true;updConn('syncing');var cd=Object.assign({},client);var did=cd.id;delete cd.id;delete cd._synced;
+    if(cd.photo&&cd.photo.length>900000){cd.photo=null;cd._photoLocal=true}
+    if(cd.visits&&cd.visits.length>0)cd.visits=cd.visits.map(function(v){return Object.assign({},v)});
+    await db.collection(COL).doc(did).set(cd);isSyncing=false;updConn(isOnline?'online':'offline');return true}
+    catch(err){console.error(err);isSyncing=false;updConn(isOnline?'online':'offline');pendingChanges.push({type:'save',data:client});showToast('Error Firebase: '+err.message,'error',3000);return false}
 }
 
-async function deleteClient(id) {
-    const idx = clientDataCache.findIndex(function(c){return c.id==id;});
-    if (idx !== -1) { clientDataCache.splice(idx,1); localStorage.setItem(STORAGE_KEY,JSON.stringify(clientDataCache)); refreshUI();
-        if (isOnline) { try { await withTimeout(deleteClientFromFirestore(id),10000,'Timeout'); } catch(e){pendingChanges.push({type:'delete',id:id});} }
-        else { pendingChanges.push({type:'delete',id:id}); }
-    }
+async function deleteClient(id){var idx=clientDataCache.findIndex(function(c){return c.id==id});if(idx!==-1){clientDataCache.splice(idx,1);localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();if(isOnline){try{await withTimeout(deleteClientFromFirestore(id),10000,'Timeout')}catch(e){pendingChanges.push({type:'delete',id:id})}}else pendingChanges.push({type:'delete',id:id})}}
+async function deleteClientFromFirestore(cid){if(!isOnline){pendingChanges.push({type:'delete',id:cid});return false}try{isSyncing=true;updConn('syncing');await db.collection(COL).doc(cid).delete();isSyncing=false;updConn(isOnline?'online':'offline');return true}catch(e){console.error(e);isSyncing=false;updConn(isOnline?'online':'offline');pendingChanges.push({type:'delete',id:cid});return false}}
+function clearAllClients(){clientDataCache=[];localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();if(isOnline){db.collection(COL).get().then(function(s){var b=db.batch();s.forEach(function(d){b.delete(d.ref)});return b.commit()}).catch(function(e){console.error(e)})}}
+
+// FIX FOTO: onSnapshot conserva fotos locales
+function listenToFirestore(){
+    if(listenerUnsubscribe){listenerUnsubscribe();listenerUnsubscribe=null}
+    try{listenerUnsubscribe=db.collection(COL).onSnapshot(function(snapshot){
+        var clients=[];snapshot.forEach(function(doc){
+            var data=doc.data();var nc=Object.assign({},data,{id:doc.id});
+            // FIX: Si local tiene foto y Firebase no, conservar foto local
+            var lc=getClient(doc.id);if(lc&&lc.photo&&!nc.photo){nc.photo=lc.photo}
+            clients.push(nc)});
+        clientDataCache=clients;localStorage.setItem(SK,JSON.stringify(clients));refreshUI();firebaseInitialized=true;pendingChanges=[];updConn(isOnline?'online':'offline')
+    },function(err){console.error(err);setTimeout(function(){if(isOnline)listenToFirestore()},5000);updConn(isOnline?'online':'offline');var ld=localStorage.getItem(SK);if(ld){try{clientDataCache=JSON.parse(ld);refreshUI()}catch(e){}}})}
+    catch(err){console.error(err);var ld=localStorage.getItem(SK);if(ld){try{clientDataCache=JSON.parse(ld);refreshUI()}catch(e){}}}
 }
 
-async function deleteClientFromFirestore(clientId) {
-    if (!isOnline) { pendingChanges.push({type:'delete',id:clientId}); return false; }
-    try { isSyncing=true; updateConnectionStatus('syncing'); await db.collection(CLIENTS_COLLECTION).doc(clientId).delete(); isSyncing=false; updateConnectionStatus(isOnline?'online':'offline'); return true; }
-    catch(err) { console.error(err); isSyncing=false; updateConnectionStatus(isOnline?'online':'offline'); pendingChanges.push({type:'delete',id:clientId}); return false; }
-}
+async function syncPending(){if(!isOnline||isSyncing)return;var ch=pendingChanges.slice();pendingChanges=[];for(var i=0;i<ch.length;i++){var c=ch[i];if(c.type==='save'){try{await withTimeout(saveClientToFirestore(c.data),15000,'Timeout')}catch(e){pendingChanges.push(c)}}else if(c.type==='delete'){try{await withTimeout(deleteClientFromFirestore(c.id),10000,'Timeout')}catch(e){pendingChanges.push(c)}}}}
+async function syncWithFirebase(){if(!isOnline){showToast('Sin conexion','warning');return}if(isSyncing)return;showToast('Sincronizando...','info',1500);await syncPending();if(!listenerUnsubscribe)listenToFirestore();showToast('Sincronizado','success',1500)}
 
-function clearAllClients() {
-    clientDataCache=[]; localStorage.setItem(STORAGE_KEY,JSON.stringify(clientDataCache)); refreshUI();
-    if (isOnline) { db.collection(CLIENTS_COLLECTION).get().then(function(s){const b=db.batch();s.forEach(function(d){b.delete(d.ref);});return b.commit();}).catch(function(e){console.error(e);}); }
-}
+function renderClientList(clients){var ct=document.getElementById('clientListContainer'),ce=document.getElementById('clientCount');if(!ct)return;if(!clients||!clients.length){ct.innerHTML='<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div>';if(ce)ce.textContent='0';return}if(ce)ce.textContent=clients.length;var h='';for(var i=0;i<clients.length;i++){var c=clients[i],ini=(c.name||'?')[0].toUpperCase(),vc=(c.visits||[]).length,lv=c.visits&&c.visits.length>0?new Date(c.visits[c.visits.length-1].date).toLocaleDateString('es'):'Sin visitas',av=c.photo?'<img src="'+c.photo+'" alt="foto"/>':ini;h+='<div class="client-card" data-id="'+c.id+'"><div class="avatar">'+av+'</div><div class="info"><div class="name">'+escHtml(c.name||'Sin nombre')+'</div><div class="business">'+escHtml(c.business||'Sin negocio')+'</div><div class="address">'+escHtml(c.address||'Sin direccion')+'</div></div><div class="meta"><span class="visits"><i class="fas fa-calendar-check"></i> '+vc+'</span><span class="date">'+lv+'</span></div></div>'}ct.innerHTML=h;ct.querySelectorAll('.client-card').forEach(function(el){el.addEventListener('click',function(){showClientDetail(el.dataset.id)})})}
+function refreshUI(){var sv=document.getElementById('searchInput')?document.getElementById('searchInput').value.toLowerCase():'';var f=clientDataCache;if(sv)f=clientDataCache.filter(function(c){return(c.name||'').toLowerCase().includes(sv)||(c.business||'').toLowerCase().includes(sv)||(c.address||'').toLowerCase().includes(sv)||(c.colony||'').toLowerCase().includes(sv)||(c.phone||'').toLowerCase().includes(sv)});renderClientList(f);updateStatsBadge(clientDataCache);if(document.getElementById('viewStats').classList.contains('active'))renderStats()}
 
-// ======================================================================
-// FIREBASE LISTENER
-// ======================================================================
-function listenToFirestore() {
-    if (listenerUnsubscribe) { listenerUnsubscribe(); listenerUnsubscribe = null; }
-    try {
-        listenerUnsubscribe = db.collection(CLIENTS_COLLECTION).onSnapshot(function(snapshot) {
-            const clients = [];
-            snapshot.forEach(function(doc) { clients.push(Object.assign({},doc.data(),{id:doc.id})); });
-            clientDataCache = clients;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-            refreshUI();
-            firebaseInitialized = true;
-            pendingChanges = [];
-            updateConnectionStatus(isOnline?'online':'offline');
-        }, function(err) {
-            console.error('Listener error:',err);
-            setTimeout(function(){if(isOnline){listenToFirestore();}},5000);
-            updateConnectionStatus(isOnline?'online':'offline');
-            const localData = localStorage.getItem(STORAGE_KEY);
-            if (localData) { try{clientDataCache=JSON.parse(localData);refreshUI();}catch(e){} }
-        });
-    } catch(err) {
-        console.error(err);
-        const localData = localStorage.getItem(STORAGE_KEY);
-        if (localData) { try{clientDataCache=JSON.parse(localData);refreshUI();}catch(e){} }
-    }
-}
+function showClientDetail(id){var client=getClient(id);if(!client){showToast('No encontrado','error');return}var container=document.getElementById('detailContent');document.getElementById('detailName').textContent=client.name||'Cliente';var visits=client.visits||[];var vh=!visits.length?'<p style="color:var(--text-muted);font-size:.8rem;">No hay visitas.</p>':visits.map(function(v){return'<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">'+new Date(v.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</div>'+((v.notes)?'<div class="v-notes">'+escHtml(v.notes)+'</div>':'')+'</div><div class="v-time">'+new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+'</div></div>'}).join('');var lat=client.lat||'',lng=client.lng||'';var ph=client.photo?'<img src="'+client.photo+'" style="height:200px;object-fit:cover;width:100%;border-radius:8px;">':'<p style="color:var(--text-muted);font-size:.8rem;">Sin foto</p>';
+container.innerHTML='<div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>'+escHtml(client.name||'-')+'</strong></div>'+((client.business)?'<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">'+escHtml(client.business)+'</div>':'')+'</div><div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Direccion</div><div class="value">'+escHtml(client.address||'-')+'</div>'+((client.colony)?'<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">'+escHtml(client.colony)+'</div>':'')+((client.references)?'<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">'+escHtml(client.references)+'</div>':'')+((client.phone)?'<div class="label"><i class="fas fa-phone"></i> Telefono</div><div class="value"><a href="tel:'+escHtml(client.phone)+'" style="color:var(--primary);">'+escHtml(client.phone)+'</a></div>':'')+((lat&&lng)?'<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">'+lat+', '+lng+'</div>':'')+'</div><div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">'+ph+'</div></div><div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas ('+visits.length+')</div><div class="visit-timeline">'+vh+'</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button></div></div>';
+if(lat&&lng&&typeof L!=='undefined'){setTimeout(function(){var mE=document.getElementById('detail-map');if(mE&&!mE._leaflet_id){var m=L.map(mE).setView([parseFloat(lat),parseFloat(lng)],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(m);L.marker([parseFloat(lat),parseFloat(lng)]).addTo(m);setTimeout(function(){m.invalidateSize()},100)}},200)}
+document.getElementById('addVisitBtn').addEventListener('click',function(){showModal('Registrar Visita','<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>','Registrar',async function(){var n=document.getElementById('visitNoteInput')?document.getElementById('visitNoteInput').value:'';if(!n.trim()){showToast('Escribe una nota','error');return}await addVisitToClient(id,n);showToast('Visita registrada','success');showClientDetail(id)})});
+document.getElementById('shareVisitBtn').addEventListener('click',function(){if(!visits.length){showToast('No hay visitas','error');return}var msg='CLIENTE: '+client.name+'\n';if(client.business)msg+='Negocio: '+client.business+'\n';if(client.address)msg+='Direccion: '+client.address+'\n';msg+='Visitas:\n';visits.slice().sort(function(a,b){return b.date-a.date}).forEach(function(v,i){var d=new Date(v.date);msg+=(i+1)+'. '+d.toLocaleDateString('es')+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+' - '+((v.notes||'Sin nota'))+'\n'});if(navigator.share){navigator.share({title:'Visitas',text:msg}).catch(function(){})}else{navigator.clipboard.writeText(msg).then(function(){showToast('Copiado','success')}).catch(function(){})}});
+document.getElementById('detailEditBtn').onclick=function(){editClient(id)};document.getElementById('detailDeleteBtn').onclick=function(){showModal('Eliminar','Eliminar a <strong>'+escHtml(client.name)+'</strong>?','Eliminar',async function(){await deleteClient(id);showToast('Eliminado','info');switchView('viewList')})};switchView('viewDetail')}
 
-async function syncPendingChanges() {
-    if (!isOnline||isSyncing) return;
-    const changes = pendingChanges.slice(); pendingChanges = [];
-    for (let i=0;i<changes.length;i++) {
-        const c = changes[i];
-        if (c.type==='save') { try{await withTimeout(saveClientToFirestore(c.data),15000,'Timeout');}catch(e){pendingChanges.push(c);} }
-        else if (c.type==='delete') { try{await withTimeout(deleteClientFromFirestore(c.id),10000,'Timeout');}catch(e){pendingChanges.push(c);} }
-    }
-}
+async function addVisitToClient(cid,notes){var client=getClient(cid);if(!client)return;var visits=client.visits||[];visits.push({date:Date.now(),notes:notes});client.visits=visits;await saveClient(client)}
 
-async function syncWithFirebase() {
-    if (!isOnline) { showToast('Sin conexion','warning'); return; }
-    if (isSyncing) return;
-    showToast('Sincronizando...','info',1500);
-    await syncPendingChanges();
-    if (!listenerUnsubscribe) listenToFirestore();
-    showToast('Sincronizado','success',1500);
-}
+function printClientDirectory(){var c=getAllClients();if(!c.length){showToast('No hay clientes','error');return}var s=c.slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'')});var r='';s.forEach(function(c,i){r+='<tr><td>'+i+'</td><td><strong>'+escHtml(c.name||'-')+'</strong></td><td>'+escHtml(c.business||'-')+'</td><td>'+escHtml(c.address||'-')+'</td><td>'+escHtml(c.phone||'-')+'</td><td>'+((c.visits||[]).length)+'</td></tr>'});var w=window.open('','_blank');if(!w){showToast('Permite ventanas emergentes','error');return}w.document.write('<!DOCTYPE html><html><head><title>Directorio</title><style>body{font-family:sans-serif;margin:20px}h1{color:#1e3a8a}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px;font-size:.85rem}th{background:#1e3a8a;color:#fff}</style></head><body><h1>Directorio</h1><p>Total: '+c.length+'</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Direccion</th><th>Telefono</th><th>Visitas</th></tr></thead><tbody>'+r+'</tbody></table></body></html>');w.document.close();setTimeout(function(){w.print()},300)}
+function printStatsReport(){var c=getAllClients(),tv=c.reduce(function(s,cl){return s+(cl.visits||[]).length},0);var w=window.open('','_blank');if(!w){showToast('Permite ventanas emergentes','error');return}w.document.write('<!DOCTYPE html><html><head><title>Reporte</title><style>body{font-family:sans-serif;margin:20px}h1{color:#1e3a8a}</style></head><body><h1>Reporte CRM</h1><p>Clientes: '+c.length+' | Visitas: '+tv+' | Fecha: '+new Date().toLocaleDateString('es')+'</p></body></html>');w.document.close();setTimeout(function(){w.print()},300)}
+function exportData(ip){var ec=getAllClients();if(!ip)ec=ec.map(function(c){var cp=Object.assign({},c);delete cp.photo;return cp});var b=new Blob([JSON.stringify(ec,null,2)],{type:'application/json'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='crm_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(u);showToast('Exportado','success')}
+function importData(j){try{var im=JSON.parse(j);if(!Array.isArray(im)){showToast('Formato invalido','error');return}im.forEach(function(c){if(!c.id)c.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);var idx=clientDataCache.findIndex(function(e){return e.id==c.id});if(idx!==-1)clientDataCache[idx]=c;else clientDataCache.push(c)});localStorage.setItem(SK,JSON.stringify(clientDataCache));refreshUI();if(isOnline)im.forEach(function(c){saveClientToFirestore(c)});showToast('Importados: '+im.length,'success')}catch(e){showToast('Error: '+e.message,'error')}}
+function updateStatsBadge(cl){var b=document.getElementById('statsBadge');var t=cl.reduce(function(s,c){return s+(c.visits||[]).length},0);if(b){b.textContent=t;b.style.display=t>0?'':'none'}}
+function renderStats(){var c=getAllClients(),tv=c.reduce(function(s,cl){return s+(cl.visits||[]).length},0),ts=new Date();ts.setHours(0,0,0,0);var thv=c.reduce(function(s,cl){return s+(cl.visits||[]).filter(function(v){return v.date>=ts.getTime()}).length},0);var tp='-',mv=0;c.forEach(function(cl){var v=(cl.visits||[]).length;if(v>mv){mv=v;tp=cl.name||'-'}});document.getElementById('statTotal').textContent=c.length;document.getElementById('statVisits').textContent=tv;document.getElementById('statToday').textContent=thv;document.getElementById('statTop').textContent=mv>0?tp:'-';var ce=document.getElementById('weeklyChart');if(!ce)return;var ds=[],nw=new Date();for(var i=6;i>=0;i--){var d=new Date(nw);d.setDate(d.getDate()-i);d.setHours(0,0,0,0);var st=d.getTime(),en=st+86400000;var cnt=c.reduce(function(sc,cl){return sc+(cl.visits||[]).filter(function(v){return v.date>=st&&v.date<en}).length},0);ds.push({label:d.toLocaleDateString('es',{weekday:'short'}),count:cnt})}var mc=Math.max.apply(null,ds.map(function(d){return d.count}))||1;ce.innerHTML=ds.map(function(d){var h=Math.max(4,(d.count/mc)*80);return'<div class="bar-item"><div class="bar" style="height:'+h+'px;"></div><div class="bar-label">'+d.label+'</div></div>'}).join('')}
 
-// ======================================================================
-// RENDER
-// ======================================================================
-function renderClientList(clients) {
-    const container = document.getElementById('clientListContainer');
-    const countEl = document.getElementById('clientCount');
-    if (!container) return;
-    if (!clients||!clients.length) { container.innerHTML='<div class="empty-state"><i class="fas fa-user-plus"></i><h3>Sin clientes</h3><p>Toca "Nuevo" para agregar.</p></div>'; if(countEl)countEl.textContent='0'; return; }
-    if (countEl) countEl.textContent = clients.length;
-    let html = '';
-    for (const c of clients) {
-        const initial = (c.name||'?')[0].toUpperCase();
-        const visitCount = (c.visits||[]).length;
-        const lastVisit = c.visits&&c.visits.length>0 ? new Date(c.visits[c.visits.length-1].date).toLocaleDateString('es') : 'Sin visitas';
-        const avatarHtml = c.photo ? '<img src="'+c.photo+'" alt="foto"/>' : initial;
-        html += '<div class="client-card" data-id="'+c.id+'"><div class="avatar">'+avatarHtml+'</div><div class="info"><div class="name">'+escHtml(c.name||'Sin nombre')+'</div><div class="business">'+escHtml(c.business||'Sin negocio')+'</div><div class="address">'+escHtml(c.address||'Sin direccion')+'</div></div><div class="meta"><span class="visits"><i class="fas fa-calendar-check"></i> '+visitCount+'</span><span class="date">'+lastVisit+'</span></div></div>';
-    }
-    container.innerHTML = html;
-    container.querySelectorAll('.client-card').forEach(function(el){ el.addEventListener('click',function(){showClientDetail(el.dataset.id);}); });
-}
+function switchView(vi){document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active')});var t=document.getElementById(vi);if(t)t.classList.add('active');document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});var nv=document.querySelector('.nav-item[data-view="'+vi+'"]');if(nv)nv.classList.add('active');if(vi==='viewForm'&&!editingId)resetForm();if(vi==='viewStats')renderStats()}
 
-function refreshUI() {
-    const searchVal = document.getElementById('searchInput')?document.getElementById('searchInput').value.toLowerCase():'';
-    let filtered = clientDataCache;
-    if (searchVal) filtered = clientDataCache.filter(function(c){return (c.name||'').toLowerCase().includes(searchVal)||(c.business||'').toLowerCase().includes(searchVal)||(c.address||'').toLowerCase().includes(searchVal)||(c.colony||'').toLowerCase().includes(searchVal)||(c.phone||'').toLowerCase().includes(searchVal);});
-    renderClientList(filtered);
-    updateStatsBadge(clientDataCache);
-    if (document.getElementById('viewStats').classList.contains('active')) renderStats();
-}
+function resetForm(){editingId=null;photoDataUrl=null;selectedLat=null;selectedLng=null;document.getElementById('clientId').value='';document.getElementById('fName').value='';document.getElementById('fBusiness').value='';document.getElementById('fAddress').value='';document.getElementById('fLat').value='';document.getElementById('fLng').value='';document.getElementById('fColony').value='';document.getElementById('fPhone').value='';document.getElementById('fReferences').value='';document.getElementById('fVisitNote').value='';document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden');document.getElementById('formTitle').textContent='Nuevo Cliente';var btn=document.getElementById('formSubmitBtn');btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> Guardar';btn.style.background='';if(mapInstance){mapInstance.remove();mapInstance=null}document.getElementById('map-container').innerHTML='';document.getElementById('openGoogleMaps').style.display='none';document.getElementById('openOsmLink').style.display='none'}
+function editClient(id){var client=getClient(id);if(!client){showToast('No encontrado','error');return}editingId=id;document.getElementById('clientId').value=id;document.getElementById('fName').value=client.name||'';document.getElementById('fBusiness').value=client.business||'';document.getElementById('fAddress').value=client.address||'';document.getElementById('fLat').value=client.lat||'';document.getElementById('fLng').value=client.lng||'';document.getElementById('fColony').value=client.colony||'';document.getElementById('fPhone').value=client.phone||'';document.getElementById('fReferences').value=client.references||'';document.getElementById('fVisitNote').value='';document.getElementById('formTitle').textContent='Editar Cliente';if(client.photo){photoDataUrl=client.photo;document.getElementById('photoPreview').src=client.photo;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden')}else{photoDataUrl=null;document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden')}selectedLat=client.lat?parseFloat(client.lat):null;selectedLng=client.lng?parseFloat(client.lng):null;switchView('viewForm');setTimeout(function(){initFormMap()},200)}
 
-// ======================================================================
-// DETALLE
-// ======================================================================
-function showClientDetail(id) {
-    const client = getClient(id); if (!client) { showToast('No encontrado','error'); return; }
-    const container = document.getElementById('detailContent');
-    document.getElementById('detailName').textContent = client.name||'Cliente';
-    const visits = client.visits||[];
-    const visitHtml = !visits.length ? '<p style="color:var(--text-muted);font-size:.8rem;">No hay visitas.</p>' : visits.map(function(v){return '<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">'+new Date(v.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</div>'+((v.notes)?'<div class="v-notes">'+escHtml(v.notes)+'</div>':'')+'</div><div class="v-time">'+new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+'</div></div>';}).join('');
-    const lat=client.lat||'',lng=client.lng||'';
-    const photoHtml = client.photo?'<img src="'+client.photo+'" class="photo-preview" style="height:200px;object-fit:cover;width:100%;border-radius:8px;">':'<p style="color:var(--text-muted);font-size:.8rem;">Sin foto</p>';
-    container.innerHTML='<div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>'+escHtml(client.name||'-')+'</strong></div>'+((client.business)?'<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">'+escHtml(client.business)+'</div>':'')+'</div><div class="detail-card"><div class="label"><i class="fas fa-map-pin"></i> Direccion</div><div class="value">'+escHtml(client.address||'-')+'</div>'+((client.colony)?'<div class="label"><i class="fas fa-location-dot"></i> Colonia</div><div class="value">'+escHtml(client.colony)+'</div>':'')+((client.references)?'<div class="label"><i class="fas fa-flag"></i> Referencias</div><div class="value">'+escHtml(client.references)+'</div>':'')+((client.phone)?'<div class="label"><i class="fas fa-phone"></i> Telefono</div><div class="value"><a href="tel:'+escHtml(client.phone)+'" style="color:var(--primary);">'+escHtml(client.phone)+'</a></div>':'')+((lat&&lng)?'<div class="label"><i class="fas fa-globe"></i> Coordenadas</div><div class="value">'+lat+', '+lng+'</div>':'')+'</div><div class="detail-card"><div class="label"><i class="fas fa-image"></i> Foto</div><div class="value">'+photoHtml+'</div></div><div class="detail-card"><div class="label"><i class="fas fa-map"></i> Ubicacion</div><div id="detail-map" style="height:220px;border-radius:6px;border:1px solid var(--border);margin-top:4px;background:#e2e8f0;"></div><div class="map-actions" style="margin-top:6px;"><a href="'+((lat&&lng)?'https://www.google.com/maps?q='+lat+','+lng:'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(client.address||''))+'" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;"><i class="fab fa-google"></i> Google Maps</a><a href="'+((lat&&lng)?'https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15':'https://www.openstreetmap.org/search?query='+encodeURIComponent(client.address||''))+'" target="_blank" class="btn btn-secondary btn-sm" style="text-decoration:none;"><i class="fas fa-map"></i> OpenStreetMap</a></div></div><div class="detail-card"><div class="label"><i class="fas fa-calendar-check"></i> Visitas ('+visits.length+')</div><div class="visit-timeline">'+visitHtml+'</div><div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;"><button class="btn btn-accent btn-sm" id="addVisitBtn" style="flex:1;"><i class="fas fa-plus"></i> Registrar</button><button class="btn btn-secondary btn-sm" id="shareVisitBtn" style="flex:1;"><i class="fas fa-share-alt"></i> Compartir</button></div></div>';
-    if (lat&&lng&&typeof L!=='undefined') { setTimeout(function(){const mEl=document.getElementById('detail-map');if(mEl&&!mEl._leaflet_id){const m=L.map(mEl).setView([parseFloat(lat),parseFloat(lng)],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(m);L.marker([parseFloat(lat),parseFloat(lng)]).addTo(m);setTimeout(function(){m.invalidateSize();},100);}},200); }
-    else { const mEl=document.getElementById('detail-map');if(mEl)mEl.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;">Sin coordenadas</div>'; }
-    document.getElementById('addVisitBtn').addEventListener('click',function(){showModal('Registrar Visita','<div class="form-group"><label>Nota</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="visitNoteInput" style="min-height:50px;"></textarea></div></div>','Registrar',async function(){const note=document.getElementById('visitNoteInput')?document.getElementById('visitNoteInput').value:'';if(!note.trim()){showToast('Escribe una nota','error');return;}await addVisitToClient(id,note);showToast('Visita registrada','success');showClientDetail(id);});});
-    document.getElementById('shareVisitBtn').addEventListener('click',function(){if(!visits.length){showToast('No hay visitas','error');return;}let msg='CLIENTE: '+client.name+'\n';if(client.business)msg+='Negocio: '+client.business+'\n';if(client.address)msg+='Direccion: '+client.address+'\n';msg+='Visitas:\n';visits.slice().sort(function(a,b){return b.date-a.date;}).forEach(function(v,i){const d=new Date(v.date);msg+=(i+1)+'. '+d.toLocaleDateString('es')+' '+d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+' - '+((v.notes||'Sin nota'))+'\n';});if(navigator.share){navigator.share({title:'Visitas',text:msg}).catch(function(){});}else{navigator.clipboard.writeText(msg).then(function(){showToast('Copiado','success');}).catch(function(){showModal('Visitas','<pre style="white-space:pre-wrap;font-size:0.8rem;">'+escHtml(msg)+'</pre>','Cerrar');});}});
-    document.getElementById('detailEditBtn').onclick=function(){editClient(id);};
-    document.getElementById('detailDeleteBtn').onclick=function(){showModal('Eliminar','Eliminar a <strong>'+escHtml(client.name)+'</strong>?','Eliminar',async function(){await deleteClient(id);showToast('Eliminado','info');switchView('viewList');});};
-    switchView('viewDetail');
-}
+function initFormMap(){var mc=document.getElementById('map-container');if(!mc)return;if(mapInstance){mapInstance.remove();mapInstance=null}var lat=selectedLat||19.4326,lng=selectedLng||-99.1332;mapInstance=L.map(mc).setView([lat,lng],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(mapInstance);if(selectedLat&&selectedLng){L.marker([selectedLat,selectedLng]).addTo(mapInstance);updMapLinks(selectedLat,selectedLng)}mapInstance.on('click',function(e){selectedLat=e.latlng.lat;selectedLng=e.latlng.lng;document.getElementById('fLat').value=selectedLat.toFixed(6);document.getElementById('fLng').value=selectedLng.toFixed(6);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l)});L.marker([selectedLat,selectedLng]).addTo(mapInstance);updMapLinks(selectedLat,selectedLng);showToast('Ubicacion seleccionada','success',1500)});setTimeout(function(){mapInstance.invalidateSize()},100)}
+function updMapLinks(lat,lng){var g=document.getElementById('openGoogleMaps'),o=document.getElementById('openOsmLink');if(g){g.href='https://www.google.com/maps?q='+lat+','+lng;g.style.display=''}if(o){o.href='https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15';o.style.display=''}}
+async function geoSearch(){var a=document.getElementById('fAddress').value.trim();if(!a){showToast('Escribe una direccion','warning');return}showToast('Buscando...','info',1500);try{var r=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(a)+'&limit=5');var res=await r.json();if(!res.length){showToast('No encontrado','warning');return}var f=res[0];selectedLat=parseFloat(f.lat);selectedLng=parseFloat(f.lon);document.getElementById('fLat').value=selectedLat.toFixed(6);document.getElementById('fLng').value=selectedLng.toFixed(6);if(f.address&&(f.address.suburb||f.address.neighbourhood))document.getElementById('fColony').value=f.address.suburb||f.address.neighbourhood;if(mapInstance){mapInstance.setView([selectedLat,selectedLng],16);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l)});L.marker([selectedLat,selectedLng]).addTo(mapInstance)}else initFormMap();updMapLinks(selectedLat,selectedLng);showToast('Encontrado','success')}catch(e){showToast('Error en busqueda','error')}}
 
-async function addVisitToClient(clientId,notes) { const client=getClient(clientId);if(!client)return;const visits=client.visits||[];visits.push({date:Date.now(),notes:notes});client.visits=visits;await saveClient(client); }
+// FIX FOTO: handlePhotoSelect con compresion mejorada
+async function handlePhotoSelect(e){var file=e.target.files[0];if(!file)return;showToast('Comprimiendo foto...','info',1500);var reader=new FileReader();reader.onload=async function(ev){try{var compressed=await compressPhoto(ev.target.result,600,0.6);photoDataUrl=compressed;document.getElementById('photoPreview').src=compressed;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden');showToast('Foto cargada ('+Math.round(compressed.length/1024)+' KB)','success',2000)}catch(err){photoDataUrl=ev.target.result;document.getElementById('photoPreview').src=ev.target.result;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden');showToast('Foto cargada (sin compresion)','warning',2000)}};reader.readAsDataURL(file)}
+function removePhoto(){photoDataUrl=null;document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden');document.getElementById('fPhoto').value=''}
+function toggleTheme(){var cur=document.documentElement.getAttribute('data-theme');var next=cur==='dark'?'':'dark';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('crm_theme',next||'light');var icon=document.querySelector('#themeToggle i');if(icon)icon.className=next==='dark'?'fas fa-sun':'fas fa-moon'}
+function changeZoom(d){var cur=parseFloat(document.documentElement.style.fontSize)||16;cur=Math.max(12,Math.min(24,cur+d));document.documentElement.style.fontSize=cur+'px';localStorage.setItem('crm_zoom',cur)}
 
-// ======================================================================
-// IMPRESION / EXPORTAR / IMPORTAR
-// ======================================================================
-function printClientDirectory(){const c=getAllClients();if(!c.length){showToast('No hay clientes','error');return;}const s=c.slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});let r='';s.forEach(function(c,i){r+='<tr><td>'+i+'</td><td><strong>'+escHtml(c.name||'-')+'</strong></td><td>'+escHtml(c.business||'-')+'</td><td>'+escHtml(c.address||'-')+'</td><td>'+escHtml(c.phone||'-')+'</td><td>'+((c.visits||[]).length)+'</td></tr>';});const w=window.open('','_blank');if(!w){showToast('Permite ventanas emergentes','error');return;}w.document.write('<!DOCTYPE html><html><head><title>Directorio</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px;font-size:.85rem;}th{background:#1e3a8a;color:#fff;}</style></head><body><h1>Directorio</h1><p>Total: '+c.length+'</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Direccion</th><th>Telefono</th><th>Visitas</th></tr></thead><tbody>'+r+'</tbody></table></body></html>');w.document.close();setTimeout(function(){w.print();},300);}
-function printStatsReport(){const c=getAllClients();const tv=c.reduce(function(s,cl){return s+(cl.visits||[]).length;},0);const w=window.open('','_blank');if(!w){showToast('Permite ventanas emergentes','error');return;}w.document.write('<!DOCTYPE html><html><head><title>Reporte</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}</style></head><body><h1>Reporte CRM</h1><p>Clientes: '+c.length+' | Visitas: '+tv+' | Fecha: '+new Date().toLocaleDateString('es')+'</p></body></html>');w.document.close();setTimeout(function(){w.print();},300);}
-
-function exportData(includePhotos){let ec=getAllClients();if(!includePhotos)ec=ec.map(function(c){const cp=Object.assign({},c);delete cp.photo;return cp;});const blob=new Blob([JSON.stringify(ec,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='crm_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);showToast('Exportado','success');}
-
-function importData(jsonStr){try{const imported=JSON.parse(jsonStr);if(!Array.isArray(imported)){showToast('Formato invalido','error');return;}imported.forEach(function(c){if(!c.id)c.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);const idx=clientDataCache.findIndex(function(e){return e.id==c.id;});if(idx!==-1)clientDataCache[idx]=c;else clientDataCache.push(c);});localStorage.setItem(STORAGE_KEY,JSON.stringify(clientDataCache));refreshUI();if(isOnline)imported.forEach(function(c){saveClientToFirestore(c);});showToast('Importados: '+imported.length,'success');}catch(e){showToast('Error: '+e.message,'error');}}
-
-// ======================================================================
-// ESTADISTICAS
-// ======================================================================
-function updateStatsBadge(clients){const badge=document.getElementById('statsBadge');const total=clients.reduce(function(s,c){return s+(c.visits||[]).length;},0);if(badge){badge.textContent=total;badge.style.display=total>0?'':'none';}}
-function renderStats(){const clients=getAllClients();const totalVisits=clients.reduce(function(s,c){return s+(c.visits||[]).length;},0);const todayStart=new Date();todayStart.setHours(0,0,0,0);const todayVisits=clients.reduce(function(s,c){return s+(c.visits||[]).filter(function(v){return v.date>=todayStart.getTime();}).length;},0);let topClient='-',maxV=0;clients.forEach(function(c){const v=(c.visits||[]).length;if(v>maxV){maxV=v;topClient=c.name||'-';}});
-document.getElementById('statTotal').textContent=clients.length;document.getElementById('statVisits').textContent=totalVisits;document.getElementById('statToday').textContent=todayVisits;document.getElementById('statTop').textContent=maxV>0?topClient:'-';
-const chartEl=document.getElementById('weeklyChart');if(!chartEl)return;const days=[];const now=new Date();for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);d.setHours(0,0,0,0);const s=d.getTime(),e=s+86400000;const count=clients.reduce(function(sc,c){return sc+(c.visits||[]).filter(function(v){return v.date>=s&&v.date<e;}).length;},0);days.push({label:d.toLocaleDateString('es',{weekday:'short'}),count:count});}
-const maxC=Math.max.apply(null,days.map(function(d){return d.count;}))||1;chartEl.innerHTML=days.map(function(d){const h=Math.max(4,(d.count/maxC)*80);return '<div class="bar-item"><div class="bar" style="height:'+h+'px;"></div><div class="bar-label">'+d.label+'</div></div>';}).join('');}
-
-// ======================================================================
-// VISTAS
-// ======================================================================
-function switchView(viewId){document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});const target=document.getElementById(viewId);if(target)target.classList.add('active');document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});const nav=document.querySelector('.nav-item[data-view="'+viewId+'"]');if(nav)nav.classList.add('active');if(viewId==='viewForm'&&!editingId)resetForm();if(viewId==='viewStats')renderStats();}
-
-// ======================================================================
-// FORMULARIO
-// ======================================================================
-function resetForm(){editingId=null;photoDataUrl=null;selectedLat=null;selectedLng=null;document.getElementById('clientId').value='';document.getElementById('fName').value='';document.getElementById('fBusiness').value='';document.getElementById('fAddress').value='';document.getElementById('fLat').value='';document.getElementById('fLng').value='';document.getElementById('fColony').value='';document.getElementById('fPhone').value='';document.getElementById('fReferences').value='';document.getElementById('fVisitNote').value='';document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden');document.getElementById('formTitle').textContent='Nuevo Cliente';const btn=document.getElementById('formSubmitBtn');btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i> Guardar';btn.style.background='';if(mapInstance){mapInstance.remove();mapInstance=null;}document.getElementById('map-container').innerHTML='';document.getElementById('openGoogleMaps').style.display='none';document.getElementById('openOsmLink').style.display='none';}
-
-function editClient(id){const client=getClient(id);if(!client){showToast('No encontrado','error');return;}editingId=id;document.getElementById('clientId').value=id;document.getElementById('fName').value=client.name||'';document.getElementById('fBusiness').value=client.business||'';document.getElementById('fAddress').value=client.address||'';document.getElementById('fLat').value=client.lat||'';document.getElementById('fLng').value=client.lng||'';document.getElementById('fColony').value=client.colony||'';document.getElementById('fPhone').value=client.phone||'';document.getElementById('fReferences').value=client.references||'';document.getElementById('fVisitNote').value='';document.getElementById('formTitle').textContent='Editar Cliente';if(client.photo){photoDataUrl=client.photo;document.getElementById('photoPreview').src=client.photo;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden');}else{photoDataUrl=null;document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden');}selectedLat=client.lat?parseFloat(client.lat):null;selectedLng=client.lng?parseFloat(client.lng):null;switchView('viewForm');setTimeout(function(){initFormMap();},200);}
-
-// ======================================================================
-// MAPA
-// ======================================================================
-function initFormMap(){const mc=document.getElementById('map-container');if(!mc)return;if(mapInstance){mapInstance.remove();mapInstance=null;}const lat=selectedLat||19.4326,lng=selectedLng||-99.1332;mapInstance=L.map(mc).setView([lat,lng],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM'}).addTo(mapInstance);if(selectedLat&&selectedLng){L.marker([selectedLat,selectedLng]).addTo(mapInstance);updateMapLinks(selectedLat,selectedLng);}mapInstance.on('click',function(e){selectedLat=e.latlng.lat;selectedLng=e.latlng.lng;document.getElementById('fLat').value=selectedLat.toFixed(6);document.getElementById('fLng').value=selectedLng.toFixed(6);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l);});L.marker([selectedLat,selectedLng]).addTo(mapInstance);updateMapLinks(selectedLat,selectedLng);showToast('Ubicacion seleccionada','success',1500);});setTimeout(function(){mapInstance.invalidateSize();},100);}
-function updateMapLinks(lat,lng){const g=document.getElementById('openGoogleMaps'),o=document.getElementById('openOsmLink');if(g){g.href='https://www.google.com/maps?q='+lat+','+lng;g.style.display='';}if(o){o.href='https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15';o.style.display='';}}
-
-// ======================================================================
-// GEO SEARCH
-// ======================================================================
-async function geoSearch(){const addr=document.getElementById('fAddress').value.trim();if(!addr){showToast('Escribe una direccion','warning');return;}showToast('Buscando...','info',1500);try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=5');const results=await r.json();if(!results.length){showToast('No encontrado','warning');return;}const f=results[0];selectedLat=parseFloat(f.lat);selectedLng=parseFloat(f.lon);document.getElementById('fLat').value=selectedLat.toFixed(6);document.getElementById('fLng').value=selectedLng.toFixed(6);if(f.address&&(f.address.suburb||f.address.neighbourhood))document.getElementById('fColony').value=f.address.suburb||f.address.neighbourhood;if(mapInstance){mapInstance.setView([selectedLat,selectedLng],16);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l);});L.marker([selectedLat,selectedLng]).addTo(mapInstance);}else{initFormMap();}updateMapLinks(selectedLat,selectedLng);showToast('Encontrado','success');}catch(e){showToast('Error en busqueda','error');}}
-
-// ======================================================================
-// FOTO
-// ======================================================================
-async function handlePhotoSelect(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=async function(ev){const compressed=await compressPhoto(ev.target.result,400,0.5);photoDataUrl=compressed;document.getElementById('photoPreview').src=compressed;document.getElementById('photoPreview').classList.remove('hidden');document.getElementById('photoPlaceholder').classList.add('hidden');showToast('Foto cargada','success',1500);};reader.readAsDataURL(file);}
-function removePhoto(){photoDataUrl=null;document.getElementById('photoPreview').classList.add('hidden');document.getElementById('photoPlaceholder').classList.remove('hidden');document.getElementById('fPhoto').value='';}
-
-// ======================================================================
-// TEMA / ZOOM
-// ======================================================================
-function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme');const next=cur==='dark'?'':'dark';document.documentElement.setAttribute('data-theme',next);localStorage.setItem('crm_theme',next||'light');const icon=document.querySelector('#themeToggle i');if(icon)icon.className=next==='dark'?'fas fa-sun':'fas fa-moon';}
-function changeZoom(delta){let cur=parseFloat(document.documentElement.style.fontSize)||16;cur=Math.max(12,Math.min(24,cur+delta));document.documentElement.style.fontSize=cur+'px';localStorage.setItem('crm_zoom',cur);}
-
-// ======================================================================
-// FORM SUBMIT
-// ======================================================================
-document.getElementById('clientForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('formSubmitBtn');
-    const name = document.getElementById('fName').value.trim();
-    if (!name) { showToast('Nombre obligatorio','error'); return; }
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-    const client = { id:editingId||null, name:name, business:document.getElementById('fBusiness').value.trim(), address:document.getElementById('fAddress').value.trim(), lat:document.getElementById('fLat').value.trim(), lng:document.getElementById('fLng').value.trim(), colony:document.getElementById('fColony').value.trim(), phone:document.getElementById('fPhone').value.trim(), references:document.getElementById('fReferences').value.trim(), photo:photoDataUrl||null, visits:[] };
-
-    if (editingId) { const existing=getClient(editingId); if(existing) client.visits=existing.visits||[]; }
-    const visitNote=document.getElementById('fVisitNote').value.trim();
-    if (visitNote) client.visits.push({date:Date.now(),notes:visitNote});
-
-    try {
-        const result = await withTimeout(saveClient(client), 15000, 'Timeout: guardado localmente');
-        if (result) { btn.innerHTML='<i class="fas fa-check"></i> Guardado'; btn.style.background='#22c55e'; showToast('Cliente guardado','success'); setTimeout(function(){resetForm();switchView('viewList');},1000); }
-        else { throw new Error('No se pudo guardar'); }
-    } catch(error) {
-        btn.innerHTML='<i class="fas fa-times"></i> Error - guardado local'; btn.style.background='#f59e0b'; showToast(error.message,'warning',3000);
-        setTimeout(function(){resetForm();switchView('viewList');},2000);
-    } finally {
-        btn.disabled = false;
-        setTimeout(function(){ btn.innerHTML='<i class="fas fa-save"></i> Guardar'; btn.style.background=''; }, 2000);
-    }
+// FIX BOTON: try/catch/finally
+document.getElementById('clientForm').addEventListener('submit',async function(e){
+    e.preventDefault();var btn=document.getElementById('formSubmitBtn');var name=document.getElementById('fName').value.trim();if(!name){showToast('Nombre obligatorio','error');return}
+    btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Guardando...';btn.style.background='';
+    var client={id:editingId||null,name:name,business:document.getElementById('fBusiness').value.trim(),address:document.getElementById('fAddress').value.trim(),lat:document.getElementById('fLat').value.trim(),lng:document.getElementById('fLng').value.trim(),colony:document.getElementById('fColony').value.trim(),phone:document.getElementById('fPhone').value.trim(),references:document.getElementById('fReferences').value.trim(),photo:photoDataUrl||null,visits:[]};
+    if(editingId){var ex=getClient(editingId);if(ex)client.visits=ex.visits||[]}
+    var vn=document.getElementById('fVisitNote').value.trim();if(vn)client.visits.push({date:Date.now(),notes:vn});
+    try{var result=await withTimeout(saveClient(client),15000,'Timeout: guardado localmente');if(result){btn.innerHTML='<i class="fas fa-check"></i> Guardado';btn.style.background='#22c55e';showToast('Cliente guardado','success');setTimeout(function(){resetForm();switchView('viewList')},1000)}else{throw new Error('No se pudo guardar')}}
+    catch(error){btn.innerHTML='<i class="fas fa-times"></i> Error - guardado local';btn.style.background='#f59e0b';showToast(error.message,'warning',3000);setTimeout(function(){resetForm();switchView('viewList')},2000)}
+    finally{btn.disabled=false;setTimeout(function(){btn.innerHTML='<i class="fas fa-save"></i> Guardar';btn.style.background=''},2000)}
 });
 
-// ======================================================================
-// EVENTOS
-// ======================================================================
-document.getElementById('navList').addEventListener('click',function(){switchView('viewList');});
-document.getElementById('navAdd').addEventListener('click',function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap();},200);});
-document.getElementById('navStats').addEventListener('click',function(){switchView('viewStats');});
-document.getElementById('addQuickBtn').addEventListener('click',function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap();},200);});
-document.getElementById('searchInput').addEventListener('input',function(){refreshUI();});
-document.getElementById('formCancelBtn').addEventListener('click',function(){resetForm();switchView('viewList');});
-document.getElementById('detailBackBtn').addEventListener('click',function(){switchView('viewList');});
-document.getElementById('geoBtn').addEventListener('click',function(){geoSearch();});
-document.getElementById('updateMapCoords').addEventListener('click',function(){const lat=document.getElementById('fLat').value.trim(),lng=document.getElementById('fLng').value.trim();if(lat&&lng){selectedLat=parseFloat(lat);selectedLng=parseFloat(lng);if(mapInstance){mapInstance.setView([selectedLat,selectedLng],16);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l);});L.marker([selectedLat,selectedLng]).addTo(mapInstance);updateMapLinks(selectedLat,selectedLng);}else{initFormMap();}}else{showToast('Ingresa coordenadas','warning');}});
+document.getElementById('navList').addEventListener('click',function(){switchView('viewList')});
+document.getElementById('navAdd').addEventListener('click',function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap()},200)});
+document.getElementById('navStats').addEventListener('click',function(){switchView('viewStats')});
+document.getElementById('addQuickBtn').addEventListener('click',function(){editingId=null;resetForm();switchView('viewForm');setTimeout(function(){initFormMap()},200)});
+document.getElementById('searchInput').addEventListener('input',function(){refreshUI()});
+document.getElementById('formCancelBtn').addEventListener('click',function(){resetForm();switchView('viewList')});
+document.getElementById('detailBackBtn').addEventListener('click',function(){switchView('viewList')});
+document.getElementById('geoBtn').addEventListener('click',function(){geoSearch()});
+document.getElementById('updateMapCoords').addEventListener('click',function(){var lat=document.getElementById('fLat').value.trim(),lng=document.getElementById('fLng').value.trim();if(lat&&lng){selectedLat=parseFloat(lat);selectedLng=parseFloat(lng);if(mapInstance){mapInstance.setView([selectedLat,selectedLng],16);mapInstance.eachLayer(function(l){if(l instanceof L.Marker)mapInstance.removeLayer(l)});L.marker([selectedLat,selectedLng]).addTo(mapInstance);updMapLinks(selectedLat,selectedLng)}else initFormMap()}else showToast('Ingresa coordenadas','warning')});
 document.getElementById('fPhoto').addEventListener('change',handlePhotoSelect);
 document.getElementById('removePhotoBtn').addEventListener('click',removePhoto);
 document.getElementById('themeToggle').addEventListener('click',toggleTheme);
-document.getElementById('zoomInBtn').addEventListener('click',function(){changeZoom(1);});
-document.getElementById('zoomOutBtn').addEventListener('click',function(){changeZoom(-1);});
-document.getElementById('exportDataBtn').addEventListener('click',function(){exportData(true);});
-document.getElementById('exportDataNoPhotoBtn').addEventListener('click',function(){exportData(false);});
-document.getElementById('importDataBtn').addEventListener('click',function(){document.getElementById('importFileInput').click();});
-document.getElementById('importFileInput').addEventListener('change',function(e){const file=e.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(ev){importData(ev.target.result);};reader.readAsText(file);e.target.value='';});
-document.getElementById('syncFirebaseBtn').addEventListener('click',function(){syncWithFirebase();});
-document.getElementById('printStatsBtn').addEventListener('click',function(){printStatsReport();});
-document.getElementById('printDirectoryBtn').addEventListener('click',function(){printClientDirectory();});
-document.getElementById('resetDataBtn').addEventListener('click',function(){showModal('Eliminar todos','Se eliminaran TODOS los clientes.','Eliminar todo',function(){clearAllClients();showToast('Eliminados','info');});});
+document.getElementById('zoomInBtn').addEventListener('click',function(){changeZoom(1)});
+document.getElementById('zoomOutBtn').addEventListener('click',function(){changeZoom(-1)});
+document.getElementById('exportDataBtn').addEventListener('click',function(){exportData(true)});
+document.getElementById('exportDataNoPhotoBtn').addEventListener('click',function(){exportData(false)});
+document.getElementById('importDataBtn').addEventListener('click',function(){document.getElementById('importFileInput').click()});
+document.getElementById('importFileInput').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(ev){importData(ev.target.result)};r.readAsText(f);e.target.value=''});
+document.getElementById('syncFirebaseBtn').addEventListener('click',function(){syncWithFirebase()});
+document.getElementById('printStatsBtn').addEventListener('click',function(){printStatsReport()});
+document.getElementById('printDirectoryBtn').addEventListener('click',function(){printClientDirectory()});
+document.getElementById('resetDataBtn').addEventListener('click',function(){showModal('Eliminar todos','Se eliminaran TODOS los clientes.','Eliminar todo',function(){clearAllClients();showToast('Eliminados','info')})});
 
-// NUEVO: Boton ver datos Firebase
-document.getElementById('viewFirebaseBtn').addEventListener('click', function(){ viewFirebaseData(); });
-
-// ======================================================================
-// INICIALIZACION
-// ======================================================================
-const localData = localStorage.getItem(STORAGE_KEY);
-if (localData) { try{clientDataCache=JSON.parse(localData);refreshUI();}catch(e){clientDataCache=[];} }
-if (isOnline) { listenToFirestore(); }
-const savedTheme = localStorage.getItem('crm_theme');
-if (savedTheme==='dark') { document.documentElement.setAttribute('data-theme','dark'); const icon=document.querySelector('#themeToggle i'); if(icon) icon.className='fas fa-sun'; }
-const savedZoom = localStorage.getItem('crm_zoom');
-if (savedZoom) { document.documentElement.style.fontSize=savedZoom+'px'; }
-
+var localData=localStorage.getItem(SK);if(localData){try{clientDataCache=JSON.parse(localData);refreshUI()}catch(e){clientDataCache=[]}}
+if(isOnline)listenToFirestore();
+var savedTheme=localStorage.getItem('crm_theme');if(savedTheme==='dark'){document.documentElement.setAttribute('data-theme','dark');var icon=document.querySelector('#themeToggle i');if(icon)icon.className='fas fa-sun'}
+var savedZoom=localStorage.getItem('crm_zoom');if(savedZoom)document.documentElement.style.fontSize=savedZoom+'px';
 </script>
 </body>
 </html>
