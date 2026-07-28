@@ -215,6 +215,7 @@
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
                 <button class="btn btn-secondary btn-sm" id="printStatsBtn" style="flex:1;"><i class="fas fa-print"></i> Reporte</button>
                 <button class="btn btn-secondary btn-sm" id="printDirectoryBtn" style="flex:1;"><i class="fas fa-address-book"></i> Directorio</button>
+                <button class="btn btn-secondary btn-sm" id="printVisitsReportBtn" style="flex:1;"><i class="fas fa-clipboard-list"></i> Reporte Visitas</button>
             </div>
             <div style="margin-top:8px;"><button class="btn btn-danger btn-sm" id="resetDataBtn" style="width:100%;"><i class="fas fa-trash-can"></i> Eliminar todos</button></div>
         </div>
@@ -608,9 +609,94 @@ async function addVisitToClient(clientId,notes) { const client=getClient(clientI
 function printClientDirectory(){const c=getAllClients();if(!c.length){showToast('No hay clientes','error');return;}const s=c.slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});let r='';s.forEach(function(c,i){r+='<tr><td>'+i+'</td><td><strong>'+escHtml(c.name||'-')+'</strong></td><td>'+escHtml(c.business||'-')+'</td><td>'+escHtml(c.address||'-')+'</td><td>'+escHtml(c.phone||'-')+'</td><td>'+((c.visits||[]).length)+'</td></tr>';});const w=window.open('','_blank');if(!w){showToast('Permite ventanas emergentes','error');return;}w.document.write('<!DOCTYPE html><html><head><title>Directorio</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px;font-size:.85rem;}th{background:#1e3a8a;color:#fff;}</style></head><body><h1>Directorio</h1><p>Total: '+c.length+'</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Direccion</th><th>Telefono</th><th>Visitas</th></tr></thead><tbody>'+r+'</tbody></table></body></html>');w.document.close();setTimeout(function(){w.print();},300);}
 function printStatsReport(){const c=getAllClients();const tv=c.reduce(function(s,cl){return s+(cl.visits||[]).length;},0);const w=window.open('','_blank');if(!w){showToast('Permite ventanas emergentes','error');return;}w.document.write('<!DOCTYPE html><html><head><title>Reporte</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}</style></head><body><h1>Reporte CRM</h1><p>Clientes: '+c.length+' | Visitas: '+tv+' | Fecha: '+new Date().toLocaleDateString('es')+'</p></body></html>');w.document.close();setTimeout(function(){w.print();},300);}
 
-function exportData(includePhotos){let ec=getAllClients();if(!includePhotos)ec=ec.map(function(c){const cp=Object.assign({},c);delete cp.photo;return cp;});const blob=new Blob([JSON.stringify(ec,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='crm_'+new Date().toISOString().slice(0,10)+'.json';a.click();URL.revokeObjectURL(url);showToast('Exportado','success');}
+// ======================================================================
+// NUEVO: REPORTE DE VISITAS - IMPRIMIR LISTADO DETALLADO DE VISITAS
+// ======================================================================
+function printVisitsReport() {
+    var clients = getAllClients();
+    if (!clients.length) { showToast('No hay clientes', 'error'); return; }
 
-function importData(jsonStr){try{const imported=JSON.parse(jsonStr);if(!Array.isArray(imported)){showToast('Formato invalido','error');return;}imported.forEach(function(c){if(!c.id)c.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9);const idx=clientDataCache.findIndex(function(e){return e.id==c.id;});if(idx!==-1)clientDataCache[idx]=c;else clientDataCache.push(c);});localStorage.setItem(STORAGE_KEY,JSON.stringify(clientDataCache));refreshUI();if(isOnline)imported.forEach(function(c){saveClientToFirestore(c);});showToast('Importados: '+imported.length,'success');}catch(e){showToast('Error: '+e.message,'error');}}
+    // Recopilar todas las visitas con informacion del cliente
+    var allVisits = [];
+    clients.forEach(function(client) {
+        if (client.visits && client.visits.length > 0) {
+            client.visits.forEach(function(visit) {
+                allVisits.push({
+                    clientName: client.name || 'Sin nombre',
+                    business: client.business || '',
+                    address: client.address || '',
+                    phone: client.phone || '',
+                    date: visit.date,
+                    notes: visit.notes || 'Sin nota',
+                    clientId: client.id
+                });
+            });
+        }
+    });
+
+    // Ordenar por fecha descendente (mas reciente primero)
+    allVisits.sort(function(a, b) { return b.date - a.date; });
+
+    if (!allVisits.length) {
+        showToast('No hay visitas registradas', 'warning');
+        return;
+    }
+
+    var totalVisits = allVisits.length;
+    var totalClients = clients.length;
+    var today = new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    var clientsWithVisits = clients.filter(function(c) { return (c.visits || []).length > 0; }).length;
+
+    // Construir tabla de visitas
+    var rows = '';
+    allVisits.forEach(function(v, index) {
+        var dateStr = new Date(v.date).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        var timeStr = new Date(v.date).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+        rows += '<tr>' +
+            '<td>' + (index + 1) + '</td>' +
+            '<td><strong>' + escHtml(v.clientName) + '</strong></td>' +
+            '<td>' + escHtml(v.business) + '</td>' +
+            '<td>' + escHtml(v.address) + '</td>' +
+            '<td>' + escHtml(v.phone) + '</td>' +
+            '<td>' + dateStr + ' ' + timeStr + '</td>' +
+            '<td style="max-width:200px;">' + escHtml(v.notes) + '</td>' +
+            '</tr>';
+    });
+
+    var w = window.open('', '_blank');
+    if (!w) { showToast('Permite ventanas emergentes', 'error'); return; }
+
+    w.document.write('<!DOCTYPE html><html><head><title>Reporte de Visitas</title>' +
+        '<style>' +
+        'body{font-family:"Segoe UI",sans-serif;margin:20px;background:#fff;color:#0f172a;}' +
+        'h1{color:#1e3a8a;border-bottom:3px solid #f59e0b;padding-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;}' +
+        '.subtitle{color:#64748b;font-size:1rem;font-weight:400;}' +
+        '.stats{display:flex;gap:20px;margin:16px 0;flex-wrap:wrap;}' +
+        '.stats .stat{background:#f8fafc;padding:8px 16px;border-radius:8px;border:1px solid #e0e7ff;}' +
+        '.stats .stat strong{color:#1e3a8a;}' +
+        'table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85rem;}' +
+        'th,td{border:1px solid #e0e7ff;padding:8px 10px;text-align:left;}' +
+        'th{background:#1e3a8a;color:#fff;font-weight:600;}' +
+        'tr:nth-child(even){background:#f8fafc;}' +
+        'tr:hover{background:#e0e7ff;}' +
+        '.footer{margin-top:20px;text-align:center;color:#94a3b8;font-size:.8rem;border-top:1px solid #e0e7ff;padding-top:16px;}' +
+        '@media print{body{margin:10px;}.stats .stat{background:#f0f4ff;border-color:#c7d2fe;}th{background:#1e3a8a !important;color:#fff !important;}}' +
+        '@media(max-width:600px){table{font-size:.7rem;}th,td{padding:4px 6px;}}' +
+        '</style></head><body>' +
+        '<h1><span><i class="fas fa-clipboard-list"></i> Reporte de Visitas</span> <span class="subtitle">' + today + '</span></h1>' +
+        '<div class="stats">' +
+        '<div class="stat"><strong>' + totalVisits + '</strong> Visitas registradas</div>' +
+        '<div class="stat"><strong>' + totalClients + '</strong> Clientes</div>' +
+        '<div class="stat"><strong>' + clientsWithVisits + '</strong> Con visitas</div>' +
+        '</div>' +
+        '<table><thead><tr><th>#</th><th>Cliente</th><th>Negocio</th><th>Direccion</th><th>Telefono</th><th>Fecha/Hora</th><th>Nota</th></tr></thead><tbody>' +
+        rows +
+        '</tbody></table>' +
+        '<div class="footer">Reporte generado desde CRM Visitas • Total: ' + totalVisits + ' visitas</div>' +
+        '</body></html>');
+    w.document.close();
+    setTimeout(function() { w.print(); }, 500);
+}
 
 // ======================================================================
 // ESTADISTICAS
@@ -711,6 +797,12 @@ document.getElementById('importFileInput').addEventListener('change',function(e)
 document.getElementById('syncFirebaseBtn').addEventListener('click',function(){syncWithFirebase();});
 document.getElementById('printStatsBtn').addEventListener('click',function(){printStatsReport();});
 document.getElementById('printDirectoryBtn').addEventListener('click',function(){printClientDirectory();});
+
+// NUEVO: Evento para Reporte de Visitas - ASEGURADO
+document.getElementById('printVisitsReportBtn').addEventListener('click', function() { 
+    printVisitsReport(); 
+});
+
 document.getElementById('resetDataBtn').addEventListener('click',function(){showModal('Eliminar todos','Se eliminaran TODOS los clientes.','Eliminar todo',function(){clearAllClients();showToast('Eliminados','info');});});
 
 // NUEVO: Boton ver datos Firebase
