@@ -132,7 +132,7 @@
 
 <div id="app">
     <header class="app-header">
-        <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas</div>
+        <div class="logo"><i class="fas fa-address-book"></i> CRM Visitas - GAETO</div>
         <div class="header-actions">
             <button class="zoom-btn" id="zoomInBtn">+</button>
             <button class="zoom-btn" id="zoomOutBtn">-</button>
@@ -226,7 +226,7 @@
 // ======================================================================
 const CONFIG = {
     JSONBIN_BIN_ID: '6a6ac0aef5f4af5e29d3dbe3',
-    JSONBIN_ACCESS_KEY: '$2a$10$99BFJptqxZp6zek.EXJkkOoicXeRlm3UaRP0pNFLrnq45Oy96BUZa'
+    JSONBIN_ACCESS_KEY: '$2a$10$99BFJptqxZp6zek.EXJkkOicXeRlm3UaRP0pNFLrnq45Oy96BUZa'
 };
 
 // ======================================================================
@@ -826,7 +826,8 @@ document.getElementById('clientForm').addEventListener('submit', function(e) {
 });
 
 // ======================================================================
-// EVENTOS NAVEGACION// ======================================================================
+// EVENTOS NAVEGACION
+// ======================================================================
 document.getElementById('navList').addEventListener('click',function(){ switchView('viewList'); });
 document.getElementById('navAdd').addEventListener('click',function(){ editingId=null; resetForm(); switchView('viewForm'); setTimeout(function(){ initFormMap(); },200); });
 document.getElementById('navStats').addEventListener('click',function(){ switchView('viewStats'); });
