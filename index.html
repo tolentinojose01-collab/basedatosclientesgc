@@ -222,11 +222,11 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN JSONBIN.IO CON TU NUEVA ACCESS_KEY
+// CONFIGURACIÓN JSONBIN.IO
 // ======================================================================
 const CONFIG = {
     JSONBIN_BIN_ID: '6a6ac0aef5f4af5e29d3dbe3',
-    JSONBIN_ACCESS_KEY: '$2a$10$UR58taCtHIE9u4.pclbViuSz1Jtwdm0K.UtH3CRxhn7k4t4XaHQom'
+    JSONBIN_ACCESS_KEY: '$2a$10$UR58taCtHIE9u4.pclbViuSz1Jtwdm0K.UtH3CRxhn7k4t4XaHQom' // Tu clave ya está puesta aquí
 };
 
 // ======================================================================
@@ -294,29 +294,43 @@ function sincronizarDatos() {
         lastUpdated: new Date().toISOString()
     };
 
-    console.log('📤 Enviando a JSONBin:', clientDataCache.length, 'clientes');
+    const dataSize = new Blob([JSON.stringify(dataToSync)]).size;
+    console.log('📦 Tamaño del JSON:', (dataSize / 1024).toFixed(2), 'KB');
+    
+    if (dataSize > 100000) {
+        showToast('⚠️ Error: El JSON supera 100KB. Borra algunas fotos.', 'error', 5000);
+        isSyncing = false;
+        updateConnectionStatus(isOnline ? 'online' : 'offline');
+        return;
+    }
 
     fetch(`https://api.jsonbin.io/v3/b/${CONFIG.JSONBIN_BIN_ID}`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            'X-Master-Key': CONFIG.JSONBIN_ACCESS_KEY
+            'X-Access-Key': CONFIG.JSONBIN_ACCESS_KEY
         },
         body: JSON.stringify(dataToSync)
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Error al subir datos: ' + response.status);
+    .then(async response => {
+        if (!response.ok) {
+            let errMsg = 'Error HTTP: ' + response.status;
+            try {
+                const errData = await response.json();
+                errMsg += ' - ' + (errData.message || JSON.stringify(errData));
+            } catch(e) {}
+            throw new Error(errMsg);
+        }
         return response.json();
     })
     .then(() => {
         showToast('✅ Datos sincronizados en la nube', 'success');
-        console.log('✅ Sincronización exitosa');
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     })
     .catch(err => {
-        console.error('❌ Error al sincronizar:', err);
-        showToast('⚠️ Error al sincronizar, datos guardados localmente', 'error');
+        console.error('❌ Error al sincronizar:', err.message);
+        showToast('⚠️ Error Sync: ' + err.message, 'error', 4000);
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     });
@@ -326,38 +340,51 @@ function cargarDatosDesdeNube() {
     showToast('🔄 Cargando datos...', 'info', 1500);
 
     fetch(`https://api.jsonbin.io/v3/b/${CONFIG.JSONBIN_BIN_ID}/latest`, {
-        headers: {
-            'X-Master-Key': CONFIG.JSONBIN_ACCESS_KEY
-        }
+        headers: { 'X-Access-Key': CONFIG.JSONBIN_ACCESS_KEY }
     })
-    .then(response => {
-        if (response.status === 404) {
-            console.log('ℹ️ No hay datos en la nube. Usando datos locales.');
-            showToast('ℹ️ Usando datos locales', 'warning', 2000);
-            return null;
+    .then(async response => {
+        if (response.status === 404) return null;
+        if (!response.ok) {
+            let errMsg = 'Error HTTP: ' + response.status;
+            try { const e = await response.json(); errMsg += ' - ' + e.message; } catch(e) {}
+            throw new Error(errMsg);
         }
-        if (!response.ok) throw new Error('Error al cargar datos: ' + response.status);
         return response.json();
     })
     .then(data => {
+        let cloudClientes = [];
         if (data && data.record && data.record.clientes) {
-            clientDataCache = data.record.clientes;
+            cloudClientes = data.record.clientes;
+        }
+
+        const local = localStorage.getItem('crm_clientes_data');
+        let localClientes = [];
+        if (local) {
+            try { localClientes = JSON.parse(local); } catch(e) {}
+        }
+
+        // PROTECCIÓN ANTI-BORRADO
+        if (cloudClientes.length > 0) {
+            // Si la nube tiene datos, bájalos
+            clientDataCache = cloudClientes;
             localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
             refreshUI();
-            showToast('✅ Datos cargados de la nube (' + clientDataCache.length + ' clientes)', 'success');
+            showToast('✅ Datos cargados de la nube (' + clientDataCache.length + ')', 'success');
+        } else if (localClientes.length > 0) {
+            // Si la nube está vacía pero el celular tiene datos, NO LOS BORRES, súbelos a la nube
+            clientDataCache = localClientes;
+            refreshUI();
+            showToast('Nube vacía. Subiendo tus ' + localClientes.length + ' clientes...', 'info', 3000);
+            setTimeout(sincronizarDatos, 1500);
         } else {
-            const local = localStorage.getItem('crm_clientes_data');
-            if (local) {
-                try { clientDataCache = JSON.parse(local); refreshUI(); } catch(e) {}
-            }
+            // Ambos están vacíos
+            refreshUI();
         }
     })
     .catch(err => {
-        console.error('❌ Error al cargar de la nube:', err);
+        console.error('❌ Error al cargar:', err.message);
         const local = localStorage.getItem('crm_clientes_data');
-        if (local) {
-            try { clientDataCache = JSON.parse(local); refreshUI(); showToast('📂 Datos cargados localmente', 'info'); } catch(e) {}
-        }
+        if (local) { try { clientDataCache = JSON.parse(local); refreshUI(); } catch(e) {} }
         showToast('⚠️ Usando datos locales', 'error');
     });
 }
@@ -375,7 +402,6 @@ function saveClient(client) {
     else clientDataCache.push(Object.assign({},client));
     localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
     refreshUI();
-    // Sincronizar después de guardar
     setTimeout(sincronizarDatos, 500);
     return true;
 }
@@ -450,12 +476,14 @@ function showClientDetail(id) {
     const visits = client.visits||[];
     const visitHtml = !visits.length ? '<p style="color:var(--text-muted);font-size:.8rem;">No hay visitas.</p>' :
         visits.map(function(v){
-            return '<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">'+new Date(v.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+'</div>'+
+            return '<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">'+new Date(v.date).toLocaleDateString('es')+'</div>'+
                 ((v.notes)?'<div class="v-notes">'+escHtml(v.notes)+'</div>':'')+'</div><div class="v-time">'+new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
         }).join('');
+    
     const lat=client.lat||'',lng=client.lng||'';
     const photoHtml = client.photo ? '<img src="'+client.photo+'" class="photo-preview" style="height:200px;object-fit:cover;width:100%;border-radius:8px;">' :
         '<p style="color:var(--text-muted);font-size:.8rem;">Sin foto</p>';
+        
     container.innerHTML =
         '<div class="detail-card"><div class="label"><i class="fas fa-user"></i> Cliente</div><div class="value"><strong>'+escHtml(client.name||'-')+'</strong></div>'+
         ((client.business)?'<div class="label"><i class="fas fa-building"></i> Negocio</div><div class="value">'+escHtml(client.business)+'</div>':'')+'</div>'+
@@ -542,7 +570,7 @@ function addVisitToClient(clientId, notes) {
 }
 
 // ======================================================================
-// VISTAS
+// VISTAS Y FORMULARIO
 // ======================================================================
 function switchView(viewId){
     document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
@@ -555,9 +583,6 @@ function switchView(viewId){
     if(viewId==='viewStats')renderStats();
 }
 
-// ======================================================================
-// FORMULARIO
-// ======================================================================
 function resetForm(){
     editingId=null; photoDataUrl=null; selectedLat=null; selectedLng=null;
     document.getElementById('clientId').value='';
@@ -604,7 +629,7 @@ function editClient(id){
 }
 
 // ======================================================================
-// MAPA
+// MAPA Y GEOSEARCH
 // ======================================================================
 function initFormMap(){
     const mc=document.getElementById('map-container'); if(!mc) return;
@@ -631,9 +656,6 @@ function updateMapLinks(lat,lng){
     if(o){ o.href='https://www.openstreetmap.org/?mlat='+lat+'&mlon='+lng+'&zoom=15'; o.style.display=''; }
 }
 
-// ======================================================================
-// GEO SEARCH
-// ======================================================================
 async function geoSearch(){
     const addr=document.getElementById('fAddress').value.trim();
     if(!addr){ showToast('Escribe una direccion','warning'); return; }
@@ -655,7 +677,7 @@ async function geoSearch(){
 }
 
 // ======================================================================
-// FOTO
+// FOTO (COMPLETADO)
 // ======================================================================
 async function handlePhotoSelect(e){
     const file=e.target.files[0]; if(!file) return;
@@ -670,260 +692,211 @@ async function handlePhotoSelect(e){
             canvas.width=w; canvas.height=h;
             const ctx=canvas.getContext('2d');
             ctx.drawImage(img,0,0,w,h);
-            photoDataUrl=canvas.toDataURL('image/jpeg',0.5);
-            document.getElementById('photoPreview').src=photoDataUrl;
+            photoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            document.getElementById('photoPreview').src = photoDataUrl;
             document.getElementById('photoPreview').classList.remove('hidden');
             document.getElementById('photoPlaceholder').classList.add('hidden');
-            showToast('Foto cargada','success',1500);
         };
-        img.src=ev.target.result;
+        img.src = ev.target.result;
     };
     reader.readAsDataURL(file);
 }
 
-function removePhoto(){
-    photoDataUrl=null;
-    document.getElementById('photoPreview').classList.add('hidden');
-    document.getElementById('photoPlaceholder').classList.remove('hidden');
-    document.getElementById('fPhoto').value='';
-}
+// ======================================================================
+// ESTADÍSTICAS, IMPORTAR/EXPORTAR, IMPRIMIR
+// ======================================================================
+function renderStats() {
+    const total = clientDataCache.length;
+    let totalVisits = 0;
+    let visitsToday = 0;
+    let topClient = '-';
+    let maxVisits = 0;
+    const today = new Date().toDateString();
 
-// ======================================================================
-// ESTADISTICAS
-// ======================================================================
-function renderStats(){
-    const clients=getAllClients();
-    const totalVisits=clients.reduce(function(s,c){return s+(c.visits||[]).length;},0);
-    const todayStart=new Date(); todayStart.setHours(0,0,0,0);
-    const todayVisits=clients.reduce(function(s,c){
-        return s+(c.visits||[]).filter(function(v){return v.date>=todayStart.getTime();}).length;
-    },0);
-    let topClient='-', maxV=0;
-    clients.forEach(function(c){ const v=(c.visits||[]).length; if(v>maxV){maxV=v; topClient=c.name||'-';} });
-    document.getElementById('statTotal').textContent=clients.length;
-    document.getElementById('statVisits').textContent=totalVisits;
-    document.getElementById('statToday').textContent=todayVisits;
-    document.getElementById('statTop').textContent=maxV>0?topClient:'-';
-    const chartEl=document.getElementById('weeklyChart');
-    if(!chartEl) return;
-    const days=[]; const now=new Date();
-    for(let i=6;i>=0;i--){
-        const d=new Date(now); d.setDate(d.getDate()-i); d.setHours(0,0,0,0);
-        const s=d.getTime(), e=s+86400000;
-        const count=clients.reduce(function(sc,c){
-            return sc+(c.visits||[]).filter(function(v){return v.date>=s&&v.date<e;}).length;
-        },0);
-        days.push({label:d.toLocaleDateString('es',{weekday:'short'}), count:count});
-    }
-    const maxC=Math.max.apply(null,days.map(function(d){return d.count;}))||1;
-    chartEl.innerHTML=days.map(function(d){
-        const h=Math.max(4,(d.count/maxC)*80);
-        return '<div class="bar-item"><div class="bar" style="height:'+h+'px;"></div><div class="bar-label">'+d.label+'</div></div>';
-    }).join('');
-}
-
-// ======================================================================
-// EXPORTAR / IMPORTAR
-// ======================================================================
-function exportData(includePhotos){
-    const data = clientDataCache.map(function(c){
-        const copy = Object.assign({}, c);
-        if(!includePhotos) delete copy.photo;
-        return copy;
+    clientDataCache.forEach(c => {
+        const vCount = (c.visits||[]).length;
+        totalVisits += vCount;
+        if (vCount > maxVisits) { maxVisits = vCount; topClient = c.name; }
+        (c.visits||[]).forEach(v => {
+            if (new Date(v.date).toDateString() === today) visitsToday++;
+        });
     });
-    const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statVisits').textContent = totalVisits;
+    document.getElementById('statToday').textContent = visitsToday;
+    document.getElementById('statTop').textContent = topClient;
+}
+
+function exportData(includePhotos) {
+    let dataToExport = clientDataCache;
+    if (!includePhotos) {
+        dataToExport = clientDataCache.map(c => {
+            let copy = {...c};
+            delete copy.photo;
+            return copy;
+        });
+    }
+    const dataStr = JSON.stringify(dataToExport, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'clientes_crm' + (includePhotos ? '' : '_sin_fotos') + '.json';
+    a.download = 'crm_clientes.json';
     a.click();
     URL.revokeObjectURL(url);
-    showToast('Exportado','success');
 }
 
-function importData(jsonStr){
-    try{
-        const data = JSON.parse(jsonStr);
-        if(!Array.isArray(data)){ showToast('Formato invalido','error'); return; }
-        showModal('Importar','Se importaran '+data.length+' clientes. ¿Continuar?','Importar',function(){
-            data.forEach(function(c){ if(!c.id) c.id='client_'+Date.now()+'_'+Math.random().toString(36).substr(2,9); });
-            clientDataCache = data;
-            localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
-            refreshUI();
-            setTimeout(sincronizarDatos, 500);
-            showToast('Importados '+data.length+' clientes','success');
+function importData(e) {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        try {
+            const imported = JSON.parse(ev.target.result);
+            if (Array.isArray(imported)) {
+                showModal('Importar', 'Se encontraron '+imported.length+' registros. ¿Deseas reemplazar los actuales?', 'Reemplazar', function() {
+                    clientDataCache = imported;
+                    localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
+                    refreshUI();
+                    setTimeout(sincronizarDatos, 500);
+                    showToast('Datos importados', 'success');
+                });
+            } else { showToast('Formato invalido', 'error'); }
+        } catch(err) { showToast('Error al leer JSON', 'error'); }
+    };
+    reader.readAsText(file);
+}
+
+function printReport(type) {
+    let win = window.open('', '', 'height=600,width=800');
+    let html = '<h1>Reporte CRM GAETO</h1>';
+    if (type === 'directory') {
+        html += '<h2>Directorio de Clientes</h2><ul>';
+        clientDataCache.forEach(c => {
+            html += '<li><strong>' + escHtml(c.name) + '</strong> - ' + escHtml(c.business||'') + ' - ' + escHtml(c.phone||'') + '</li>';
         });
-    } catch(e){ showToast('Error al importar','error'); }
+        html += '</ul>';
+    } else if (type === 'visits') {
+        html += '<h2>Reporte de Visitas</h2>';
+        clientDataCache.forEach(c => {
+            if(c.visits && c.visits.length > 0) {
+                html += '<h3>' + escHtml(c.name) + '</h3><ul>';
+                c.visits.forEach(v => {
+                    html += '<li>' + new Date(v.date).toLocaleString('es') + ' - ' + escHtml(v.notes||'') + '</li>';
+                });
+                html += '</ul>';
+            }
+        });
+    } else {
+        html += '<p>Total Clientes: ' + clientDataCache.length + '</p>';
+        let tv = 0; clientDataCache.forEach(c => tv += (c.visits||[]).length);
+        html += '<p>Total Visitas: ' + tv + '</p>';
+    }
+    win.document.write(html);
+    win.document.close();
+    win.print();
 }
 
 // ======================================================================
-// IMPRESIONES
+// EVENT LISTENERS GENERALES
 // ======================================================================
-function printClientDirectory(){
-    const c=getAllClients(); if(!c.length){ showToast('No hay clientes','error'); return; }
-    const s=c.slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
-    let r=''; s.forEach(function(c,i){ r+='<tr><td>'+i+'</td><td><strong>'+escHtml(c.name||'-')+'</strong></td><td>'+escHtml(c.business||'-')+'</td><td>'+escHtml(c.address||'-')+'</td><td>'+escHtml(c.phone||'-')+'</td><td>'+((c.visits||[]).length)+'</td></tr>'; });
-    const w=window.open('','_blank'); if(!w){ showToast('Permite ventanas emergentes','error'); return; }
-    w.document.write('<!DOCTYPE html><html><head><title>Directorio</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ccc;padding:6px;font-size:.85rem;}th{background:#1e3a8a;color:#fff;}</style></head><body><h1>Directorio</h1><p>Total: '+c.length+'</p><table><thead><tr><th>#</th><th>Nombre</th><th>Negocio</th><th>Direccion</th><th>Telefono</th><th>Visitas</th></tr></thead><tbody>'+r+'</tbody></table></body></html>');
-    w.document.close(); setTimeout(function(){w.print();},300);
-}
+document.addEventListener('DOMContentLoaded', function() {
+    cargarDatosDesdeNube();
 
-function printStatsReport(){
-    const c=getAllClients(); const tv=c.reduce(function(s,cl){return s+(cl.visits||[]).length;},0);
-    const w=window.open('','_blank'); if(!w){ showToast('Permite ventanas emergentes','error'); return; }
-    w.document.write('<!DOCTYPE html><html><head><title>Reporte</title><style>body{font-family:sans-serif;margin:20px;}h1{color:#1e3a8a;}</style></head><body><h1>Reporte CRM</h1><p>Clientes: '+c.length+' | Visitas: '+tv+' | Fecha: '+new Date().toLocaleDateString('es')+'</p></body></html>');
-    w.document.close(); setTimeout(function(){w.print();},300);
-}
+    document.getElementById('navList').addEventListener('click', () => switchView('viewList'));
+    document.getElementById('addQuickBtn').addEventListener('click', () => { editingId = null; switchView('viewForm'); });
+    document.getElementById('navAdd').addEventListener('click', () => { editingId = null; switchView('viewForm'); });
+    document.getElementById('navStats').addEventListener('click', () => switchView('viewStats'));
+    document.getElementById('formCancelBtn').addEventListener('click', () => switchView('viewList'));
+    document.getElementById('detailBackBtn').addEventListener('click', () => switchView('viewList'));
 
-function printVisitsReport(){
-    const clients=getAllClients(); if(!clients.length){ showToast('No hay clientes','error'); return; }
-    const allVisits=[]; clients.forEach(function(client){
-        if(client.visits && client.visits.length>0){
-            client.visits.forEach(function(visit){
-                allVisits.push({ clientName:client.name||'Sin nombre', business:client.business||'', address:client.address||'', phone:client.phone||'', date:visit.date, notes:visit.notes||'Sin nota' });
-            });
+    document.getElementById('searchInput').addEventListener('input', refreshUI);
+
+    document.getElementById('clientForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('clientId').value;
+        const client = getClient(id) || {};
+        client.name = document.getElementById('fName').value;
+        client.business = document.getElementById('fBusiness').value;
+        client.address = document.getElementById('fAddress').value;
+        client.lat = document.getElementById('fLat').value;
+        client.lng = document.getElementById('fLng').value;
+        client.colony = document.getElementById('fColony').value;
+        client.phone = document.getElementById('fPhone').value;
+        client.references = document.getElementById('fReferences').value;
+        if(photoDataUrl) client.photo = photoDataUrl;
+        
+        const visitNote = document.getElementById('fVisitNote').value.trim();
+        if (visitNote) {
+            if(!client.visits) client.visits = [];
+            client.visits.push({ date: Date.now(), notes: visitNote });
+        }
+
+        saveClient(client);
+        editingId = null; 
+        showToast('Cliente guardado', 'success');
+        switchView('viewList');
+    });
+
+    document.getElementById('fPhoto').addEventListener('change', handlePhotoSelect);
+    document.getElementById('removePhotoBtn').addEventListener('click', function() {
+        photoDataUrl = null;
+        document.getElementById('photoPreview').classList.add('hidden');
+        document.getElementById('photoPlaceholder').classList.remove('hidden');
+        document.getElementById('fPhoto').value = '';
+    });
+
+    document.getElementById('geoBtn').addEventListener('click', geoSearch);
+    document.getElementById('updateMapCoords').addEventListener('click', function() {
+        const lat = parseFloat(document.getElementById('fLat').value);
+        const lng = parseFloat(document.getElementById('fLng').value);
+        if(!isNaN(lat) && !isNaN(lng)) {
+            selectedLat = lat; selectedLng = lng;
+            if(mapInstance) {
+                mapInstance.setView([lat, lng], 15);
+                mapInstance.eachLayer(function(l){ if(l instanceof L.Marker) mapInstance.removeLayer(l); });
+                L.marker([lat, lng]).addTo(mapInstance);
+                updateMapLinks(lat, lng);
+            } else { initFormMap(); }
+        } else { showToast('No hay coordenadas', 'warning'); }
+    });
+
+    document.getElementById('syncNowBtn').addEventListener('click', sincronizarDatos);
+    document.getElementById('resetDataBtn').addEventListener('click', function() {
+        showModal('Eliminar todos', '¿Seguro que deseas borrar TODOS los clientes?', 'Eliminar', function() {
+            clearAllClients();
+            showToast('Todos los datos eliminados', 'info');
+        });
+    });
+
+    document.getElementById('exportDataBtn').addEventListener('click', () => exportData(true));
+    document.getElementById('exportDataNoPhotoBtn').addEventListener('click', () => exportData(false));
+    document.getElementById('importDataBtn').addEventListener('click', () => document.getElementById('importFileInput').click());
+    document.getElementById('importFileInput').addEventListener('change', importData);
+
+    document.getElementById('printStatsBtn').addEventListener('click', () => printReport('stats'));
+    document.getElementById('printDirectoryBtn').addEventListener('click', () => printReport('directory'));
+    document.getElementById('printVisitsReportBtn').addEventListener('click', () => printReport('visits'));
+
+    document.getElementById('zoomInBtn').addEventListener('click', () => {
+        const cur = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        document.documentElement.style.fontSize = (cur + 1) + 'px';
+    });
+    document.getElementById('zoomOutBtn').addEventListener('click', () => {
+        const cur = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        if (cur > 12) document.documentElement.style.fontSize = (cur - 1) + 'px';
+    });
+    document.getElementById('themeToggle').addEventListener('click', function() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        if (isDark) {
+            document.documentElement.removeAttribute('data-theme');
+            this.innerHTML = '<i class="fas fa-moon"></i>';
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            this.innerHTML = '<i class="fas fa-sun"></i>';
         }
     });
-    allVisits.sort(function(a,b){return b.date-a.date;});
-    if(!allVisits.length){ showToast('No hay visitas registradas','warning'); return; }
-    let rows=''; allVisits.forEach(function(v,i){
-        const dateStr=new Date(v.date).toLocaleDateString('es',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-        const timeStr=new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
-        rows+='<tr><td>'+(i+1)+'</td><td><strong>'+escHtml(v.clientName)+'</strong></td><td>'+escHtml(v.business)+'</td><td>'+escHtml(v.address)+'</td><td>'+escHtml(v.phone)+'</td><td>'+dateStr+' '+timeStr+'</td><td>'+escHtml(v.notes)+'</td></tr>';
-    });
-    const w=window.open('','_blank'); if(!w){ showToast('Permite ventanas emergentes','error'); return; }
-    w.document.write('<!DOCTYPE html><html><head><title>Reporte de Visitas</title><style>body{font-family:"Segoe UI",sans-serif;margin:20px;background:#fff;color:#0f172a;}h1{color:#1e3a8a;border-bottom:3px solid #f59e0b;padding-bottom:10px;}.stats{display:flex;gap:20px;margin:16px 0;flex-wrap:wrap;}.stats .stat{background:#f8fafc;padding:8px 16px;border-radius:8px;border:1px solid #e0e7ff;}table{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85rem;}th,td{border:1px solid #e0e7ff;padding:8px 10px;text-align:left;}th{background:#1e3a8a;color:#fff;}tr:nth-child(even){background:#f8fafc;}@media print{body{margin:10px;}}</style></head><body><h1>Reporte de Visitas</h1><div class="stats"><div class="stat"><strong>'+allVisits.length+'</strong> Visitas</div><div class="stat"><strong>'+clients.length+'</strong> Clientes</div></div><table><thead><tr><th>#</th><th>Cliente</th><th>Negocio</th><th>Direccion</th><th>Telefono</th><th>Fecha/Hora</th><th>Nota</th></tr></thead><tbody>'+rows+'</tbody></table></body></html>');
-    w.document.close(); setTimeout(function(){w.print();},500);
-}
-
-// ======================================================================
-// EVENTOS FORMULARIO
-// ======================================================================
-document.getElementById('clientForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const btn = document.getElementById('formSubmitBtn');
-    const name = document.getElementById('fName').value.trim();
-    if (!name) { showToast('Nombre obligatorio','error'); return; }
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-    const client = {
-        id: editingId || null,
-        name: name,
-        business: document.getElementById('fBusiness').value.trim(),
-        address: document.getElementById('fAddress').value.trim(),
-        lat: document.getElementById('fLat').value.trim(),
-        lng: document.getElementById('fLng').value.trim(),
-        colony: document.getElementById('fColony').value.trim(),
-        phone: document.getElementById('fPhone').value.trim(),
-        references: document.getElementById('fReferences').value.trim(),
-        photo: photoDataUrl || null,
-        visits: []
-    };
-    if (editingId) { const existing = getClient(editingId); if(existing) client.visits = existing.visits||[]; }
-    const visitNote = document.getElementById('fVisitNote').value.trim();
-    if (visitNote) client.visits.push({date:Date.now(), notes:visitNote});
-    saveClient(client);
-    btn.innerHTML = '<i class="fas fa-check"></i> Guardado';
-    btn.style.background = '#22c55e';
-    showToast('Cliente guardado','success');
-    setTimeout(function(){ resetForm(); switchView('viewList'); },800);
 });
-
-// ======================================================================
-// EVENTOS NAVEGACION
-// ======================================================================
-document.getElementById('navList').addEventListener('click',function(){ switchView('viewList'); });
-document.getElementById('navAdd').addEventListener('click',function(){ editingId=null; resetForm(); switchView('viewForm'); setTimeout(function(){ initFormMap(); },200); });
-document.getElementById('navStats').addEventListener('click',function(){ switchView('viewStats'); });
-document.getElementById('addQuickBtn').addEventListener('click',function(){ editingId=null; resetForm(); switchView('viewForm'); setTimeout(function(){ initFormMap(); },200); });
-document.getElementById('searchInput').addEventListener('input',function(){ refreshUI(); });
-document.getElementById('formCancelBtn').addEventListener('click',function(){ resetForm(); switchView('viewList'); });
-document.getElementById('detailBackBtn').addEventListener('click',function(){ switchView('viewList'); });
-document.getElementById('geoBtn').addEventListener('click',function(){ geoSearch(); });
-document.getElementById('updateMapCoords').addEventListener('click',function(){
-    const lat=document.getElementById('fLat').value.trim(), lng=document.getElementById('fLng').value.trim();
-    if(lat&&lng){ selectedLat=parseFloat(lat); selectedLng=parseFloat(lng); if(mapInstance){ mapInstance.setView([selectedLat,selectedLng],16); mapInstance.eachLayer(function(l){ if(l instanceof L.Marker) mapInstance.removeLayer(l); }); L.marker([selectedLat,selectedLng]).addTo(mapInstance); updateMapLinks(selectedLat,selectedLng); } else { initFormMap(); } }
-    else{ showToast('Ingresa coordenadas','warning'); }
-});
-document.getElementById('fPhoto').addEventListener('change', handlePhotoSelect);
-document.getElementById('removePhotoBtn').addEventListener('click', removePhoto);
-
-document.getElementById('themeToggle').addEventListener('click', function(){
-    const cur=document.documentElement.getAttribute('data-theme');
-    const next=cur==='dark'?'':'dark';
-    document.documentElement.setAttribute('data-theme',next);
-    localStorage.setItem('crm_theme',next||'light');
-    const icon=document.querySelector('#themeToggle i');
-    if(icon) icon.className=next==='dark'?'fas fa-sun':'fas fa-moon';
-});
-
-document.getElementById('zoomInBtn').addEventListener('click',function(){
-    let cur=parseFloat(document.documentElement.style.fontSize)||16;
-    cur=Math.min(24, cur+1);
-    document.documentElement.style.fontSize=cur+'px';
-    localStorage.setItem('crm_zoom',cur);
-});
-document.getElementById('zoomOutBtn').addEventListener('click',function(){
-    let cur=parseFloat(document.documentElement.style.fontSize)||16;
-    cur=Math.max(12, cur-1);
-    document.documentElement.style.fontSize=cur+'px';
-    localStorage.setItem('crm_zoom',cur);
-});
-
-document.getElementById('exportDataBtn').addEventListener('click',function(){ exportData(true); });
-document.getElementById('exportDataNoPhotoBtn').addEventListener('click',function(){ exportData(false); });
-document.getElementById('importDataBtn').addEventListener('click',function(){ document.getElementById('importFileInput').click(); });
-document.getElementById('importFileInput').addEventListener('change',function(e){
-    const file=e.target.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=function(ev){ importData(ev.target.result); };
-    reader.readAsText(file);
-    e.target.value='';
-});
-
-document.getElementById('syncNowBtn').addEventListener('click', function(){
-    sincronizarDatos();
-});
-
-document.getElementById('printStatsBtn').addEventListener('click', function(){ printStatsReport(); });
-document.getElementById('printDirectoryBtn').addEventListener('click', function(){ printClientDirectory(); });
-document.getElementById('printVisitsReportBtn').addEventListener('click', function(){ printVisitsReport(); });
-
-document.getElementById('resetDataBtn').addEventListener('click', function(){
-    showModal('Eliminar todos', 'Se eliminaran TODOS los clientes. ¿Continuar?', 'Eliminar todo', function(){
-        clearAllClients();
-        showToast('Eliminados', 'info');
-    });
-});
-
-// ======================================================================
-// INICIALIZACION
-// ======================================================================
-const savedTheme = localStorage.getItem('crm_theme');
-if (savedTheme==='dark') { document.documentElement.setAttribute('data-theme','dark'); const icon=document.querySelector('#themeToggle i'); if(icon) icon.className='fas fa-sun'; }
-const savedZoom = localStorage.getItem('crm_zoom');
-if (savedZoom) { document.documentElement.style.fontSize=savedZoom+'px'; }
-
-const localData = localStorage.getItem('crm_clientes_data');
-if (localData) {
-    try { clientDataCache = JSON.parse(localData); refreshUI(); } catch(e){ clientDataCache=[]; }
-}
-
-// Cargar desde la nube al iniciar
-cargarDatosDesdeNube();
-
-// Sincronizar cada 30 segundos
-setInterval(sincronizarDatos, 30000);
-
-// Sincronizar al cerrar/recargar
-window.addEventListener('beforeunload', function(){
-    if (clientDataCache.length > 0) {
-        sincronizarDatos();
-    }
-});
-
-console.log('🚀 CRM Clientes iniciado con sincronizacion en JSONBin');
-console.log('BIN_ID:', CONFIG.JSONBIN_BIN_ID);
 </script>
 </body>
 </html>
