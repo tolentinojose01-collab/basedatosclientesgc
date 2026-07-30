@@ -226,7 +226,7 @@
 // ======================================================================
 const CONFIG = {
     JSONBIN_BIN_ID: '6a6ac0aef5f4af5e29d3dbe3',
-    JSONBIN_ACCESS_KEY: '$2a$10$UR58taCtHIE9u4.pclbViuSz1Jtwdm0K.UtH3CRxhn7k4t4XaHQom' // Tu clave ya está puesta aquí
+    JSONBIN_ACCESS_KEY: '$2a$10$UR58taCtHIE9u4.pclbViuSz1Jtwdm0K.UtH3CRxhn7k4t4XaHQom'
 };
 
 // ======================================================================
@@ -272,6 +272,38 @@ function showModal(title, body, confirmText, onConfirm) {
 function escHtml(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
 // ======================================================================
+// MANEJO DE DATOS LOCALES (CON TIMESTAMP)
+// ======================================================================
+function getLocalData() {
+    let localStr = localStorage.getItem('crm_gaeto_data');
+    if (!localStr) {
+        // Migrar de formato viejo si existe
+        const oldStr = localStorage.getItem('crm_clientes_data');
+        if (oldStr) {
+            try {
+                const oldData = JSON.parse(oldStr);
+                return { clientes: oldData, lastUpdated: new Date(0).toISOString() }; // Epoca para forzar subida
+            } catch(e) {}
+        }
+        return { clientes: [], lastUpdated: new Date().toISOString() };
+    }
+    try {
+        const parsed = JSON.parse(localStr);
+        return { 
+            clientes: parsed.clientes || [], 
+            lastUpdated: parsed.lastUpdated || new Date(0).toISOString() 
+        };
+    } catch(e) {
+        return { clientes: [], lastUpdated: new Date(0).toISOString() };
+    }
+}
+
+function setLocalData(clientes, lastUpdated) {
+    localStorage.setItem('crm_gaeto_data', JSON.stringify({ clientes, lastUpdated }));
+    localStorage.setItem('crm_clientes_data', JSON.stringify(clientes)); // Backup formato viejo
+}
+
+// ======================================================================
 // SINCRONIZACIÓN CON JSONBIN.IO
 // ======================================================================
 function updateConnectionStatus(status) {
@@ -283,15 +315,16 @@ function updateConnectionStatus(status) {
     else if (status === 'syncing') { dot.classList.add('syncing'); text.textContent = 'sincronizando...'; }
 }
 
-function sincronizarDatos() {
+function sincronizarDatos(silent = false) {
     if (isSyncing) return;
     isSyncing = true;
     updateConnectionStatus('syncing');
-    showToast('🔄 Sincronizando...', 'info', 1500);
+    if(!silent) showToast('🔄 Sincronizando...', 'info', 1500);
 
+    const now = new Date().toISOString();
     const dataToSync = {
         clientes: clientDataCache,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: now
     };
 
     const dataSize = new Blob([JSON.stringify(dataToSync)]).size;
@@ -324,20 +357,21 @@ function sincronizarDatos() {
         return response.json();
     })
     .then(() => {
-        showToast('✅ Datos sincronizados en la nube', 'success');
+        setLocalData(clientDataCache, now); // Confirmar que la nube se actualizó
+        if(!silent) showToast('✅ Sincronizado en la nube', 'success');
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     })
     .catch(err => {
         console.error('❌ Error al sincronizar:', err.message);
-        showToast('⚠️ Error Sync: ' + err.message, 'error', 4000);
+        if(!silent) showToast('⚠️ Error Sync: ' + err.message, 'error', 4000);
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     });
 }
 
-function cargarDatosDesdeNube() {
-    showToast('🔄 Cargando datos...', 'info', 1500);
+function cargarDatosDesdeNube(silent = false) {
+    if(!silent) showToast('🔄 Cargando datos...', 'info', 1500);
 
     fetch(`https://api.jsonbin.io/v3/b/${CONFIG.JSONBIN_BIN_ID}/latest`, {
         headers: { 'X-Access-Key': CONFIG.JSONBIN_ACCESS_KEY }
@@ -353,39 +387,50 @@ function cargarDatosDesdeNube() {
     })
     .then(data => {
         let cloudClientes = [];
-        if (data && data.record && data.record.clientes) {
-            cloudClientes = data.record.clientes;
+        let cloudLastUpdated = 0;
+        if (data && data.record) {
+            if (Array.isArray(data.record.clientes)) {
+                cloudClientes = data.record.clientes;
+                cloudLastUpdated = data.record.lastUpdated ? new Date(data.record.lastUpdated).getTime() : Date.now();
+            }
         }
 
-        const local = localStorage.getItem('crm_clientes_data');
-        let localClientes = [];
-        if (local) {
-            try { localClientes = JSON.parse(local); } catch(e) {}
-        }
+        const localData = getLocalData();
+        let localClientes = localData.clientes;
+        let localLastUpdated = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
 
-        // PROTECCIÓN ANTI-BORRADO
-        if (cloudClientes.length > 0) {
-            // Si la nube tiene datos, bájalos
+        // LÓGICA DE SINCRONIZACIÓN INTELIGENTE
+        if (cloudClientes.length > 0 && cloudLastUpdated > localLastUpdated) {
+            // La nube es más nueva -> Descargar
             clientDataCache = cloudClientes;
-            localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
+            setLocalData(clientDataCache, new Date(cloudLastUpdated).toISOString());
             refreshUI();
-            showToast('✅ Datos cargados de la nube (' + clientDataCache.length + ')', 'success');
-        } else if (localClientes.length > 0) {
-            // Si la nube está vacía pero el celular tiene datos, NO LOS BORRES, súbelos a la nube
+            if(!silent) showToast('✅ Datos actualizados desde la nube (' + clientDataCache.length + ')', 'success');
+        } else if (cloudClientes.length === 0 && localClientes.length > 0) {
+            // La nube está vacía pero el celular tiene datos -> Subir
             clientDataCache = localClientes;
             refreshUI();
-            showToast('Nube vacía. Subiendo tus ' + localClientes.length + ' clientes...', 'info', 3000);
-            setTimeout(sincronizarDatos, 1500);
+            if(!silent) showToast('Subiendo datos a la nube...', 'info', 2000);
+            setTimeout(() => sincronizarDatos(true), 500);
+        } else if (localLastUpdated > cloudLastUpdated) {
+            // El celular es más nuevo -> Mantener local y subir en silencio
+            clientDataCache = localClientes;
+            refreshUI();
+            setTimeout(() => sincronizarDatos(true), 1000);
         } else {
-            // Ambos están vacíos
+            // Todo está sincronizado, usar local
+            clientDataCache = localClientes;
             refreshUI();
         }
     })
     .catch(err => {
-        console.error('❌ Error al cargar:', err.message);
-        const local = localStorage.getItem('crm_clientes_data');
-        if (local) { try { clientDataCache = JSON.parse(local); refreshUI(); } catch(e) {} }
-        showToast('⚠️ Usando datos locales', 'error');
+        if(!silent) {
+            console.error('❌ Error al cargar:', err.message);
+            const localData = getLocalData();
+            clientDataCache = localData.clientes;
+            refreshUI();
+            showToast('⚠️ Usando datos locales', 'error');
+        }
     });
 }
 
@@ -400,9 +445,12 @@ function saveClient(client) {
     const idx = clientDataCache.findIndex(function(c){return c.id==client.id;});
     if (idx !== -1) clientDataCache[idx] = Object.assign({},client);
     else clientDataCache.push(Object.assign({},client));
-    localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
+    
+    // Guardar local con NUEVA marca de tiempo para que sepa que es lo más reciente
+    setLocalData(clientDataCache, new Date().toISOString());
+    
     refreshUI();
-    setTimeout(sincronizarDatos, 500);
+    setTimeout(() => sincronizarDatos(true), 500);
     return true;
 }
 
@@ -410,17 +458,17 @@ function deleteClient(id) {
     const idx = clientDataCache.findIndex(function(c){return c.id==id;});
     if (idx !== -1) {
         clientDataCache.splice(idx,1);
-        localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
+        setLocalData(clientDataCache, new Date().toISOString());
         refreshUI();
-        setTimeout(sincronizarDatos, 500);
+        setTimeout(() => sincronizarDatos(true), 500);
     }
 }
 
 function clearAllClients() {
     clientDataCache = [];
-    localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
+    setLocalData(clientDataCache, new Date().toISOString());
     refreshUI();
-    setTimeout(sincronizarDatos, 500);
+    setTimeout(() => sincronizarDatos(true), 500);
 }
 
 // ======================================================================
@@ -756,9 +804,9 @@ function importData(e) {
             if (Array.isArray(imported)) {
                 showModal('Importar', 'Se encontraron '+imported.length+' registros. ¿Deseas reemplazar los actuales?', 'Reemplazar', function() {
                     clientDataCache = imported;
-                    localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
+                    setLocalData(clientDataCache, new Date().toISOString());
                     refreshUI();
-                    setTimeout(sincronizarDatos, 500);
+                    setTimeout(() => sincronizarDatos(false), 500);
                     showToast('Datos importados', 'success');
                 });
             } else { showToast('Formato invalido', 'error'); }
@@ -798,10 +846,23 @@ function printReport(type) {
 }
 
 // ======================================================================
-// EVENT LISTENERS GENERALES
+// EVENT LISTENERS GENERALES Y AUTO-ACTUALIZACIÓN
 // ======================================================================
 document.addEventListener('DOMContentLoaded', function() {
-    cargarDatosDesdeNube();
+    cargarDatosDesdeNube(false);
+
+    // AUTO-ACTUALIZACIÓN: Checar la nube en silencio cada 20 segundos
+    setInterval(() => cargarDatosDesdeNube(true), 20000);
+
+    // AUTO-ACTUALIZACIÓN: Checar la nube instantáneamente si el usuario vuelve a la pestaña
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            cargarDatosDesdeNube(true);
+        }
+    });
+    window.addEventListener('focus', function() {
+        cargarDatosDesdeNube(true);
+    });
 
     document.getElementById('navList').addEventListener('click', () => switchView('viewList'));
     document.getElementById('addQuickBtn').addEventListener('click', () => { editingId = null; switchView('viewForm'); });
@@ -861,7 +922,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else { showToast('No hay coordenadas', 'warning'); }
     });
 
-    document.getElementById('syncNowBtn').addEventListener('click', sincronizarDatos);
+    document.getElementById('syncNowBtn').addEventListener('click', () => cargarDatosDesdeNube(false));
     document.getElementById('resetDataBtn').addEventListener('click', function() {
         showModal('Eliminar todos', '¿Seguro que deseas borrar TODOS los clientes?', 'Eliminar', function() {
             clearAllClients();
