@@ -56,11 +56,11 @@
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
         .form-card .form-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--text); }
-        .form-group { margin-bottom:12px; }
+        .form-group { margin-bottom:12px; min-width:0; } /* ARREGLO PARA QUE NO SE SAQUE DE PANTALLA */
         .form-group label { display:block; font-size:.7rem; font-weight:600; color:var(--text-secondary); margin-bottom:3px; text-transform:uppercase; letter-spacing:.3px; }
-        .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; }
-        .form-group .input-wrap i { color:var(--text-muted); width:18px; text-align:center; }
-        .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:.95rem; background:transparent; flex:1; min-width:80px; color:var(--text); }
+        .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; min-width:0; } /* ARREGLO */
+        .form-group .input-wrap i { color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
+        .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:.95rem; background:transparent; flex:1; min-width:0; color:var(--text); } /* ARREGLO */
         .form-group .input-wrap textarea { min-height:50px; resize:vertical; }
         .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
         .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:.9rem; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; flex:1; }
@@ -70,7 +70,7 @@
         .btn-accent { background:linear-gradient(135deg,var(--accent),#d97706); color:#1e293b; }
         .btn-success { background:#22c55e; color:#fff; }
         .btn-sm { padding:6px 12px; font-size:.8rem; flex:0 0 auto; }
-        .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:.8rem; border:none; cursor:pointer; }
+        .btn-geo { background:var(--primary); color:#fff; padding:6px 12px; border-radius:8px; font-size:.8rem; border:none; cursor:pointer; flex-shrink:0; }
         .form-actions { display:flex; gap:8px; margin-top:16px; }
         #map-container { width:100%; height:300px; border-radius:8px; overflow:hidden; border:1.5px solid var(--border); margin-top:8px; background:var(--bg-main); position:relative; }
         .map-actions { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
@@ -277,12 +277,11 @@ function escHtml(str) { if (!str) return ''; const d = document.createElement('d
 function getLocalData() {
     let localStr = localStorage.getItem('crm_gaeto_data');
     if (!localStr) {
-        // Migrar de formato viejo si existe
         const oldStr = localStorage.getItem('crm_clientes_data');
         if (oldStr) {
             try {
                 const oldData = JSON.parse(oldStr);
-                return { clientes: oldData, lastUpdated: new Date(0).toISOString() }; // Epoca para forzar subida
+                return { clientes: oldData, lastUpdated: new Date(0).toISOString() };
             } catch(e) {}
         }
         return { clientes: [], lastUpdated: new Date().toISOString() };
@@ -300,7 +299,7 @@ function getLocalData() {
 
 function setLocalData(clientes, lastUpdated) {
     localStorage.setItem('crm_gaeto_data', JSON.stringify({ clientes, lastUpdated }));
-    localStorage.setItem('crm_clientes_data', JSON.stringify(clientes)); // Backup formato viejo
+    localStorage.setItem('crm_clientes_data', JSON.stringify(clientes));
 }
 
 // ======================================================================
@@ -357,7 +356,7 @@ function sincronizarDatos(silent = false) {
         return response.json();
     })
     .then(() => {
-        setLocalData(clientDataCache, now); // Confirmar que la nube se actualizó
+        setLocalData(clientDataCache, now);
         if(!silent) showToast('✅ Sincronizado en la nube', 'success');
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
@@ -399,26 +398,21 @@ function cargarDatosDesdeNube(silent = false) {
         let localClientes = localData.clientes;
         let localLastUpdated = localData.lastUpdated ? new Date(localData.lastUpdated).getTime() : 0;
 
-        // LÓGICA DE SINCRONIZACIÓN INTELIGENTE
         if (cloudClientes.length > 0 && cloudLastUpdated > localLastUpdated) {
-            // La nube es más nueva -> Descargar
             clientDataCache = cloudClientes;
             setLocalData(clientDataCache, new Date(cloudLastUpdated).toISOString());
             refreshUI();
             if(!silent) showToast('✅ Datos actualizados desde la nube (' + clientDataCache.length + ')', 'success');
         } else if (cloudClientes.length === 0 && localClientes.length > 0) {
-            // La nube está vacía pero el celular tiene datos -> Subir
             clientDataCache = localClientes;
             refreshUI();
             if(!silent) showToast('Subiendo datos a la nube...', 'info', 2000);
             setTimeout(() => sincronizarDatos(true), 500);
         } else if (localLastUpdated > cloudLastUpdated) {
-            // El celular es más nuevo -> Mantener local y subir en silencio
             clientDataCache = localClientes;
             refreshUI();
             setTimeout(() => sincronizarDatos(true), 1000);
         } else {
-            // Todo está sincronizado, usar local
             clientDataCache = localClientes;
             refreshUI();
         }
@@ -445,10 +439,7 @@ function saveClient(client) {
     const idx = clientDataCache.findIndex(function(c){return c.id==client.id;});
     if (idx !== -1) clientDataCache[idx] = Object.assign({},client);
     else clientDataCache.push(Object.assign({},client));
-    
-    // Guardar local con NUEVA marca de tiempo para que sepa que es lo más reciente
     setLocalData(clientDataCache, new Date().toISOString());
-    
     refreshUI();
     setTimeout(() => sincronizarDatos(true), 500);
     return true;
@@ -725,7 +716,7 @@ async function geoSearch(){
 }
 
 // ======================================================================
-// FOTO (COMPLETADO)
+// FOTO
 // ======================================================================
 async function handlePhotoSelect(e){
     const file=e.target.files[0]; if(!file) return;
@@ -751,7 +742,7 @@ async function handlePhotoSelect(e){
 }
 
 // ======================================================================
-// ESTADÍSTICAS, IMPORTAR/EXPORTAR, IMPRIMIR
+// ESTADÍSTICAS, IMPORTAR/EXPORTAR
 // ======================================================================
 function renderStats() {
     const total = clientDataCache.length;
@@ -815,34 +806,110 @@ function importData(e) {
     reader.readAsText(file);
 }
 
+// ======================================================================
+// REPORTES PARA IMPRESIÓN Y PDF
+// ======================================================================
 function printReport(type) {
-    let win = window.open('', '', 'height=600,width=800');
-    let html = '<h1>Reporte CRM GAETO</h1>';
+    let win = window.open('', '_blank', 'width=800,height=600');
+    let html = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Reporte CRM GAETO</title>
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; color: #333; line-height: 1.5; }
+            h1 { color: #1e3a8a; border-bottom: 3px solid #f59e0b; padding-bottom: 10px; margin-bottom: 20px; }
+            h2 { color: #172554; margin-top: 30px; background: #f0f4ff; padding: 8px 12px; border-left: 5px solid #1e3a8a; }
+            table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 14px; }
+            th, td { border: 1px solid #e0e7ff; padding: 10px; text-align: left; }
+            th { background-color: #1e3a8a; color: #fff; font-weight: 600; }
+            tr:nth-child(even) { background-color: #f8fafc; }
+            .client-section { margin-bottom: 25px; page-break-inside: avoid; }
+            .client-name { font-size: 18px; font-weight: bold; color: #1e3a8a; margin-bottom: 5px; border-bottom: 2px dashed #e0e7ff; padding-bottom: 5px; }
+            .no-print { margin-top: 30px; text-align: center; }
+            .btn-pdf { padding: 12px 24px; background: #dc2626; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            .btn-pdf:hover { background: #b91c1c; }
+            @media print {
+                .no-print { display: none; }
+                body { padding: 0; }
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Reporte CRM GAETO</h1>
+    `;
+
     if (type === 'directory') {
-        html += '<h2>Directorio de Clientes</h2><ul>';
+        html += '<h2>Directorio de Clientes</h2>';
+        html += '<table><thead><tr><th>Nombre</th><th>Negocio</th><th>Teléfono</th><th>Dirección</th><th>Coordenadas</th></tr></thead><tbody>';
         clientDataCache.forEach(c => {
-            html += '<li><strong>' + escHtml(c.name) + '</strong> - ' + escHtml(c.business||'') + ' - ' + escHtml(c.phone||'') + '</li>';
+            let coords = '-';
+            if(c.lat && c.lng) {
+                coords = `${escHtml(c.lat)}, ${escHtml(c.lng)}`;
+            }
+            html += `<tr>
+                <td><strong>${escHtml(c.name||'-')}</strong></td>
+                <td>${escHtml(c.business||'-')}</td>
+                <td>${escHtml(c.phone||'-')}</td>
+                <td>${escHtml(c.address||'-')}</td>
+                <td>${coords}</td>
+            </tr>`;
         });
-        html += '</ul>';
+        html += '</tbody></table>';
     } else if (type === 'visits') {
-        html += '<h2>Reporte de Visitas</h2>';
+        html += '<h2>Reporte de Visitas y Comentarios</h2>';
+        if(clientDataCache.length === 0 || !clientDataCache.some(c => c.visits && c.visits.length > 0)) {
+            html += '<p>No hay visitas registradas.</p>';
+        } else {
+            clientDataCache.forEach(c => {
+                if(c.visits && c.visits.length > 0) {
+                    html += '<div class="client-section">';
+                    html += `<div class="client-name">${escHtml(c.name)} ${c.business ? '(' + escHtml(c.business) + ')' : ''}</div>`;
+                    html += '<table><thead><tr><th style="width:30%;">Fecha y Hora</th><th style="width:70%;">Comentarios / Notas de Visita</th></tr></thead><tbody>';
+                    c.visits.forEach(v => {
+                        const dateStr = new Date(v.date).toLocaleString('es', { dateStyle: 'long', timeStyle: 'short' });
+                        html += `<tr>
+                            <td style="vertical-align:top;"><strong>${dateStr}</strong></td>
+                            <td>${escHtml(v.notes||'Sin comentarios')}</td>
+                        </tr>`;
+                    });
+                    html += '</tbody></table>';
+                    html += '</div>';
+                }
+            });
+        }
+    } else {
+        html += '<h2>Resumen General</h2>';
+        html += `<p><strong>Total Clientes:</strong> ${clientDataCache.length}</p>`;
+        let tv = 0; clientDataCache.forEach(c => tv += (c.visits||[]).length);
+        html += `<p><strong>Total Visitas:</strong> ${tv}</p>`;
+        
+        html += '<h2>Detalle de Visitas</h2>';
         clientDataCache.forEach(c => {
             if(c.visits && c.visits.length > 0) {
-                html += '<h3>' + escHtml(c.name) + '</h3><ul>';
+                html += '<div class="client-section">';
+                html += `<div class="client-name">${escHtml(c.name)}</div>`;
+                html += '<table><thead><tr><th style="width:30%;">Fecha y Hora</th><th style="width:70%;">Comentarios</th></tr></thead><tbody>';
                 c.visits.forEach(v => {
-                    html += '<li>' + new Date(v.date).toLocaleString('es') + ' - ' + escHtml(v.notes||'') + '</li>';
+                    const dateStr = new Date(v.date).toLocaleString('es', { dateStyle: 'long', timeStyle: 'short' });
+                    html += `<tr><td style="vertical-align:top;"><strong>${dateStr}</strong></td><td>${escHtml(v.notes||'Sin comentarios')}</td></tr>`;
                 });
-                html += '</ul>';
+                html += '</tbody></table>';
+                html += '</div>';
             }
         });
-    } else {
-        html += '<p>Total Clientes: ' + clientDataCache.length + '</p>';
-        let tv = 0; clientDataCache.forEach(c => tv += (c.visits||[]).length);
-        html += '<p>Total Visitas: ' + tv + '</p>';
     }
+
+    html += `
+        <div class="no-print">
+            <button class="btn-pdf" onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        </div>
+    `;
+    html += '</body></html>';
+
     win.document.write(html);
     win.document.close();
-    win.print();
 }
 
 // ======================================================================
@@ -851,10 +918,8 @@ function printReport(type) {
 document.addEventListener('DOMContentLoaded', function() {
     cargarDatosDesdeNube(false);
 
-    // AUTO-ACTUALIZACIÓN: Checar la nube en silencio cada 20 segundos
     setInterval(() => cargarDatosDesdeNube(true), 20000);
 
-    // AUTO-ACTUALIZACIÓN: Checar la nube instantáneamente si el usuario vuelve a la pestaña
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
             cargarDatosDesdeNube(true);
