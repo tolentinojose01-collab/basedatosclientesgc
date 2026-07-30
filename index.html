@@ -222,11 +222,11 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN JSONBIN.IO - CRM CLIENTES
+// CONFIGURACIÓN JSONBIN.IO CON TU NUEVA ACCESS_KEY
 // ======================================================================
 const CONFIG = {
     JSONBIN_BIN_ID: '6a6ac0aef5f4af5e29d3dbe3',
-    JSONBIN_ACCESS_KEY: '$2a$10$99BFJptqxZp6zek.EXJkkOicXeRlm3UaRP0pNFLrnq45Oy96BUZa'
+    JSONBIN_ACCESS_KEY: '$2a$10$vwcN3UPcn4mWSQLGDG25CuPD6ar0zjRrMThU9LituXH.N5ckBkRJ2'
 };
 
 // ======================================================================
@@ -294,6 +294,8 @@ function sincronizarDatos() {
         lastUpdated: new Date().toISOString()
     };
 
+    console.log('📤 Enviando a JSONBin:', clientDataCache.length, 'clientes');
+
     fetch(`https://api.jsonbin.io/v3/b/${CONFIG.JSONBIN_BIN_ID}`, {
         method: 'PUT',
         headers: {
@@ -308,6 +310,7 @@ function sincronizarDatos() {
     })
     .then(() => {
         showToast('✅ Datos sincronizados en la nube', 'success');
+        console.log('✅ Sincronización exitosa');
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     })
@@ -372,7 +375,8 @@ function saveClient(client) {
     else clientDataCache.push(Object.assign({},client));
     localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
     refreshUI();
-    sincronizarDatos();
+    // Sincronizar después de guardar
+    setTimeout(sincronizarDatos, 500);
     return true;
 }
 
@@ -382,7 +386,7 @@ function deleteClient(id) {
         clientDataCache.splice(idx,1);
         localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
         refreshUI();
-        sincronizarDatos();
+        setTimeout(sincronizarDatos, 500);
     }
 }
 
@@ -390,7 +394,7 @@ function clearAllClients() {
     clientDataCache = [];
     localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
     refreshUI();
-    sincronizarDatos();
+    setTimeout(sincronizarDatos, 500);
 }
 
 // ======================================================================
@@ -746,7 +750,7 @@ function importData(jsonStr){
             clientDataCache = data;
             localStorage.setItem('crm_clientes_data', JSON.stringify(clientDataCache));
             refreshUI();
-            sincronizarDatos();
+            setTimeout(sincronizarDatos, 500);
             showToast('Importados '+data.length+' clientes','success');
         });
     } catch(e){ showToast('Error al importar','error'); }
@@ -908,8 +912,8 @@ if (localData) {
 // Cargar desde la nube al iniciar
 cargarDatosDesdeNube();
 
-// Sincronizar cada 5 minutos
-setInterval(sincronizarDatos, 300000);
+// Sincronizar cada 30 segundos
+setInterval(sincronizarDatos, 30000);
 
 // Sincronizar al cerrar/recargar
 window.addEventListener('beforeunload', function(){
