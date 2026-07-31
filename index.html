@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- SDK de Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         html, body { height:100%; font-family:'Segoe UI',system-ui,sans-serif; background:#f0f4ff; overflow:visible !important; }
@@ -56,11 +59,11 @@
         .empty-state i { font-size:3rem; display:block; margin-bottom:12px; color:var(--border); }
         .form-card { background:var(--bg-card); border-radius:14px; padding:18px; border:1px solid var(--border); box-shadow:var(--shadow); }
         .form-card .form-title { font-size:1.1rem; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:var(--text); }
-        .form-group { margin-bottom:12px; min-width:0; } /* ARREGLO PARA QUE NO SE SAQUE DE PANTALLA */
+        .form-group { margin-bottom:12px; min-width:0; }
         .form-group label { display:block; font-size:.7rem; font-weight:600; color:var(--text-secondary); margin-bottom:3px; text-transform:uppercase; letter-spacing:.3px; }
-        .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; min-width:0; } /* ARREGLO */
+        .form-group .input-wrap { display:flex; align-items:center; background:var(--bg-main); border:1.5px solid var(--border); border-radius:8px; padding:0 10px; gap:8px; flex-wrap:wrap; min-width:0; }
         .form-group .input-wrap i { color:var(--text-muted); width:18px; text-align:center; flex-shrink:0; }
-        .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:.95rem; background:transparent; flex:1; min-width:0; color:var(--text); } /* ARREGLO */
+        .form-group .input-wrap input, .form-group .input-wrap textarea { border:none; outline:none; padding:10px 0; font-size:.95rem; background:transparent; flex:1; min-width:0; color:var(--text); }
         .form-group .input-wrap textarea { min-height:50px; resize:vertical; }
         .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
         .btn { padding:10px 16px; border-radius:8px; font-weight:600; font-size:.9rem; border:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px; flex:1; }
@@ -222,12 +225,18 @@
 
 <script>
 // ======================================================================
-// CONFIGURACIÓN JSONBIN.IO
+// CONFIGURACIÓN SUPABASE
 // ======================================================================
-const CONFIG = {
-    JSONBIN_BIN_ID: '6a6ac0aef5f4af5e29d3dbe3',
-    JSONBIN_ACCESS_KEY: '$2a$10$UR58taCtHIE9u4.pclbViuSz1Jtwdm0K.UtH3CRxhn7k4t4XaHQom'
-};
+const SUPABASE_URL = 'https://cleideovxwrfqogwbpwl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_pyACu2OeaiN9b3fZoKdQjA_Gs2HKV0z';
+let supabaseClient = null;
+try {
+    if (window.supabase) {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    }
+} catch(e) {
+    console.error('Supabase no pudo cargar, usando modo local.', e);
+}
 
 // ======================================================================
 // ESTADO
@@ -303,7 +312,7 @@ function setLocalData(clientes, lastUpdated) {
 }
 
 // ======================================================================
-// SINCRONIZACIÓN CON JSONBIN.IO
+// SINCRONIZACIÓN CON SUPABASE
 // ======================================================================
 function updateConnectionStatus(status) {
     const dot = document.getElementById('statusDot');
@@ -314,7 +323,8 @@ function updateConnectionStatus(status) {
     else if (status === 'syncing') { dot.classList.add('syncing'); text.textContent = 'sincronizando...'; }
 }
 
-function sincronizarDatos(silent = false) {
+async function sincronizarDatos(silent = false) {
+    if (!supabaseClient) return;
     if (isSyncing) return;
     isSyncing = true;
     updateConnectionStatus('syncing');
@@ -326,71 +336,46 @@ function sincronizarDatos(silent = false) {
         lastUpdated: now
     };
 
-    const dataSize = new Blob([JSON.stringify(dataToSync)]).size;
-    console.log('📦 Tamaño del JSON:', (dataSize / 1024).toFixed(2), 'KB');
-    
-    if (dataSize > 100000) {
-        showToast('⚠️ Error: El JSON supera 100KB. Borra algunas fotos.', 'error', 5000);
-        isSyncing = false;
-        updateConnectionStatus(isOnline ? 'online' : 'offline');
-        return;
-    }
+    try {
+        const { error } = await supabaseClient
+            .from('crm_clientes')
+            .upsert({ id: 1, contenido: dataToSync });
 
-    fetch(`https://api.jsonbin.io/v3/b/${CONFIG.JSONBIN_BIN_ID}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Access-Key': CONFIG.JSONBIN_ACCESS_KEY
-        },
-        body: JSON.stringify(dataToSync)
-    })
-    .then(async response => {
-        if (!response.ok) {
-            let errMsg = 'Error HTTP: ' + response.status;
-            try {
-                const errData = await response.json();
-                errMsg += ' - ' + (errData.message || JSON.stringify(errData));
-            } catch(e) {}
-            throw new Error(errMsg);
-        }
-        return response.json();
-    })
-    .then(() => {
+        if (error) throw error;
+
         setLocalData(clientDataCache, now);
         if(!silent) showToast('✅ Sincronizado en la nube', 'success');
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
-    })
-    .catch(err => {
+    } catch (err) {
         console.error('❌ Error al sincronizar:', err.message);
-        if(!silent) showToast('⚠️ Error Sync: ' + err.message, 'error', 4000);
+        if(!silent) showToast('⚠️ Error: ' + err.message, 'error', 4000);
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
-    });
+    }
 }
 
-function cargarDatosDesdeNube(silent = false) {
+async function cargarDatosDesdeNube(silent = false) {
+    if (!supabaseClient) {
+        mostrarSync('ℹ️ Modo local', 'error');
+        return false;
+    }
     if(!silent) showToast('🔄 Cargando datos...', 'info', 1500);
+    try {
+        const { data, error } = await supabaseClient
+            .from('crm_clientes')
+            .select('contenido')
+            .eq('id', 1)
+            .single();
 
-    fetch(`https://api.jsonbin.io/v3/b/${CONFIG.JSONBIN_BIN_ID}/latest`, {
-        headers: { 'X-Access-Key': CONFIG.JSONBIN_ACCESS_KEY }
-    })
-    .then(async response => {
-        if (response.status === 404) return null;
-        if (!response.ok) {
-            let errMsg = 'Error HTTP: ' + response.status;
-            try { const e = await response.json(); errMsg += ' - ' + e.message; } catch(e) {}
-            throw new Error(errMsg);
-        }
-        return response.json();
-    })
-    .then(data => {
+        if (error && error.code !== 'PGRST116') throw error;
+
         let cloudClientes = [];
         let cloudLastUpdated = 0;
-        if (data && data.record) {
-            if (Array.isArray(data.record.clientes)) {
-                cloudClientes = data.record.clientes;
-                cloudLastUpdated = data.record.lastUpdated ? new Date(data.record.lastUpdated).getTime() : Date.now();
+        if (data && data.contenido) {
+            if (Array.isArray(data.contenido.clientes)) {
+                cloudClientes = data.contenido.clientes;
+                cloudLastUpdated = data.contenido.lastUpdated ? new Date(data.contenido.lastUpdated).getTime() : Date.now();
             }
         }
 
@@ -416,8 +401,7 @@ function cargarDatosDesdeNube(silent = false) {
             clientDataCache = localClientes;
             refreshUI();
         }
-    })
-    .catch(err => {
+    } catch (err) {
         if(!silent) {
             console.error('❌ Error al cargar:', err.message);
             const localData = getLocalData();
@@ -425,7 +409,7 @@ function cargarDatosDesdeNube(silent = false) {
             refreshUI();
             showToast('⚠️ Usando datos locales', 'error');
         }
-    });
+    }
 }
 
 // ======================================================================
@@ -742,7 +726,7 @@ async function handlePhotoSelect(e){
 }
 
 // ======================================================================
-// ESTADÍSTICAS, IMPORTAR/EXPORTAR
+// ESTADÍSTICAS, IMPORTAR/EXPORTAR, IMPRIMIR
 // ======================================================================
 function renderStats() {
     const total = clientDataCache.length;
@@ -806,9 +790,6 @@ function importData(e) {
     reader.readAsText(file);
 }
 
-// ======================================================================
-// REPORTES PARA IMPRESIÓN Y PDF
-// ======================================================================
 function printReport(type) {
     let win = window.open('', '_blank', 'width=800,height=600');
     let html = `
