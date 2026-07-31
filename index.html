@@ -227,15 +227,17 @@
 // ======================================================================
 // CONFIGURACIÓN SUPABASE
 // ======================================================================
-const SUPABASE_URL = 'https://cleideovxwrfqogwbpwl.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_pyACu2OeaiN9b3fZoKdQjA_Gs2HKV0z';
+const SUPABASE_URL = 'https://rvvvlrbtmhfbkygzcebw.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_J2uG3_9SeR4VAWei9w_7bA_2WXxsSQ5';
 let supabaseClient = null;
 try {
     if (window.supabase) {
         supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+        console.error('La librería de Supabase no cargó.');
     }
 } catch(e) {
-    console.error('Supabase no pudo cargar, usando modo local.', e);
+    console.error('Error al crear cliente Supabase:', e);
 }
 
 // ======================================================================
@@ -312,7 +314,7 @@ function setLocalData(clientes, lastUpdated) {
 }
 
 // ======================================================================
-// SINCRONIZACIÓN CON SUPABASE
+// SINCRONIZACIÓN CON SUPABASE (SIN MODO SILENCIOSO)
 // ======================================================================
 function updateConnectionStatus(status) {
     const dot = document.getElementById('statusDot');
@@ -323,12 +325,15 @@ function updateConnectionStatus(status) {
     else if (status === 'syncing') { dot.classList.add('syncing'); text.textContent = 'sincronizando...'; }
 }
 
-async function sincronizarDatos(silent = false) {
-    if (!supabaseClient) return;
+async function sincronizarDatos() {
+    if (!supabaseClient) {
+        showToast('⚠️ Error: Supabase no está configurado.', 'error', 4000);
+        return;
+    }
     if (isSyncing) return;
     isSyncing = true;
     updateConnectionStatus('syncing');
-    if(!silent) showToast('🔄 Sincronizando...', 'info', 1500);
+    showToast('🔄 Sincronizando datos...', 'info', 1500);
 
     const now = new Date().toISOString();
     const dataToSync = {
@@ -336,39 +341,47 @@ async function sincronizarDatos(silent = false) {
         lastUpdated: now
     };
 
+    const dataSize = new Blob([JSON.stringify(dataToSync)]).size;
+    console.log('📦 Tamaño del JSON:', (dataSize / 1024).toFixed(2), 'KB');
+    
+    if (dataSize > 900000) { // Límite seguro de 900KB para Supabase
+        showToast('⚠️ Error: Los datos superan 900KB. Borra fotos pesadas.', 'error', 5000);
+        isSyncing = false;
+        updateConnectionStatus(isOnline ? 'online' : 'offline');
+        return;
+    }
+
     try {
         const { error } = await supabaseClient
-            .from('crm_clientes')
+            .from('clientes')
             .upsert({ id: 1, contenido: dataToSync });
 
         if (error) throw error;
 
         setLocalData(clientDataCache, now);
-        if(!silent) showToast('✅ Sincronizado en la nube', 'success');
+        showToast('✅ Sincronizado en la nube', 'success');
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     } catch (err) {
         console.error('❌ Error al sincronizar:', err.message);
-        if(!silent) showToast('⚠️ Error: ' + err.message, 'error', 4000);
+        showToast('⚠️ Error Sync: ' + err.message, 'error', 5000);
         isSyncing = false;
         updateConnectionStatus(isOnline ? 'online' : 'offline');
     }
 }
 
-async function cargarDatosDesdeNube(silent = false) {
-    if (!supabaseClient) {
-        mostrarSync('ℹ️ Modo local', 'error');
-        return false;
-    }
-    if(!silent) showToast('🔄 Cargando datos...', 'info', 1500);
+async function cargarDatosDesdeNube() {
+    if (!supabaseClient) return;
+    showToast('🔄 Cargando datos...', 'info', 1500);
+    
     try {
         const { data, error } = await supabaseClient
-            .from('crm_clientes')
+            .from('clientes')
             .select('contenido')
             .eq('id', 1)
             .single();
 
-        if (error && error.code !== 'PGRST116') throw error;
+        if (error && error.code !== 'PGRST116') throw error; // Ignora error de "no hay filas"
 
         let cloudClientes = [];
         let cloudLastUpdated = 0;
@@ -387,28 +400,26 @@ async function cargarDatosDesdeNube(silent = false) {
             clientDataCache = cloudClientes;
             setLocalData(clientDataCache, new Date(cloudLastUpdated).toISOString());
             refreshUI();
-            if(!silent) showToast('✅ Datos actualizados desde la nube (' + clientDataCache.length + ')', 'success');
+            showToast('✅ Datos actualizados desde la nube (' + clientDataCache.length + ')', 'success');
         } else if (cloudClientes.length === 0 && localClientes.length > 0) {
             clientDataCache = localClientes;
             refreshUI();
-            if(!silent) showToast('Subiendo datos a la nube...', 'info', 2000);
-            setTimeout(() => sincronizarDatos(true), 500);
+            showToast('Subiendo datos a la nube...', 'info', 2000);
+            setTimeout(() => sincronizarDatos(), 500);
         } else if (localLastUpdated > cloudLastUpdated) {
             clientDataCache = localClientes;
             refreshUI();
-            setTimeout(() => sincronizarDatos(true), 1000);
+            setTimeout(() => sincronizarDatos(), 1000);
         } else {
             clientDataCache = localClientes;
             refreshUI();
         }
     } catch (err) {
-        if(!silent) {
-            console.error('❌ Error al cargar:', err.message);
-            const localData = getLocalData();
-            clientDataCache = localData.clientes;
-            refreshUI();
-            showToast('⚠️ Usando datos locales', 'error');
-        }
+        console.error('❌ Error al cargar:', err.message);
+        const localData = getLocalData();
+        clientDataCache = localData.clientes;
+        refreshUI();
+        showToast('⚠️ Error al cargar: ' + err.message, 'error', 4000);
     }
 }
 
@@ -425,7 +436,7 @@ function saveClient(client) {
     else clientDataCache.push(Object.assign({},client));
     setLocalData(clientDataCache, new Date().toISOString());
     refreshUI();
-    setTimeout(() => sincronizarDatos(true), 500);
+    setTimeout(() => sincronizarDatos(), 500); // Ya no es silencioso
     return true;
 }
 
@@ -435,7 +446,7 @@ function deleteClient(id) {
         clientDataCache.splice(idx,1);
         setLocalData(clientDataCache, new Date().toISOString());
         refreshUI();
-        setTimeout(() => sincronizarDatos(true), 500);
+        setTimeout(() => sincronizarDatos(), 500);
     }
 }
 
@@ -443,7 +454,7 @@ function clearAllClients() {
     clientDataCache = [];
     setLocalData(clientDataCache, new Date().toISOString());
     refreshUI();
-    setTimeout(() => sincronizarDatos(true), 500);
+    setTimeout(() => sincronizarDatos(), 500);
 }
 
 // ======================================================================
@@ -710,12 +721,12 @@ async function handlePhotoSelect(e){
         img.onload=function(){
             const canvas=document.createElement('canvas');
             let w=img.width, h=img.height;
-            const maxW=400;
+            const maxW=300; // Comprimida a 300px de ancho máximo
             if(w>maxW){ h=Math.round(h*maxW/w); w=maxW; }
             canvas.width=w; canvas.height=h;
             const ctx=canvas.getContext('2d');
             ctx.drawImage(img,0,0,w,h);
-            photoDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            photoDataUrl = canvas.toDataURL('image/jpeg', 0.5); // Calidad 50%
             document.getElementById('photoPreview').src = photoDataUrl;
             document.getElementById('photoPreview').classList.remove('hidden');
             document.getElementById('photoPlaceholder').classList.add('hidden');
@@ -781,7 +792,7 @@ function importData(e) {
                     clientDataCache = imported;
                     setLocalData(clientDataCache, new Date().toISOString());
                     refreshUI();
-                    setTimeout(() => sincronizarDatos(false), 500);
+                    setTimeout(() => sincronizarDatos(), 500);
                     showToast('Datos importados', 'success');
                 });
             } else { showToast('Formato invalido', 'error'); }
@@ -897,17 +908,17 @@ function printReport(type) {
 // EVENT LISTENERS GENERALES Y AUTO-ACTUALIZACIÓN
 // ======================================================================
 document.addEventListener('DOMContentLoaded', function() {
-    cargarDatosDesdeNube(false);
+    cargarDatosDesdeNube();
 
-    setInterval(() => cargarDatosDesdeNube(true), 20000);
+    setInterval(() => cargarDatosDesdeNube(), 20000);
 
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden) {
-            cargarDatosDesdeNube(true);
+            cargarDatosDesdeNube();
         }
     });
     window.addEventListener('focus', function() {
-        cargarDatosDesdeNube(true);
+        cargarDatosDesdeNube();
     });
 
     document.getElementById('navList').addEventListener('click', () => switchView('viewList'));
@@ -968,7 +979,7 @@ document.addEventListener('DOMContentLoaded', function() {
         } else { showToast('No hay coordenadas', 'warning'); }
     });
 
-    document.getElementById('syncNowBtn').addEventListener('click', () => cargarDatosDesdeNube(false));
+    document.getElementById('syncNowBtn').addEventListener('click', () => cargarDatosDesdeNube());
     document.getElementById('resetDataBtn').addEventListener('click', function() {
         showModal('Eliminar todos', '¿Seguro que deseas borrar TODOS los clientes?', 'Eliminar', function() {
             clearAllClients();
