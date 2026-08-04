@@ -402,6 +402,8 @@ let photoObjectUrl = null;
 let mapInstance = null;
 let currentUser = null;
 let isLoginMode = true;
+let pendingPhotoFile = null;
+let isPhotoProcessed = false;
 
 // ======================================================================
 // MANEJO DE SESIÓN (LOGIN / REGISTRO)
@@ -814,11 +816,14 @@ function resetForm(){
     photoDataUrl=null; 
     selectedLat=null; 
     selectedLng=null;
+    isPhotoProcessed = false;
+    
+    // Limpiar URL de objeto temporal
     if (photoObjectUrl) {
         URL.revokeObjectURL(photoObjectUrl);
         photoObjectUrl = null;
     }
-    window._pendingPhotoFile = null;
+    pendingPhotoFile = null;
     
     document.getElementById('clientId').value='';
     document.getElementById('fName').value='';
@@ -846,6 +851,7 @@ function resetForm(){
 function editClient(id){
     const client=getClient(id); if(!client){ showToast('No encontrado','error'); return; }
     editingId=id;
+    isPhotoProcessed = false;
     document.getElementById('clientId').value=id;
     document.getElementById('fName').value=client.name||'';
     document.getElementById('fBusiness').value=client.business||'';
@@ -975,18 +981,33 @@ function handlePhotoSelect(file) {
         return;
     }
 
+    // Guardar el archivo para procesarlo al guardar
+    pendingPhotoFile = file;
+    isPhotoProcessed = false;
+    
+    // Mostrar vista previa usando Object URL (solo para vista previa)
     if (photoObjectUrl) {
         URL.revokeObjectURL(photoObjectUrl);
         photoObjectUrl = null;
     }
-
     photoObjectUrl = URL.createObjectURL(file);
     document.getElementById('photoPreview').src = photoObjectUrl;
     document.getElementById('photoPreview').classList.remove('hidden');
     document.getElementById('photoPlaceholder').style.display = 'none';
     
-    window._pendingPhotoFile = file;
-    showToast('Foto cargada', 'success');
+    showToast('Foto cargada - Presiona Guardar para procesar', 'success', 2000);
+}
+
+// Función para procesar la foto al guardar
+async function processPendingPhoto() {
+    if (!pendingPhotoFile) return null;
+    try {
+        const dataUrl = await compressImage(pendingPhotoFile);
+        return dataUrl;
+    } catch (err) {
+        showToast('Error al procesar la foto', 'error');
+        return null;
+    }
 }
 
 // ======================================================================
@@ -1167,11 +1188,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('fPhoto');
     const cameraInput = document.getElementById('fPhotoCamera');
 
-    cameraBtn.addEventListener('click', function() {
+    cameraBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // Forzar reinicio del input de cámara
+        cameraInput.value = '';
         cameraInput.click();
     });
 
-    galleryBtn.addEventListener('click', function() {
+    galleryBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        fileInput.value = '';
         fileInput.click();
     });
 
@@ -1191,7 +1217,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('removePhotoBtn').addEventListener('click', function() {
         photoDataUrl = null;
-        window._pendingPhotoFile = null;
+        pendingPhotoFile = null;
+        isPhotoProcessed = false;
         if (photoObjectUrl) {
             URL.revokeObjectURL(photoObjectUrl);
             photoObjectUrl = null;
@@ -1204,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Foto eliminada', 'info');
     });
 
-    document.getElementById('clientForm').addEventListener('submit', function(e) {
+    document.getElementById('clientForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
         const id = document.getElementById('clientId').value;
@@ -1218,44 +1245,43 @@ document.addEventListener('DOMContentLoaded', function() {
         client.phone = document.getElementById('fPhone').value;
         client.references = document.getElementById('fReferences').value;
         
-        if (window._pendingPhotoFile) {
-            const btn = document.getElementById('formSubmitBtn');
+        const btn = document.getElementById('formSubmitBtn');
+        
+        // Si hay foto pendiente, procesarla
+        if (pendingPhotoFile && !isPhotoProcessed) {
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando foto...';
             
-            compressImage(window._pendingPhotoFile).then(dataUrl => {
+            try {
+                const dataUrl = await compressImage(pendingPhotoFile);
                 client.photo = dataUrl;
-                window._pendingPhotoFile = null;
+                photoDataUrl = dataUrl;
+                isPhotoProcessed = true;
+                
+                // Limpiar el archivo pendiente y la URL temporal
+                pendingPhotoFile = null;
                 if (photoObjectUrl) {
                     URL.revokeObjectURL(photoObjectUrl);
                     photoObjectUrl = null;
                 }
+                
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
                 saveClientAndFinish(client);
-            }).catch(() => {
-                showToast('Error al procesar la foto, usando versión simple', 'warning');
-                const file = document.getElementById('fPhoto').files[0] || document.getElementById('fPhotoCamera').files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(ev) {
-                        client.photo = ev.target.result;
-                        window._pendingPhotoFile = null;
-                        btn.disabled = false;
-                        btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
-                        saveClientAndFinish(client);
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
-                    saveClientAndFinish(client);
-                }
-            });
+            } catch (err) {
+                showToast('Error al procesar la foto', 'error');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
+                return;
+            }
             return;
         }
         
-        if (photoDataUrl) client.photo = photoDataUrl;
+        // Si ya tenía foto guardada (editando)
+        if (photoDataUrl && !pendingPhotoFile) {
+            client.photo = photoDataUrl;
+        }
+        
         saveClientAndFinish(client);
     });
 
@@ -1267,7 +1293,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         saveClient(client);
         editingId = null;
-        window._pendingPhotoFile = null;
+        pendingPhotoFile = null;
+        isPhotoProcessed = false;
         if (photoObjectUrl) {
             URL.revokeObjectURL(photoObjectUrl);
             photoObjectUrl = null;
