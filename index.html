@@ -91,7 +91,8 @@
         .photo-preview { width:100%; height:200px; object-fit:cover; border-radius:8px; border:1.5px solid var(--border); margin-top:6px; background:var(--bg-main); }
         .photo-placeholder { width:100%; height:80px; border:2px dashed var(--border); border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); gap:4px; cursor:pointer; background:var(--bg-main); margin-top:6px; }
         .photo-placeholder:hover { border-color:var(--primary); }
-        .file-input-wrapper { position:relative; overflow:hidden; }
+        .file-input-wrapper { position:relative; overflow:hidden; display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; }
+        .file-input-wrapper .btn { flex:0 1 auto; padding:8px 12px; font-size:.8rem; }
         .file-input-wrapper input[type=file] { position:absolute; top:0; left:0; width:100%; height:100%; opacity:0; cursor:pointer; }
         .detail-header { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
         .detail-header .back-btn { width:34px; height:34px; border-radius:50%; background:var(--border); color:var(--primary); display:flex; align-items:center; justify-content:center; border:none; cursor:pointer; font-size:1rem; }
@@ -134,11 +135,14 @@
         .modal .modal-footer { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
         .modal .modal-footer .btn { flex:1; }
         .hidden { display:none !important; }
-        .photo-actions { display:flex; gap:8px; margin-top:6px; }
+        .photo-actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
         .photo-actions .btn { flex:0 0 auto; padding:4px 12px; font-size:.7rem; }
         @media print { body{background:#fff;} .no-print{display:none!important;} }
         @media(min-width:640px){ #app{border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); } .toast-container{max-width:480px;} }
         @media(min-width:1024px){ #app{margin-top:24px; min-height:calc(100dvh - 48px); } .modal-overlay .modal{border-radius:16px; max-height:80vh; margin-bottom:20px;} .modal-overlay{align-items:center;} }
+        .photo-options { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+        .photo-options .btn { flex:1; min-width:80px; }
+        .file-input-hidden { display:none; }
     </style>
 </head>
 <body>
@@ -196,7 +200,20 @@
                     <div class="form-row"><div class="form-group"><label>Latitud</label><div class="input-wrap"><i class="fas fa-arrow-up"></i><input type="text" id="fLat" /></div></div><div class="form-group"><label>Longitud</label><div class="input-wrap"><i class="fas fa-arrow-right"></i><input type="text" id="fLng" /></div></div></div>
                     <div class="form-row"><div class="form-group"><label>Colonia</label><div class="input-wrap"><i class="fas fa-location-dot"></i><input type="text" id="fColony" /></div></div><div class="form-group"><label>Telefono</label><div class="input-wrap"><i class="fas fa-phone"></i><input type="tel" id="fPhone" /></div></div></div>
                     <div class="form-group"><label>Referencias</label><div class="input-wrap"><i class="fas fa-flag"></i><textarea id="fReferences"></textarea></div></div>
-                    <div class="form-group"><label>Foto</label><div class="file-input-wrapper"><div class="photo-placeholder" id="photoPlaceholder"><i class="fas fa-camera"></i><span>Toca para seleccionar</span></div><input type="file" id="fPhoto" accept="image/*" capture="environment" /></div><img id="photoPreview" class="photo-preview hidden" alt="Vista previa" /><div class="photo-actions"><button type="button" class="btn btn-danger btn-sm" id="removePhotoBtn"><i class="fas fa-times"></i> Quitar foto</button></div></div>
+                    <div class="form-group">
+                        <label>Foto</label>
+                        <div class="file-input-wrapper">
+                            <button type="button" class="btn btn-primary btn-sm" id="cameraBtn"><i class="fas fa-camera"></i> Cámara</button>
+                            <button type="button" class="btn btn-secondary btn-sm" id="galleryBtn"><i class="fas fa-folder-open"></i> Subir</button>
+                            <input type="file" id="fPhoto" accept="image/*" class="file-input-hidden" />
+                            <input type="file" id="fPhotoCamera" accept="image/*" capture="environment" class="file-input-hidden" />
+                        </div>
+                        <div id="photoPlaceholder" class="photo-placeholder"><i class="fas fa-camera"></i><span>Sin foto</span></div>
+                        <img id="photoPreview" class="photo-preview hidden" alt="Vista previa" />
+                        <div class="photo-actions">
+                            <button type="button" class="btn btn-danger btn-sm" id="removePhotoBtn"><i class="fas fa-times"></i> Quitar foto</button>
+                        </div>
+                    </div>
                     <div class="form-group"><label>Nueva visita (opcional)</label><div class="input-wrap"><i class="fas fa-sticky-note"></i><textarea id="fVisitNote"></textarea></div><div style="font-size:.7rem; color:var(--text-muted);">Solo se guardara si escribes algo.</div></div>
                     <div class="form-actions"><button type="button" class="btn btn-secondary" id="formCancelBtn"><i class="fas fa-times"></i> Cancelar</button><button type="submit" class="btn btn-primary" id="formSubmitBtn"><i class="fas fa-save"></i> Guardar</button></div>
                 </form>
@@ -583,8 +600,7 @@ function showClientDetail(id) {
     const visits = client.visits||[];
     const visitHtml = !visits.length ? '<p style="color:var(--text-muted);font-size:.8rem;">No hay visitas.</p>' :
         visits.map(function(v){
-            return '<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">'+new Date(v.date).toLocaleDateString('es')+'</div>'+
-                ((v.notes)?'<div class="v-notes">'+escHtml(v.notes)+'</div>':'')+'</div><div class="v-time">'+new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
+            return '<div class="visit-item"><div class="dot"></div><div class="v-info"><div class="v-date">'+new Date(v.date).toLocaleDateString('es')+'</div>'+                ((v.notes)?'<div class="v-notes">'+escHtml(v.notes)+'</div>':'')+'</div><div class="v-time">'+new Date(v.date).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'})+'</div></div>';
         }).join('');
     
     const lat=client.lat||'',lng=client.lng||'';
@@ -695,7 +711,6 @@ function resetForm(){
     photoDataUrl=null; 
     selectedLat=null; 
     selectedLng=null;
-    // Limpiar URL de objeto temporal
     if (photoObjectUrl) {
         URL.revokeObjectURL(photoObjectUrl);
         photoObjectUrl = null;
@@ -714,7 +729,7 @@ function resetForm(){
     document.getElementById('fVisitNote').value='';
     document.getElementById('photoPreview').classList.add('hidden');
     document.getElementById('photoPreview').src = '';
-    document.getElementById('photoPlaceholder').classList.remove('hidden');
+    document.getElementById('photoPlaceholder').style.display = 'flex';
     document.getElementById('formTitle').textContent='Nuevo Cliente';
     const btn=document.getElementById('formSubmitBtn');
     btn.disabled=false;
@@ -743,13 +758,13 @@ function editClient(id){
         photoDataUrl=client.photo; 
         document.getElementById('photoPreview').src=client.photo; 
         document.getElementById('photoPreview').classList.remove('hidden'); 
-        document.getElementById('photoPlaceholder').classList.add('hidden'); 
+        document.getElementById('photoPlaceholder').style.display = 'none';
     }
     else{ 
         photoDataUrl=null; 
         document.getElementById('photoPreview').classList.add('hidden'); 
         document.getElementById('photoPreview').src = '';
-        document.getElementById('photoPlaceholder').classList.remove('hidden'); 
+        document.getElementById('photoPlaceholder').style.display = 'flex';
     }
     selectedLat=client.lat?parseFloat(client.lat):null; 
     selectedLng=client.lng?parseFloat(client.lng):null;
@@ -806,7 +821,7 @@ async function geoSearch(){
 }
 
 // ======================================================================
-// MANEJO DE FOTOS OPTIMIZADO PARA MÓVIL
+// MANEJO DE FOTOS OPTIMIZADO PARA MÓVIL (CÁMARA Y SUBIR ARCHIVO)
 // ======================================================================
 function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -815,7 +830,6 @@ function compressImage(file) {
             const img = new Image();
             img.onload = function() {
                 const canvas = document.createElement('canvas');
-                // Reducir tamaño máximo a 400px para móvil
                 let w = img.width;
                 let h = img.height;
                 const maxSize = 400;
@@ -835,7 +849,6 @@ function compressImage(file) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, w, h);
                 
-                // Calidad 0.6 para móvil (más ligero)
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
                 resolve(dataUrl);
             };
@@ -851,29 +864,24 @@ function compressImage(file) {
     });
 }
 
-function handlePhotoSelect(e) {
-    const file = e.target.files[0];
+function handlePhotoSelect(file) {
     if (!file) return;
 
-    // Verificar que sea una imagen
     if (!file.type.startsWith('image/')) {
         showToast('Por favor selecciona una imagen', 'error');
         return;
     }
 
-    // Liberar URL anterior si existe
     if (photoObjectUrl) {
         URL.revokeObjectURL(photoObjectUrl);
         photoObjectUrl = null;
     }
 
-    // Crear URL temporal para vista previa inmediata
     photoObjectUrl = URL.createObjectURL(file);
     document.getElementById('photoPreview').src = photoObjectUrl;
     document.getElementById('photoPreview').classList.remove('hidden');
-    document.getElementById('photoPlaceholder').classList.add('hidden');
+    document.getElementById('photoPlaceholder').style.display = 'none';
     
-    // Guardar referencia al archivo para comprimir al guardar
     window._pendingPhotoFile = file;
     showToast('Foto cargada', 'success');
 }
@@ -1050,7 +1058,54 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('searchInput').addEventListener('input', refreshUI);
 
-    // FORMULARIO CON MANEJO DE FOTOS
+    // ===== BOTONES DE CÁMARA Y SUBIR =====
+    const cameraBtn = document.getElementById('cameraBtn');
+    const galleryBtn = document.getElementById('galleryBtn');
+    const fileInput = document.getElementById('fPhoto');
+    const cameraInput = document.getElementById('fPhotoCamera');
+
+    cameraBtn.addEventListener('click', function() {
+        cameraInput.click();
+    });
+
+    galleryBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // Evento para la cámara (capture)
+    cameraInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files.length > 0) {
+            handlePhotoSelect(e.target.files[0]);
+        }
+        // Resetear el input para permitir tomar otra foto
+        e.target.value = '';
+    });
+
+    // Evento para subir archivo desde galería
+    fileInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files.length > 0) {
+            handlePhotoSelect(e.target.files[0]);
+        }
+        e.target.value = '';
+    });
+
+    // Quitar foto
+    document.getElementById('removePhotoBtn').addEventListener('click', function() {
+        photoDataUrl = null;
+        window._pendingPhotoFile = null;
+        if (photoObjectUrl) {
+            URL.revokeObjectURL(photoObjectUrl);
+            photoObjectUrl = null;
+        }
+        document.getElementById('photoPreview').classList.add('hidden');
+        document.getElementById('photoPreview').src = '';
+        document.getElementById('photoPlaceholder').style.display = 'flex';
+        document.getElementById('fPhoto').value = '';
+        document.getElementById('fPhotoCamera').value = '';
+        showToast('Foto eliminada', 'info');
+    });
+
+    // FORMULARIO
     document.getElementById('clientForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -1065,9 +1120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         client.phone = document.getElementById('fPhone').value;
         client.references = document.getElementById('fReferences').value;
         
-        // Si hay foto pendiente, comprimirla ahora
         if (window._pendingPhotoFile) {
-            // Mostrar estado de carga
             const btn = document.getElementById('formSubmitBtn');
             btn.disabled = true;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando foto...';
@@ -1084,8 +1137,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 saveClientAndFinish(client);
             }).catch(() => {
                 showToast('Error al procesar la foto, usando versión simple', 'warning');
-                // Intentar con el método tradicional
-                const file = document.getElementById('fPhoto').files[0];
+                const file = document.getElementById('fPhoto').files[0] || document.getElementById('fPhotoCamera').files[0];
                 if (file) {
                     const reader = new FileReader();
                     reader.onload = function(ev) {
@@ -1105,7 +1157,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Si ya tenía foto guardada
         if (photoDataUrl) client.photo = photoDataUrl;
         saveClientAndFinish(client);
     });
@@ -1118,7 +1169,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         saveClient(client);
         editingId = null;
-        // Limpiar foto pendiente
         window._pendingPhotoFile = null;
         if (photoObjectUrl) {
             URL.revokeObjectURL(photoObjectUrl);
@@ -1127,24 +1177,6 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Cliente guardado', 'success');
         switchView('viewList');
     }
-
-    // Evento de selección de foto
-    document.getElementById('fPhoto').addEventListener('change', handlePhotoSelect);
-
-    // Quitar foto
-    document.getElementById('removePhotoBtn').addEventListener('click', function() {
-        photoDataUrl = null;
-        window._pendingPhotoFile = null;
-        if (photoObjectUrl) {
-            URL.revokeObjectURL(photoObjectUrl);
-            photoObjectUrl = null;
-        }
-        document.getElementById('photoPreview').classList.add('hidden');
-        document.getElementById('photoPreview').src = '';
-        document.getElementById('photoPlaceholder').classList.remove('hidden');
-        document.getElementById('fPhoto').value = '';
-        showToast('Foto eliminada', 'info');
-    });
 
     document.getElementById('geoBtn').addEventListener('click', geoSearch);
     document.getElementById('updateMapCoords').addEventListener('click', function() {
