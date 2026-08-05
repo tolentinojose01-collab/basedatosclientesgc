@@ -165,10 +165,6 @@
         .hidden { display:none !important; }
         .photo-actions { display:flex; gap:8px; margin-top:6px; flex-wrap:wrap; }
         .photo-actions .btn { flex:0 0 auto; padding:4px 12px; font-size:.7rem; }
-        .upload-progress { display:none; margin-top:6px; background:var(--bg-main); border-radius:8px; padding:8px 12px; font-size:.8rem; color:var(--text-secondary); }
-        .upload-progress.active { display:block; }
-        .upload-progress .progress-bar { width:100%; height:4px; background:var(--border); border-radius:4px; margin-top:4px; overflow:hidden; }
-        .upload-progress .progress-bar .progress-fill { height:100%; background:var(--primary); border-radius:4px; width:0%; transition:width 0.3s; }
         @media print { body{background:#fff;} .no-print{display:none!important;} }
         @media(min-width:640px){ #app{border-radius:20px; margin-top:16px; min-height:calc(100dvh - 32px); } .toast-container{max-width:480px;} }
         @media(min-width:1024px){ #app{margin-top:24px; min-height:calc(100dvh - 48px); } .modal-overlay .modal{border-radius:16px; max-height:80vh; margin-bottom:20px;} .modal-overlay{align-items:center;} }
@@ -300,10 +296,6 @@
                         </div>
                         <div id="photoPlaceholder" class="photo-placeholder"><i class="fas fa-camera"></i><span>Sin foto</span></div>
                         <img id="photoPreview" class="photo-preview hidden" alt="Vista previa" />
-                        <div class="upload-progress" id="uploadProgress">
-                            <span id="uploadText">Subiendo foto...</span>
-                            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-                        </div>
                         <div class="photo-actions">
                             <button type="button" class="btn btn-danger btn-sm" id="removePhotoBtn"><i class="fas fa-times"></i> Quitar foto</button>
                         </div>
@@ -385,8 +377,6 @@
 // ======================================================================
 const SUPABASE_URL = 'https://rvvvlrbtmhfbkygzcebw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_J2uG3_9SeR4VAWei9w_7bA_2WXxsSQ5';
-const STORAGE_BUCKET = 'clientes_fotos'; // <--- NOMBRE DEL BUCKET EN SUPABASE STORAGE
-
 let supabaseClient = null;
 try {
     if (window.supabase) {
@@ -407,8 +397,7 @@ let clientDataCache = [];
 let editingId = null;
 let selectedLat = null;
 let selectedLng = null;
-let photoDataUrl = null; // Para preview
-let photoFile = null; // Archivo de foto para subir a Storage
+let photoDataUrl = null;
 let mapInstance = null;
 let currentUser = null;
 let isLoginMode = true;
@@ -539,54 +528,6 @@ function updateConnectionStatus(status) {
     else if (status === 'syncing') { dot.classList.add('syncing'); text.textContent = 'sincronizando...'; }
 }
 
-// Función para subir foto a Supabase Storage
-async function uploadPhotoToStorage(file, clientId) {
-    if (!file || !currentUser) return null;
-    
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${currentUser.id}/${clientId}_${Date.now()}.${fileExt}`;
-    
-    try {
-        const { data, error } = await supabaseClient
-            .storage
-            .from(STORAGE_BUCKET)
-            .upload(fileName, file, {
-                cacheControl: '3600',
-                upsert: true
-            });
-            
-        if (error) throw error;
-        
-        // Obtener la URL pública
-        const { data: urlData } = supabaseClient
-            .storage
-            .from(STORAGE_BUCKET)
-            .getPublicUrl(fileName);
-            
-        return urlData.publicUrl;
-    } catch (err) {
-        showToast('Error al subir foto: ' + err.message, 'error');
-        return null;
-    }
-}
-
-// Función para eliminar foto de Storage
-async function deletePhotoFromStorage(photoUrl) {
-    if (!photoUrl) return;
-    try {
-        // Extraer el path de la URL
-        const path = photoUrl.split('/').pop();
-        const fullPath = `${currentUser.id}/${path}`;
-        
-        await supabaseClient
-            .storage
-            .from(STORAGE_BUCKET)
-            .remove([fullPath]);
-    } catch (err) {
-        console.error('Error al eliminar foto:', err);
-    }
-}
-
 async function sincronizarDatos() {
     if (!supabaseClient || !currentUser) return;
     if (isSyncing) return;
@@ -594,15 +535,20 @@ async function sincronizarDatos() {
     updateConnectionStatus('syncing');
 
     const now = new Date().toISOString();
-    
-    // IMPORTANTE: Ya no guardamos la foto en el JSON, solo la URL
-    // Pero necesitamos asegurarnos de que las fotos estén subidas a Storage
-    // antes de guardar el cliente
-    
     const dataToSync = {
         clientes: clientDataCache,
         lastUpdated: now
     };
+
+    // Eliminar la verificación de 900KB o aumentarla
+    // Si quieres mantenerla, aumenta el límite a 2MB
+    // const dataSize = new Blob([JSON.stringify(dataToSync)]).size;
+    // if (dataSize > 2000000) { 
+    //     showToast('⚠️ Los datos son muy grandes. Elimina fotos grandes.', 'error', 5000);
+    //     isSyncing = false;
+    //     updateConnectionStatus(isOnline ? 'online' : 'offline');
+    //     return;
+    // }
 
     try {
         const { error } = await supabaseClient
@@ -691,11 +637,6 @@ function saveClient(client) {
 function deleteClient(id) {
     const idx = clientDataCache.findIndex(function(c){return c.id==id;});
     if (idx !== -1) {
-        // Eliminar foto de Storage si existe
-        const client = clientDataCache[idx];
-        if (client.photo) {
-            deletePhotoFromStorage(client.photo);
-        }
         clientDataCache.splice(idx,1);
         setLocalData(clientDataCache, new Date().toISOString());
         refreshUI();
@@ -872,7 +813,6 @@ function switchView(viewId){
 function resetForm(){
     editingId=null; 
     photoDataUrl=null; 
-    photoFile=null;
     selectedLat=null; 
     selectedLng=null;
     
@@ -889,7 +829,6 @@ function resetForm(){
     document.getElementById('photoPreview').classList.add('hidden');
     document.getElementById('photoPreview').src = '';
     document.getElementById('photoPlaceholder').style.display = 'flex';
-    document.getElementById('uploadProgress').classList.remove('active');
     document.getElementById('formTitle').textContent='Nuevo Cliente';
     const btn=document.getElementById('formSubmitBtn');
     btn.disabled=false;
@@ -981,10 +920,10 @@ async function geoSearch(){
 }
 
 // ======================================================================
-// MANEJO DE FOTOS - CON SUPABASE STORAGE
+// MANEJO DE FOTOS - CON COMPRESIÓN EXTREMA
 // ======================================================================
 
-function compressImageForPreview(file) {
+function compressImage(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = function(e) {
@@ -993,7 +932,9 @@ function compressImageForPreview(file) {
                 const canvas = document.createElement('canvas');
                 let w = img.width;
                 let h = img.height;
-                const maxSize = 300;
+                
+                // Tamaño muy pequeño para ahorrar espacio
+                const maxSize = 150;
                 
                 if (w > maxSize || h > maxSize) {
                     if (w > h) {
@@ -1010,7 +951,8 @@ function compressImageForPreview(file) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, w, h);
                 
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                // Calidad baja para reducir tamaño
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.4);
                 resolve(dataUrl);
             };
             img.onerror = function() {
@@ -1025,7 +967,7 @@ function compressImageForPreview(file) {
     });
 }
 
-// Handle photo selection - comprime para preview, guarda archivo para Storage
+// Handle photo selection - comprime inmediatamente
 async function handlePhotoSelect(file) {
     if (!file) return;
     if (!file.type.startsWith('image/')) {
@@ -1033,17 +975,18 @@ async function handlePhotoSelect(file) {
         return;
     }
 
-    // Guardar el archivo original para subir a Storage
-    photoFile = file;
+    showToast('Comprimiendo foto...', 'info', 1500);
     
-    // Mostrar preview comprimido
     try {
-        const dataUrl = await compressImageForPreview(file);
+        const dataUrl = await compressImage(file);
         photoDataUrl = dataUrl;
+        
         document.getElementById('photoPreview').src = dataUrl;
         document.getElementById('photoPreview').classList.remove('hidden');
         document.getElementById('photoPlaceholder').style.display = 'none';
-        showToast('Foto lista para subir', 'success', 1500);
+        
+        const sizeInKB = Math.round((dataUrl.length * 3/4) / 1024);
+        showToast(`Foto lista (${sizeInKB}KB)`, 'success', 2000);
     } catch (err) {
         showToast('Error al procesar la foto', 'error');
     }
@@ -1051,13 +994,11 @@ async function handlePhotoSelect(file) {
 
 function clearPhoto() {
     photoDataUrl = null;
-    photoFile = null;
     document.getElementById('photoPreview').classList.add('hidden');
     document.getElementById('photoPreview').src = '';
     document.getElementById('photoPlaceholder').style.display = 'flex';
     document.getElementById('fPhoto').value = '';
     document.getElementById('fPhotoCamera').value = '';
-    document.getElementById('uploadProgress').classList.remove('active');
     showToast('Foto eliminada', 'info');
 }
 
@@ -1267,8 +1208,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('removePhotoBtn').addEventListener('click', clearPhoto);
 
-    // ===== GUARDAR CLIENTE CON FOTO EN STORAGE =====
-    document.getElementById('clientForm').addEventListener('submit', async function(e) {
+    // ===== GUARDAR CLIENTE =====
+    document.getElementById('clientForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         const id = document.getElementById('clientId').value;
@@ -1282,56 +1223,11 @@ document.addEventListener('DOMContentLoaded', function() {
         client.phone = document.getElementById('fPhone').value;
         client.references = document.getElementById('fReferences').value;
         
-        const btn = document.getElementById('formSubmitBtn');
-        const progressEl = document.getElementById('uploadProgress');
-        const progressFill = document.getElementById('progressFill');
-        
-        // Si hay una foto nueva para subir
-        if (photoFile) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
-            progressEl.classList.add('active');
-            progressFill.style.width = '30%';
-            document.getElementById('uploadText').textContent = 'Subiendo foto a la nube...';
-            
-            try {
-                // Subir foto a Storage
-                const photoUrl = await uploadPhotoToStorage(photoFile, client.id || 'new');
-                progressFill.style.width = '80%';
-                document.getElementById('uploadText').textContent = 'Guardando datos...';
-                
-                if (photoUrl) {
-                    client.photo = photoUrl;
-                    // Si el cliente ya tenía una foto anterior, eliminarla
-                    const existingClient = getClient(id);
-                    if (existingClient && existingClient.photo && existingClient.photo !== photoUrl) {
-                        await deletePhotoFromStorage(existingClient.photo);
-                    }
-                }
-                
-                progressFill.style.width = '100%';
-                setTimeout(() => progressEl.classList.remove('active'), 500);
-                
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
-                
-                // Guardar cliente
-                saveClientAndFinish(client);
-            } catch (err) {
-                showToast('Error al subir foto: ' + err.message, 'error');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
-                progressEl.classList.remove('active');
-                return;
-            }
-        } else {
-            // Sin foto nueva - mantener la existente
-            if (photoDataUrl && !photoFile) {
-                // Mantener la foto existente (no es nueva)
-                client.photo = photoDataUrl;
-            }
-            saveClientAndFinish(client);
+        if (photoDataUrl) {
+            client.photo = photoDataUrl;
         }
+        
+        saveClientAndFinish(client);
     });
 
     function saveClientAndFinish(client) {
@@ -1342,7 +1238,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         saveClient(client);
         editingId = null;
-        photoFile = null;
         photoDataUrl = null;
         showToast('Cliente guardado', 'success');
         switchView('viewList');
