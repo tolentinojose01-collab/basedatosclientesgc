@@ -398,12 +398,9 @@ let editingId = null;
 let selectedLat = null;
 let selectedLng = null;
 let photoDataUrl = null;
-let photoObjectUrl = null;
 let mapInstance = null;
 let currentUser = null;
 let isLoginMode = true;
-let pendingPhotoFile = null;
-let isPhotoProcessed = false;
 
 // ======================================================================
 // MANEJO DE SESIÓN (LOGIN / REGISTRO)
@@ -816,14 +813,6 @@ function resetForm(){
     photoDataUrl=null; 
     selectedLat=null; 
     selectedLng=null;
-    isPhotoProcessed = false;
-    
-    // Limpiar URL de objeto temporal
-    if (photoObjectUrl) {
-        URL.revokeObjectURL(photoObjectUrl);
-        photoObjectUrl = null;
-    }
-    pendingPhotoFile = null;
     
     document.getElementById('clientId').value='';
     document.getElementById('fName').value='';
@@ -851,7 +840,6 @@ function resetForm(){
 function editClient(id){
     const client=getClient(id); if(!client){ showToast('No encontrado','error'); return; }
     editingId=id;
-    isPhotoProcessed = false;
     document.getElementById('clientId').value=id;
     document.getElementById('fName').value=client.name||'';
     document.getElementById('fBusiness').value=client.business||'';
@@ -930,7 +918,7 @@ async function geoSearch(){
 }
 
 // ======================================================================
-// MANEJO DE FOTOS OPTIMIZADO PARA MÓVIL (CÁMARA Y SUBIR ARCHIVO)
+// MANEJO DE FOTOS - SIN USAR OBJECT URL (SOLO DATAURL)
 // ======================================================================
 function compressImage(file) {
     return new Promise((resolve, reject) => {
@@ -973,41 +961,29 @@ function compressImage(file) {
     });
 }
 
-function handlePhotoSelect(file) {
+// Función para mostrar preview usando DataURL (NO Object URL)
+function previewPhotoWithDataUrl(file) {
     if (!file) return;
-
     if (!file.type.startsWith('image/')) {
         showToast('Por favor selecciona una imagen', 'error');
         return;
     }
 
-    // Guardar el archivo para procesarlo al guardar
-    pendingPhotoFile = file;
-    isPhotoProcessed = false;
-    
-    // Mostrar vista previa usando Object URL (solo para vista previa)
-    if (photoObjectUrl) {
-        URL.revokeObjectURL(photoObjectUrl);
-        photoObjectUrl = null;
-    }
-    photoObjectUrl = URL.createObjectURL(file);
-    document.getElementById('photoPreview').src = photoObjectUrl;
-    document.getElementById('photoPreview').classList.remove('hidden');
-    document.getElementById('photoPlaceholder').style.display = 'none';
-    
-    showToast('Foto cargada - Presiona Guardar para procesar', 'success', 2000);
-}
-
-// Función para procesar la foto al guardar
-async function processPendingPhoto() {
-    if (!pendingPhotoFile) return null;
-    try {
-        const dataUrl = await compressImage(pendingPhotoFile);
-        return dataUrl;
-    } catch (err) {
-        showToast('Error al procesar la foto', 'error');
-        return null;
-    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        // Guardar el dataUrl para usarlo al guardar
+        photoDataUrl = dataUrl;
+        // Mostrar en el preview
+        document.getElementById('photoPreview').src = dataUrl;
+        document.getElementById('photoPreview').classList.remove('hidden');
+        document.getElementById('photoPlaceholder').style.display = 'none';
+        showToast('Foto cargada', 'success', 1500);
+    };
+    reader.onerror = function() {
+        showToast('Error al leer la imagen', 'error');
+    };
+    reader.readAsDataURL(file);
 }
 
 // ======================================================================
@@ -1190,7 +1166,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cameraBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        // Forzar reinicio del input de cámara
         cameraInput.value = '';
         cameraInput.click();
     });
@@ -1201,28 +1176,24 @@ document.addEventListener('DOMContentLoaded', function() {
         fileInput.click();
     });
 
+    // Evento para la cámara - usa DataURL directamente
     cameraInput.addEventListener('change', function(e) {
         if (e.target.files && e.target.files.length > 0) {
-            handlePhotoSelect(e.target.files[0]);
+            previewPhotoWithDataUrl(e.target.files[0]);
         }
         e.target.value = '';
     });
 
+    // Evento para subir archivo - usa DataURL directamente
     fileInput.addEventListener('change', function(e) {
         if (e.target.files && e.target.files.length > 0) {
-            handlePhotoSelect(e.target.files[0]);
+            previewPhotoWithDataUrl(e.target.files[0]);
         }
         e.target.value = '';
     });
 
     document.getElementById('removePhotoBtn').addEventListener('click', function() {
         photoDataUrl = null;
-        pendingPhotoFile = null;
-        isPhotoProcessed = false;
-        if (photoObjectUrl) {
-            URL.revokeObjectURL(photoObjectUrl);
-            photoObjectUrl = null;
-        }
         document.getElementById('photoPreview').classList.add('hidden');
         document.getElementById('photoPreview').src = '';
         document.getElementById('photoPlaceholder').style.display = 'flex';
@@ -1231,7 +1202,7 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Foto eliminada', 'info');
     });
 
-    document.getElementById('clientForm').addEventListener('submit', async function(e) {
+    document.getElementById('clientForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
         const id = document.getElementById('clientId').value;
@@ -1245,40 +1216,8 @@ document.addEventListener('DOMContentLoaded', function() {
         client.phone = document.getElementById('fPhone').value;
         client.references = document.getElementById('fReferences').value;
         
-        const btn = document.getElementById('formSubmitBtn');
-        
-        // Si hay foto pendiente, procesarla
-        if (pendingPhotoFile && !isPhotoProcessed) {
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando foto...';
-            
-            try {
-                const dataUrl = await compressImage(pendingPhotoFile);
-                client.photo = dataUrl;
-                photoDataUrl = dataUrl;
-                isPhotoProcessed = true;
-                
-                // Limpiar el archivo pendiente y la URL temporal
-                pendingPhotoFile = null;
-                if (photoObjectUrl) {
-                    URL.revokeObjectURL(photoObjectUrl);
-                    photoObjectUrl = null;
-                }
-                
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
-                saveClientAndFinish(client);
-            } catch (err) {
-                showToast('Error al procesar la foto', 'error');
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-save"></i> Guardar';
-                return;
-            }
-            return;
-        }
-        
-        // Si ya tenía foto guardada (editando)
-        if (photoDataUrl && !pendingPhotoFile) {
+        // Si hay foto en dataUrl (ya cargada como preview)
+        if (photoDataUrl) {
             client.photo = photoDataUrl;
         }
         
@@ -1293,12 +1232,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         saveClient(client);
         editingId = null;
-        pendingPhotoFile = null;
-        isPhotoProcessed = false;
-        if (photoObjectUrl) {
-            URL.revokeObjectURL(photoObjectUrl);
-            photoObjectUrl = null;
-        }
         showToast('Cliente guardado', 'success');
         switchView('viewList');
     }
